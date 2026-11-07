@@ -3,6 +3,8 @@ package com.juniverse.client.handler;
 import com.juniverse.client.autoconfigure.EnableRestHttpClients;
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.exception.ClientException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
@@ -23,7 +25,8 @@ import java.util.Set;
  * The Class RestHttpClientRegistrar.
  */
 public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar {
-    
+    /** The logger. */
+    private static final Logger LOG = LoggerFactory.getLogger(RestHttpClientRegistrar.class);
     /**
      * Register bean definitions.
      *
@@ -41,7 +44,7 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar {
             String className = metadata.getClassName();
             String basePackage = className.substring(0, className.lastIndexOf('.'));
             basePackages = new String[]{basePackage};
-            //log.info("No se especificaron basePackages, usando: {}", basePackage);
+            LOG.info("No se especificaron basePackages, usando: {}", basePackage);
         }
 
         ClassPathScanningCandidateComponentProvider scanner =
@@ -57,27 +60,27 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar {
         scanner.addIncludeFilter(new AnnotationTypeFilter(RestHttpClient.class));
         List<String> registeredClients = new ArrayList<>();
         for (String basePackage : basePackages) {
-            //log.debug("Scanning package: {}", basePackage);
+            LOG.debug("Scanning package: {}", basePackage);
             Set<BeanDefinition> candidates = scanner.findCandidateComponents(basePackage);
 
-            //log.info("Found {} in {}", candidates.size(), basePackage);
+            LOG.info("Found {} in {}", candidates.size(), basePackage);
 
             for (BeanDefinition candidate : candidates) {
                 String className = candidate.getBeanClassName();
-                //log.debug("Processing: {}", className);
+                LOG.debug("Processing: {}", className);
 
                 try {
                     Class<?> clientInterface = Class.forName(className);
 
                     if (!clientInterface.isAnnotationPresent(RestHttpClient.class)) {
-                        //log.warn("The interface {} does not have @RestHttpClient", className);
+                        LOG.warn("The interface {} does not have @RestHttpClient", className);
                         continue;
                     }
 
                     RestHttpClient annotation = clientInterface.getAnnotation(RestHttpClient.class);
                     String beanName = determineBeanName(clientInterface, annotation);
 
-                    //log.info("Registering bean: {} for interface: {}", beanName, className);
+                    LOG.info("Registering bean: {} for interface: {}", beanName, className);
 
                     BeanDefinitionBuilder definition = BeanDefinitionBuilder
                             .genericBeanDefinition(RestHttpClientFactoryBean.class);
@@ -90,18 +93,18 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar {
                     registry.registerBeanDefinition(beanName, beanDefinition);
                     registeredClients.add(beanName);
 
-                    //log.info("Bean '{}' successfully registered", beanName);
+                    LOG.info("Bean '{}' successfully registered", beanName);
 
                 } catch (ClassNotFoundException e) {
-                    //log.error("The class could not be loaded: {}", className, e);
+                    LOG.error("The class could not be loaded: {}", className, e);
                     throw new ClientException("Cannot load client interface: " + className, e);
                 } catch (Exception e) {
-                    //log.error("Error registering bean for: {}", className, e);
+                    LOG.error("Error registering bean for: {}", className, e);
                     throw new ClientException("Error registering client: " + className, e);
                 }
             }
         }
-        //log.info("Total number of registered client: {}", registeredClients.size());
+        LOG.info("Total number of registered client: {}", registeredClients.size());
     }
 
     /**
