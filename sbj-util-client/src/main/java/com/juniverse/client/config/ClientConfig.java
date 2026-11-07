@@ -21,7 +21,7 @@ public class ClientConfig {
 
     @Bean
     public RestClientUtil httpClientConfigurer() {
-        return new RestClientUtil(new SSLUtil());
+        return new RestClientUtil(sslUtil());
     }
 
     @Bean
