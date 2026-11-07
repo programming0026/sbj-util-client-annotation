@@ -7,9 +7,9 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * The Interface CircuitBreakerConfig.
- * Configuration for Resilience 4j Circuit Breaker pattern.
- * Circuit breaker prevents cascading failures by stopping requests to a failing service.
+ * Configuración del patrón Circuit Breaker de Resilience4j.
+ *
+ * El circuit breaker evita fallas en cascada dejando de enviar peticiones a un servicio que está fallando.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -17,49 +17,44 @@ import java.lang.annotation.ElementType;
 public @interface CircuitBreakerConfig {
 
     /**
-     * Circuit breaker enabled.
+     * Indica si el circuit breaker está habilitado.
      *
-     * @return true, if circuit breaker is enabled
+     * @return true si el circuit breaker está habilitado
      */
     boolean enabled() default false;
 
     /**
-     * Circuit breaker failure rate threshold.
-     * Percentage of failures (0-100) that will open the circuit.
+     * Porcentaje de fallas (0-100) a partir del cual se abre el circuito.
      *
-     * @return the failure rate threshold
+     * @return el umbral de tasa de fallas
      */
     int failureRateThreshold() default 50;
 
     /**
-     * Circuit breaker sliding window size.
-     * Number of calls in the sliding window used to calculate failure rate.
+     * Número de llamadas de la ventana deslizante usada para calcular la tasa de fallas.
      *
-     * @return the sliding window size
+     * @return el tamaño de la ventana deslizante
      */
     int slidingWindowSize() default 100;
 
     /**
-     * Circuit breaker minimum number of calls.
-     * Minimum number of calls required before the circuit breaker can calculate the failure rate.
+     * Número mínimo de llamadas antes de que el circuit breaker pueda calcular la tasa de fallas.
      *
-     * @return the minimum number of calls
+     * @return el número mínimo de llamadas
      */
     int minimumNumberOfCalls() default 10;
 
     /**
-     * Circuit breaker wait duration in open state.
-     * Time in milliseconds the circuit breaker should wait before transitioning from open to half-open.
+     * Tiempo en milisegundos que el circuito permanece abierto antes de pasar a semiabierto.
      *
-     * @return the wait duration in milliseconds
+     * @return el tiempo de espera en estado abierto, en milisegundos
      */
     long waitDurationInOpenState() default 60000;
 
     /**
-     * Circuit breaker permitted number of calls in half open state.
-     * Number of calls allowed in half-open state to test if the service has recovered.
+     * Número de llamadas permitidas en estado semiabierto para comprobar si el servicio se recuperó.
      *
-     * @return the permitted number of calls in half-open state
+     * @return el número de llamadas permitidas en estado semiabierto
      */
     int permittedNumberOfCallsInHalfOpenState() default 5;
 }

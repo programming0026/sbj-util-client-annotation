@@ -7,10 +7,10 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * The Interface RetryConfig.
+ * Configuración del patrón Retry de Resilience4j.
  *
- * Configuration for Resilience 4j Retry pattern.
- * Retry automatically retries failed requests with configurable delay and backoff.
+ * Reintenta automáticamente las peticiones fallidas con espera configurable y backoff exponencial.
+ * Siempre está activo; qué errores se reintentan lo decide {@code ErrorHandler.shouldRetry}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -18,30 +18,26 @@ import java.lang.annotation.ElementType;
 public @interface RetryConfig {
 
     /**
-     * Max retries.
+     * Número máximo de intentos, incluido el primero (1 = sin reintentos).
      *
-     * Maximum number of retry attempts.
-     *
-     * @return the maximum number of retries
+     * @return el número máximo de intentos
      */
     int maxRetries() default 3;
 
     /**
-     * Retry delay.
+     * Espera inicial entre reintentos, en milisegundos.
      *
-     * Initial delay between retries in milliseconds.
-     *
-     * @return the retry delay in milliseconds
+     * @return la espera inicial en milisegundos
      */
     long retryDelay() default 1000;
 
     /**
-     * Retry exponential backoff multiplier.
+     * Multiplicador del backoff exponencial.
      *
-     * Multiplier for exponential backoff. Each retry will wait retryDelay * (multiplier ^ attemptNumber).
-     * For example, with delay=1000 and multiplier=2.0: 1s, 2s, 4s, 8s...
+     * Cada reintento espera {@code retryDelay * multiplicador^(intento - 1)}.
+     * Por ejemplo, con retryDelay=1000 y multiplicador=2.0: 1 s, 2 s, 4 s, 8 s...
      *
-     * @return the exponential backoff multiplier
+     * @return el multiplicador del backoff exponencial
      */
     double exponentialBackoffMultiplier() default 2.0;
 }

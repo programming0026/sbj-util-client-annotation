@@ -30,20 +30,27 @@ import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The Class HttpClientConfigurer.
+ * Construye el {@link RestClient} o {@link RestTemplate} de cada cliente sobre Apache HttpClient 5,
+ * con timeouts, SSL y pool de conexiones tomados de su anotación {@link RestHttpClient}.
  */
 public class RestClientUtil {
-    /** The ssl util. */
+    /** Utilidad para crear los contextos SSL. */
     private final SSLUtil sslUtil;
 
+    /**
+     * Crea la utilidad.
+     *
+     * @param sslUtil la utilidad SSL
+     */
     public RestClientUtil(SSLUtil sslUtil) {
         this.sslUtil = sslUtil;
     }
     /**
-     * Configura un RestClient con los parametrise specificities.
+     * Configura un RestClient con los parámetros especificados.
      *
-     * @param config the config
-     * @return the rest client
+     * @param config la configuración del cliente
+     * @return el RestClient
+     * @throws ClientException si falla la configuración SSL
      */
     public RestClient configureRestClient(RestHttpClient config) {
         try {
@@ -62,15 +69,16 @@ public class RestClientUtil {
         } catch (IOException | KeyManagementException | KeyStoreException
                  | NoSuchAlgorithmException | UnrecoverableKeyException
                  | CertificateException e) {
-            throw new ClientException("Error configurando RestClient", e);
+            throw new ClientException("Error configuring RestClient", e);
         }
     }
 
     /**
      * Configura un RestTemplate con los parámetros especificados.
      *
-     * @param config the config
-     * @return the rest template
+     * @param config la configuración del cliente
+     * @return el RestTemplate
+     * @throws ClientException si falla la configuración SSL
      */
     public RestTemplate configureRestTemplate(RestHttpClient config) {
         try {
@@ -86,7 +94,7 @@ public class RestClientUtil {
         } catch (IOException | KeyManagementException | KeyStoreException
                  | NoSuchAlgorithmException | UnrecoverableKeyException
                  | CertificateException e) {
-            throw new ClientException("Error configurando RestTemplate", e);
+            throw new ClientException("Error configuring RestTemplate", e);
         }
     }
 
@@ -95,28 +103,36 @@ public class RestClientUtil {
 
    /**
      * Crea un HttpClient con configuración de timeouts, SSL y pool de conexiones.
-     * Connection pool configuration can be customized via annotation parameters:
-     * - maxConnections: Total connections in pool (default: 100)
-     * - maxConnectionsPerRoute: Connections per route (default: 20)
-     * - connectionTimeToLive: TTL for connections in ms (default: -1, no limit)
-     * IMPORTANT: Passwords are passed directly from annotation values.
-     * Use environment-specific configuration files for sensitive data.
      *
-     * @param config the config
-     * @return the http client
-     * @throws NoSuchAlgorithmException the exception
+     * El pool se configura con los atributos de la anotación:
+     * - maxConnections: conexiones totales del pool (por defecto 100)
+     * - maxConnectionsPerRoute: conexiones por ruta (por defecto 20)
+     * - connectionTimeToLive: tiempo de vida de las conexiones en ms (por defecto -1, sin límite)
+     *
+     * Si SSL está habilitado sin keystore ni truststore se usa el contexto SSL por defecto de la JVM.
+     * IMPORTANTE: las contraseñas se toman tal cual de la anotación.
+     *
+     * @param config la configuración del cliente
+     * @return el HttpClient
+     * @throws NoSuchAlgorithmException si el algoritmo TLS no está disponible
+     * @throws UnrecoverableKeyException si no se puede recuperar la clave del keystore
+     * @throws CertificateException si un certificado no se puede cargar
+     * @throws KeyStoreException si el keystore no es válido
+     * @throws IOException si el keystore o truststore no se puede leer
+     * @throws KeyManagementException si falla la inicialización del contexto SSL
      */
     private HttpClient createHttpClient(RestHttpClient config)
             throws NoSuchAlgorithmException, UnrecoverableKeyException, CertificateException,
             KeyStoreException, IOException, KeyManagementException {
 
+        // connectionRequestTimeout: espera máxima para obtener una conexión del pool.
+        // responseTimeout: espera máxima de la respuesta.
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectionRequestTimeout(Timeout.of(config.connectTimeout(), TimeUnit.MILLISECONDS))
                 .setResponseTimeout(Timeout.of(config.readTimeout(), TimeUnit.MILLISECONDS))
-                .setConnectionRequestTimeout(Timeout.of(config.readTimeout(), TimeUnit.MILLISECONDS))
                 .build();
 
-        
+
         SocketConfig socketConfig = SocketConfig.custom()
                 .setSoTimeout(Timeout.of(config.readTimeout(), TimeUnit.MILLISECONDS))
                 .build();
@@ -166,12 +182,14 @@ public class RestClientUtil {
                         .setMaxConnPerRoute(config.maxConnectionsPerRoute());
 
 
+        // En HttpClient 5 el timeout de conexión TCP se define aquí; sin él se usa el valor por
+        // defecto de HttpClient (3 minutos).
+        ConnectionConfig.Builder connConfig = ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.of(config.connectTimeout(), TimeUnit.MILLISECONDS));
         if (config.connectionTimeToLive() > 0) {
-            ConnectionConfig connConfig = ConnectionConfig.custom()
-                    .setTimeToLive(TimeValue.ofMilliseconds(config.connectionTimeToLive()))
-                    .build();
-            connectionManagerBuilder.setDefaultConnectionConfig(connConfig);
+            connConfig.setTimeToLive(TimeValue.ofMilliseconds(config.connectionTimeToLive()));
         }
+        connectionManagerBuilder.setDefaultConnectionConfig(connConfig.build());
 
         PoolingHttpClientConnectionManager connectionManager = connectionManagerBuilder.build();
 

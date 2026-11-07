@@ -3,32 +3,35 @@ package com.juniverse.client.exception;
 import org.springframework.http.HttpStatusCode;
 
 /**
- * The Interface ErrorHandler.
+ * Define cómo se tratan las respuestas HTTP con error. Las implementaciones necesitan un constructor
+ * sin argumentos.
  */
 public interface ErrorHandler {
-    
+
     /**
-     * Handle error.
+     * Procesa una respuesta con error. Puede lanzar su propia excepción; si no lanza nada, se propaga
+     * la excepción HTTP original.
      *
-     * @param statusCode the status code
-     * @param responseBody the response body
-     * @param exception the exception
+     * @param statusCode el código de estado
+     * @param responseBody el cuerpo de la respuesta
+     * @param exception la excepción original
      */
     void handleError(HttpStatusCode statusCode, String responseBody, Exception exception);
 
     /**
-     * Should retry.
+     * Indica si una respuesta con este estado se debe reintentar.
      *
-     * @param statusCode the status code
-     * @return true, if successful
+     * @param statusCode el código de estado
+     * @return true si se debe reintentar
      */
     boolean shouldRetry(HttpStatusCode statusCode);
 
     /**
-     * Should record as failure.
+     * Indica si este estado cuenta como falla para el circuit breaker. Si es true, la excepción original
+     * se propaga sin pasar por {@link #handleError}.
      *
-     * @param statusCode the status code
-     * @return true, if successful
+     * @param statusCode el código de estado
+     * @return true si se registra como falla
      */
     boolean shouldRecordAsFailure(HttpStatusCode statusCode);
 }

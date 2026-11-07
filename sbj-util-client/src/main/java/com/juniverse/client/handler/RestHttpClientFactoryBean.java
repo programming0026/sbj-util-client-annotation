@@ -15,29 +15,32 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
- * The Class RestHttpClientFactoryBean.
+ * Crea el proxy de una interfaz {@link RestHttpClient}.
  *
- * @param <T> the generic type
+ * Construye el RestClient o RestTemplate según {@code type()}, instancia el {@link ErrorHandler} por
+ * reflexión y devuelve un proxy dinámico respaldado por {@link RestHttpClientInvocationHandler}.
+ *
+ * @param <T> el tipo de la interfaz del cliente
  */
 public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, ApplicationContextAware {
-    
-    /** The client interface. */
+
+    /** La interfaz del cliente. */
     private final Class<T> clientInterface;
-    
-    /** The resilience 4 j configuration. */
+
+    /** La fábrica de instancias de Resilience4j. */
     private final CircuitBreakerUtil circuitBreakerUtil;
 
-    /** The rest client. */
+    /** La utilidad que construye los clientes HTTP. */
     private final RestClientUtil restClientUtil;
 
-    /** The application context. */
+    /** El contexto de la aplicación. */
     private ApplicationContext applicationContext;
     /**
-     * Instantiates a new rest http client factory bean.
+     * Crea el factory bean.
      *
-     * @param clientInterface the client interface
-     * @param circuitBreakerUtil the resilience 4 j configuration
-     * @param restClientUtil The rest client
+     * @param clientInterface la interfaz del cliente (no puede ser null)
+     * @param circuitBreakerUtil la fábrica de instancias de Resilience4j
+     * @param restClientUtil la utilidad que construye los clientes HTTP
      */
     public RestHttpClientFactoryBean(Class<T> clientInterface,
                                      CircuitBreakerUtil circuitBreakerUtil,
@@ -48,26 +51,31 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
     }
 
     /**
-     * Set Application Context.
+     * Guarda el contexto de la aplicación.
      *
-     * @param applicationContext the ApplicationContext object to be used by this object
-     * @throws BeansException the exception
+     * @param applicationContext el contexto de la aplicación
+     * @throws BeansException si ocurre un error de Spring
      */
     @Override
     public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
     }
 
+    /**
+     * Obtiene el contexto de la aplicación.
+     *
+     * @return el contexto de la aplicación
+     */
     public ApplicationContext getApplicationContext() {
         return applicationContext;
     }
-    
-    
+
+
     /**
-     * Gets the object.
+     * Crea el proxy del cliente.
      *
-     * @return the object
-     * @throws Exception the exception
+     * @return el proxy que implementa la interfaz del cliente
+     * @throws Exception si no se puede instanciar el manejador de errores
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -93,10 +101,10 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
     }
 
     /**
-     * Creates the http client.
+     * Crea el cliente HTTP según el {@code type()} de la anotación.
      *
-     * @param annotation the annotation
-     * @return the object
+     * @param annotation la anotación del cliente
+     * @return un RestClient o un RestTemplate
      */
     private Object createHttpClient(RestHttpClient annotation) {
         return switch (annotation.type()) {
@@ -107,9 +115,9 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
     }
 
     /**
-     * Gets the object type.
+     * Obtiene el tipo del objeto creado.
      *
-     * @return the object type
+     * @return la interfaz del cliente
      */
     @Override
     public Class<?> getObjectType() {
@@ -117,9 +125,9 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
     }
 
     /**
-     * Checks if is singleton.
+     * Indica que el proxy es singleton.
      *
-     * @return true, if is singleton
+     * @return siempre true
      */
     @Override
     public boolean isSingleton() {

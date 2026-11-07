@@ -3,23 +3,23 @@ package com.juniverse.client.handler.duplicate;
 import com.juniverse.client.autoconfigure.EnableRestHttpClients;
 import com.juniverse.client.autoconfigure.RestHttpClient;
 
-/** Two clients sharing the same bean name, to trigger a registration error. */
+/** Dos clientes con el mismo nombre de bean, para provocar un error de registro. */
 public final class DuplicateClients {
 
     private DuplicateClients() {
     }
 
-    /** Config that scans this package explicitly. */
+    /** Configuración que escanea este paquete de forma explícita. */
     @EnableRestHttpClients(basePackages = "com.juniverse.client.handler.duplicate")
     public static class Config {
     }
 
-    /** First client. */
+    /** Primer cliente. */
     @RestHttpClient(name = "dup", url = "http://localhost")
     public interface First {
     }
 
-    /** Second client with the same name. */
+    /** Segundo cliente con el mismo nombre. */
     @RestHttpClient(name = "dup", url = "http://localhost")
     public interface Second {
     }

@@ -7,9 +7,10 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * The Interface TimeLimiterConfig.
- * Configuration for Resilience4j Time Limiter pattern.
- * Time limiter sets a maximum execution time for requests.
+ * Configuración del patrón Time Limiter de Resilience4j.
+ *
+ * Fija un tiempo máximo de ejecución para las peticiones. Si se excede, la llamada lanza
+ * {@code ClientException} con un {@code TimeoutException} como causa.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -17,16 +18,16 @@ import java.lang.annotation.ElementType;
 public @interface TimeLimiterConfig {
 
     /**
-     * Time limiter enabled.
-     * @return true, if time limiter is enabled
+     * Indica si el time limiter está habilitado.
+     *
+     * @return true si el time limiter está habilitado
      */
     boolean enabled() default false;
 
     /**
-     * Time limiter timeout.
-     * Maximum execution time in milliseconds before timeout.
+     * Tiempo máximo de ejecución en milisegundos.
      *
-     * @return the timeout in milliseconds
+     * @return el tiempo máximo en milisegundos
      */
     long timeout() default 30000;
 }

@@ -147,12 +147,12 @@ class RestHttpClientInvocationHandlerTest {
         String slow();
     }
 
-    /** Error handler that never throws, so the original HTTP exception is propagated. */
+    /** Manejador de errores que nunca lanza, para que se propague la excepción HTTP original. */
     static class SilentErrorHandler implements ErrorHandler {
 
         @Override
         public void handleError(HttpStatusCode statusCode, String responseBody, Exception exception) {
-            // intentionally empty
+            // vacío a propósito
         }
 
         @Override
@@ -343,7 +343,7 @@ class RestHttpClientInvocationHandlerTest {
 
     @Test
     void parameterNamesAreUsedWhenAnnotationValueIsEmpty() throws Exception {
-        // Requires compiling with -parameters (enabled by spring-boot-starter-parent).
+        // Requiere compilar con -parameters (lo activa spring-boot-starter-parent).
         Method m = UserClient.class.getMethod("getUserImplicitNames", long.class);
         assertThat(m.getParameters()[0].getName()).isEqualTo("id");
         RestTemplate template = new RestTemplate();

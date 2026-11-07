@@ -19,24 +19,28 @@ import java.time.Duration;
 import org.springframework.web.client.HttpStatusCodeException;
 
 /**
- * The Class Resilience4jConfiguration.
+ * Crea las instancias de Resilience4j (circuit breaker, retry, rate limiter y time limiter) de cada
+ * cliente a partir de su anotación {@link RestHttpClient}.
+ *
+ * Las instancias se guardan en registros por nombre: pedir dos veces el mismo nombre devuelve la misma
+ * instancia.
  */
 public class CircuitBreakerUtil {
-    
-    /** The circuit breaker registry. */
+
+    /** Registro de circuit breakers. */
     private final CircuitBreakerRegistry circuitBreakerRegistry;
-    
-    /** The retry registry. */
+
+    /** Registro de retries. */
     private final RetryRegistry retryRegistry;
-    
-    /** The rate limiter registry. */
+
+    /** Registro de rate limiters. */
     private final RateLimiterRegistry rateLimiterRegistry;
-    
-    /** The time limiter registry. */
+
+    /** Registro de time limiters. */
     private final TimeLimiterRegistry timeLimiterRegistry;
 
     /**
-     * Instantiates a new resilience 4 j configuration.
+     * Crea la utilidad con registros con la configuración por defecto.
      */
     public CircuitBreakerUtil() {
         this.circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
@@ -46,11 +50,11 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Creates the circuit breaker.
+     * Crea (u obtiene) el circuit breaker del cliente, con ventana deslizante por número de llamadas.
      *
-     * @param name the name
-     * @param config the config
-     * @return the circuit breaker
+     * @param name el nombre del cliente
+     * @param config la configuración del cliente
+     * @return el circuit breaker
      */
     public CircuitBreaker createCircuitBreaker(String name, RestHttpClient config) {
         var cbConfig = config.circuitBreaker();
@@ -69,12 +73,15 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Creates the retry.
+     * Crea (u obtiene) el retry del cliente con backoff exponencial.
      *
-     * @param name the name
-     * @param config the config
-     * @param errorHandler the error handler
-     * @return the retry
+     * Los errores HTTP se reintentan solo si {@link ErrorHandler#shouldRetry} lo permite; cualquier
+     * otra excepción (por ejemplo, de E/S) siempre se reintenta.
+     *
+     * @param name el nombre del cliente
+     * @param config la configuración del cliente
+     * @param errorHandler el manejador de errores que decide qué estados se reintentan
+     * @return el retry
      */
     public Retry createRetry(String name, RestHttpClient config, ErrorHandler errorHandler) {
         var retryConf = config.retry();
@@ -97,11 +104,11 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Creates the rate limiter.
+     * Crea (u obtiene) el rate limiter del cliente.
      *
-     * @param name the name
-     * @param config the config
-     * @return the rate limiter
+     * @param name el nombre del cliente
+     * @param config la configuración del cliente
+     * @return el rate limiter
      */
     public RateLimiter createRateLimiter(String name, RestHttpClient config) {
         var rlConfig = config.rateLimiter();
@@ -116,11 +123,11 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Creates the time limiter.
+     * Crea (u obtiene) el time limiter del cliente; al vencer el tiempo cancela la tarea en curso.
      *
-     * @param name the name
-     * @param config the config
-     * @return the time limiter
+     * @param name el nombre del cliente
+     * @param config la configuración del cliente
+     * @return el time limiter
      */
     public TimeLimiter createTimeLimiter(String name, RestHttpClient config) {
         var tlConfig = config.timeLimiter();

@@ -11,18 +11,21 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * The Interface EnableRestHttpClients.
+ * Activa los clientes REST declarativos.
+ *
+ * Se coloca en una clase de configuración; busca las interfaces anotadas con {@link RestHttpClient}
+ * y registra un bean (proxy) por cada una.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Import({RestHttpClientRegistrar.class, ClientConfig.class})
 public @interface EnableRestHttpClients {
-    
+
     /**
-     * Base packages.
+     * Paquetes donde se buscan los clientes. Si está vacío, se usa el paquete de la clase anotada.
      *
-     * @return the string[]
+     * @return los paquetes base
      */
     String[] basePackages() default {};
 }

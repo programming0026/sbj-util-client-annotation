@@ -20,26 +20,28 @@ import java.security.cert.X509Certificate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /**
- * The Class SSLConfiguration.
+ * Crea contextos SSL a partir de un keystore y/o truststore, o un contexto inseguro solo para desarrollo.
  */
 public class SSLUtil {
-    /** The logger. */
+    /** El logger. */
     private static final Logger LOG = LoggerFactory.getLogger(SSLUtil.class);
 
     /**
-     * Creates the SSL context.
+     * Crea el contexto SSL. Las rutas admiten el prefijo {@code classpath:}; el tipo de almacén se deduce
+     * de la extensión ({@code .p12}/{@code .pfx} es PKCS12, cualquier otra es JKS). Una ruta vacía o
+     * {@code null} usa los valores por defecto de la JVM para esa parte.
      *
-     * @param keystorePath the keystore path
-     * @param keystorePassword the keystore password
-     * @param truststorePath the truststore path
-     * @param truststorePassword the truststore password
-     * @return the SSL context
-     * @throws NoSuchAlgorithmException the exception
-     * @throws java.security.UnrecoverableKeyException the exception
-     * @throws java.security.cert.CertificateException the exception
-     * @throws java.security.KeyStoreException the exception
-     * @throws java.io.IOException the exception
-     * @throws java.security.KeyManagementException the exception
+     * @param keystorePath la ruta del keystore
+     * @param keystorePassword la contraseña del keystore
+     * @param truststorePath la ruta del truststore
+     * @param truststorePassword la contraseña del truststore
+     * @return el contexto SSL
+     * @throws NoSuchAlgorithmException si el algoritmo TLS no está disponible
+     * @throws java.security.UnrecoverableKeyException si no se puede recuperar la clave del keystore
+     * @throws java.security.cert.CertificateException si un certificado no se puede cargar
+     * @throws java.security.KeyStoreException si el almacén no es válido
+     * @throws java.io.IOException si el archivo no se puede leer
+     * @throws java.security.KeyManagementException si falla la inicialización del contexto
      */
     public SSLContext createSSLContext(String keystorePath, String keystorePassword,
             String truststorePath, String truststorePassword)
@@ -64,17 +66,17 @@ public class SSLUtil {
     }
 
     /**
-     * Creates the insecure SSL context.
-     * WARNING: This method disables all SSL/TLS certificate validation and
-     * should NEVER be used in production environments. It makes the application
-     * vulnerable to Man-in-the-Middle (MITM) attacks.
-     * This method is restricted to development and local environments only. Set
-     * SPRING_PROFILES_ACTIVE=dev or local to enable.
+     * Crea un contexto SSL inseguro.
      *
-     * @return the SSL context
-     * @throws NoSuchAlgorithmException the exception
-     * @throws java.security.KeyManagementException the exception
-     * @throws IllegalStateException if not in development environment
+     * ADVERTENCIA: desactiva toda validación de certificados SSL/TLS y NUNCA debe usarse en producción;
+     * deja la aplicación expuesta a ataques Man-in-the-Middle (MITM).
+     * Solo se permite en entornos de desarrollo: SPRING_PROFILES_ACTIVE (variable de entorno) o
+     * spring.profiles.active (propiedad del sistema) debe ser dev, local o development.
+     *
+     * @return el contexto SSL
+     * @throws NoSuchAlgorithmException si el algoritmo TLS no está disponible
+     * @throws java.security.KeyManagementException si falla la inicialización del contexto
+     * @throws IllegalStateException si no es un entorno de desarrollo
      */
     public SSLContext createInsecureSSLContext()
             throws NoSuchAlgorithmException, KeyManagementException {
@@ -83,7 +85,7 @@ public class SSLUtil {
             throw new IllegalStateException(
                     """
                 Insecure SSL is only allowed in development environments.
-                Current profile: %s"
+                Current profile: %s
                 Set SPRING_PROFILES_ACTIVE=dev or local to enable insecure SSL.
                 """.formatted(getCurrentProfile())
             );
@@ -114,9 +116,9 @@ public class SSLUtil {
     }
 
     /**
-     * Checks if current environment is development.
+     * Indica si el entorno actual es de desarrollo.
      *
-     * @return true if dev or local environment
+     * @return true si el perfil es dev, local o development
      */
     private static boolean isDevelopmentEnvironment() {
         String profile = getCurrentProfile();
@@ -126,9 +128,10 @@ public class SSLUtil {
     }
 
     /**
-     * Gets current Spring profile.
+     * Obtiene el perfil de Spring activo, leído de la variable de entorno o de la propiedad del sistema
+     * (no del {@code Environment} de Spring).
      *
-     * @return current profile or "unknown"
+     * @return el perfil actual o "unknown"
      */
     private static String getCurrentProfile() {
         String profile = System.getenv("SPRING_PROFILES_ACTIVE");
@@ -139,12 +142,12 @@ public class SSLUtil {
     }
 
     /**
-     * Creates the key managers.
+     * Crea los key managers a partir del keystore.
      *
-     * @param keystorePath the keystore path
-     * @param password the password
-     * @return the key manager[]
-     * @throws KeyStoreException the exception
+     * @param keystorePath la ruta del keystore
+     * @param password la contraseña
+     * @return los key managers
+     * @throws KeyStoreException si el keystore no es válido
      */
     private static KeyManager[] createKeyManagers(String keystorePath, String password)
             throws KeyStoreException, IOException, NoSuchAlgorithmException,
@@ -163,12 +166,12 @@ public class SSLUtil {
     }
 
     /**
-     * Creates the trust managers.
+     * Crea los trust managers a partir del truststore.
      *
-     * @param truststorePath the truststore path
-     * @param password the password
-     * @return the trust manager[]
-     * @throws KeyStoreException the exception
+     * @param truststorePath la ruta del truststore
+     * @param password la contraseña
+     * @return los trust managers
+     * @throws KeyStoreException si el truststore no es válido
      */
     private static TrustManager[] createTrustManagers(String truststorePath, String password)
             throws KeyStoreException, IOException,
@@ -187,10 +190,10 @@ public class SSLUtil {
     }
 
     /**
-     * Gets the keystore type.
+     * Deduce el tipo de almacén por la extensión del archivo.
      *
-     * @param path the path
-     * @return the keystore type
+     * @param path la ruta
+     * @return PKCS12 para .p12/.pfx; JKS en cualquier otro caso
      */
     private static String getKeystoreType(String path) {
         if (path.endsWith(".p12") || path.endsWith(".pfx")) {
@@ -200,11 +203,12 @@ public class SSLUtil {
     }
 
     /**
-     * Gets the resource stream.
+     * Abre el archivo desde el classpath (prefijo {@code classpath:}) o desde el sistema de archivos.
      *
-     * @param path the path
-     * @return the resource stream
-     * @throws IOException the exception
+     * @param path la ruta
+     * @return el flujo de lectura
+     * @throws IOException si el archivo no se puede abrir
+     * @throws IllegalArgumentException si el recurso del classpath no existe
      */
     private static InputStream getResourceStream(String path) throws IOException {
         if (path.startsWith("classpath:")) {

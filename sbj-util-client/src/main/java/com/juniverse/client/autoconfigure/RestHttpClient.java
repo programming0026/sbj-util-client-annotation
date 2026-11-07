@@ -11,10 +11,10 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * The Interface RestHttpClient.
+ * Declara un cliente REST HTTP con patrones de resiliencia integrados.
  *
- * Defines a declarative REST HTTP client with built-in resilience patterns.
- * Supports circuit breaker, retry, rate limiting, and time limiting out of the box.
+ * Se coloca en una interfaz cuyos métodos usan las anotaciones de Spring Web ({@code @GetMapping},
+ * {@code @PathVariable}, etc.). Incluye circuit breaker, retry, rate limiting y time limiting.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -22,129 +22,104 @@ import java.lang.annotation.ElementType;
 public @interface RestHttpClient {
 
     /**
-     * Name.
+     * Identificador único del cliente. Se usa como nombre del bean y de las instancias de Resilience4j.
+     * Si está vacío, se usa el nombre de la interfaz.
      *
-     * Unique identifier for this client (used for metrics and logging).
-     *
-     * @return the client name
+     * @return el nombre del cliente
      */
     String name() default "";
 
     /**
-     * Url.
+     * URL base del servicio REST.
      *
-     * Base URL for the REST service.
-     *
-     * @return the base URL
+     * @return la URL base
      */
     String url() default "";
 
     /**
-     * Type.
+     * Implementación HTTP a usar (REST_CLIENT o REST_TEMPLATE).
      *
-     * Client implementation type (REST_CLIENT or REST_TEMPLATE).
-     *
-     * @return the client type
+     * @return el tipo de cliente
      */
     ClientType type() default ClientType.REST_CLIENT;
 
     /**
-     * Connect timeout.
+     * Tiempo de espera de conexión, en milisegundos. Limita tanto el establecimiento de la conexión TCP
+     * como la espera para obtener una conexión libre del pool.
      *
-     * Connection timeout in milliseconds.
-     *
-     * @return the connect timeout
+     * @return el tiempo de espera de conexión
      */
     long connectTimeout() default 5000;
 
     /**
-     * Read timeout.
+     * Tiempo de espera de lectura, en milisegundos: cuánto se espera la respuesta (y cada lectura del
+     * socket) una vez conectado.
      *
-     * Read timeout in milliseconds.
-     *
-     * @return the read timeout
+     * @return el tiempo de espera de lectura
      */
     long readTimeout() default 30000;
 
     /**
-     * Max connections total.
+     * Número máximo de conexiones en el pool.
      *
-     * Maximum total connections in the pool.
-     *
-     * @return the max connections
+     * @return el máximo de conexiones
      */
     int maxConnections() default 100;
 
     /**
-     * Max connections per route.
+     * Número máximo de conexiones por ruta en el pool.
      *
-     * Maximum connections per route in the pool.
-     *
-     * @return the max connections per route
+     * @return el máximo de conexiones por ruta
      */
     int maxConnectionsPerRoute() default 20;
 
     /**
-     * Connection time to live.
+     * Tiempo de vida de las conexiones, en milisegundos. Por defecto -1 (sin límite).
      *
-     * Time to live for connections in milliseconds.
-     * Default: -1 (no limit)
-     *
-     * @return the connection time to live
+     * @return el tiempo de vida de las conexiones
      */
     long connectionTimeToLive() default -1;
 
     /**
-     * SSL configuration.
+     * Configuración de SSL/TLS (keystore y truststore).
      *
-     * Configure SSL/TLS settings including keystore and truststore.
-     *
-     * @return the SSL config
+     * @return la configuración SSL
      */
     SSLConfig ssl() default @SSLConfig;
 
     /**
-     * Circuit breaker configuration.
+     * Configuración del circuit breaker.
      *
-     * Configure circuit breaker pattern for resilience.
-     *
-     * @return the circuit breaker config
+     * @return la configuración del circuit breaker
      */
     CircuitBreakerConfig circuitBreaker() default @CircuitBreakerConfig;
 
     /**
-     * Retry configuration.
+     * Configuración de reintentos con backoff exponencial.
      *
-     * Configure retry pattern with exponential backoff.
-     *
-     * @return the retry config
+     * @return la configuración de reintentos
      */
     RetryConfig retry() default @RetryConfig;
 
     /**
-     * Rate limiter configuration.
+     * Configuración del rate limiter, para controlar el volumen de peticiones.
      *
-     * Configure rate limiting to control request throughput.
-     *
-     * @return the rate limiter config
+     * @return la configuración del rate limiter
      */
     RateLimiterConfig rateLimiter() default @RateLimiterConfig;
 
     /**
-     * Time limiter configuration.
+     * Configuración del tiempo máximo de ejecución de las peticiones.
      *
-     * Configure maximum execution time for requests.
-     *
-     * @return the time limiter config
+     * @return la configuración del time limiter
      */
     TimeLimiterConfig timeLimiter() default @TimeLimiterConfig;
 
     /**
-     * Error handler.
+     * Manejador de errores para respuestas HTTP con error. Debe tener un constructor sin argumentos;
+     * se instancia por reflexión (no es un bean de Spring).
      *
-     * Custom error handler for HTTP error responses.
-     *
-     * @return the error handler class
+     * @return la clase del manejador de errores
      */
     Class<? extends ErrorHandler> errorHandler() default DefaultErrorHandler.class;
 }

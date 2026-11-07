@@ -3,6 +3,7 @@ package com.juniverse.client.handler;
 import com.juniverse.client.autoconfigure.EnableRestHttpClients;
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.exception.ClientException;
+import io.github.resilience4j.core.lang.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
@@ -14,7 +15,6 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
-import org.springframework.lang.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,16 +22,21 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The Class RestHttpClientRegistrar.
+ * Registra un bean por cada interfaz anotada con {@link RestHttpClient}.
+ *
+ * Se activa con {@link EnableRestHttpClients}: busca en los paquetes base las interfaces de nivel
+ * superior o anidadas estáticas y registra para cada una un {@link RestHttpClientFactoryBean}.
  */
 public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar {
-    /** The logger. */
+    /** El logger. */
     private static final Logger LOG = LoggerFactory.getLogger(RestHttpClientRegistrar.class);
     /**
-     * Register bean definitions.
+     * Busca los clientes y registra sus definiciones de bean. El argumento {@code RestClientUtil} del
+     * constructor del factory bean se resuelve por autowiring.
      *
-     * @param metadata the metadata
-     * @param registry the registry
+     * @param metadata los metadatos de la clase anotada con {@link EnableRestHttpClients}
+     * @param registry el registro de definiciones de bean
+     * @throws ClientException si una interfaz no se puede cargar o registrar (por ejemplo, nombre duplicado)
      */
     @Override
     public void registerBeanDefinitions(AnnotationMetadata metadata, @NonNull BeanDefinitionRegistry registry) {
@@ -44,7 +49,7 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar {
             String className = metadata.getClassName();
             String basePackage = className.substring(0, className.lastIndexOf('.'));
             basePackages = new String[]{basePackage};
-            LOG.info("No se especificaron basePackages, usando: {}", basePackage);
+            LOG.info("No basePackages specified, using: {}", basePackage);
         }
 
         ClassPathScanningCandidateComponentProvider scanner =
@@ -104,15 +109,16 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar {
                 }
             }
         }
-        LOG.info("Total number of registered client: {}", registeredClients.size());
+        LOG.info("Total number of registered clients: {}", registeredClients.size());
     }
 
     /**
-     * Determina el nombre del bean basado en la anotación o el nombre de la interfaz.
+     * Determina el nombre del bean: el {@code name} de la anotación o, si está vacío, el nombre simple
+     * de la interfaz con la primera letra en minúscula.
      *
-     * @param clientInterface The client.
-     * @param annotation The annotation.
-     * @return The String
+     * @param clientInterface la interfaz del cliente
+     * @param annotation la anotación del cliente
+     * @return el nombre del bean
      */
     private String determineBeanName(Class<?> clientInterface, RestHttpClient annotation) {
 

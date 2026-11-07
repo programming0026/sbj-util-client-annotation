@@ -4,16 +4,19 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.HttpClientErrorException;
 
 /**
- * The Class DefaultErrorHandler.
+ * Manejador de errores por defecto.
+ *
+ * Lanza {@link HttpClientErrorException} para respuestas 4xx y 5xx, reintenta 502/503/504 y cuenta
+ * los 5xx como falla para el circuit breaker.
  */
 public class DefaultErrorHandler implements ErrorHandler {
-    
+
     /**
-     * Handle error.
+     * Lanza {@link HttpClientErrorException} con el cuerpo de la respuesta si el estado es 4xx o 5xx.
      *
-     * @param statusCode the status code
-     * @param responseBody the response body
-     * @param exception the exception
+     * @param statusCode el código de estado
+     * @param responseBody el cuerpo de la respuesta
+     * @param exception la excepción original
      */
     @Override
     public void handleError(HttpStatusCode statusCode, String responseBody, Exception exception) {
@@ -25,23 +28,23 @@ public class DefaultErrorHandler implements ErrorHandler {
     }
 
     /**
-     * Should retry.
+     * Reintenta solo 502, 503 y 504.
      *
-     * @param statusCode the status code
-     * @return true, if successful
+     * @param statusCode el código de estado
+     * @return true si se debe reintentar
      */
     @Override
     public boolean shouldRetry(HttpStatusCode statusCode) {
         return  statusCode.value() == 502
-        		|| statusCode.value() == 503 
+        		|| statusCode.value() == 503
         		|| statusCode.value() == 504;
     }
 
     /**
-     * Should record as failure.
+     * Cuenta como falla cualquier 5xx.
      *
-     * @param statusCode the status code
-     * @return true, if successful
+     * @param statusCode el código de estado
+     * @return true si se registra como falla
      */
     @Override
     public boolean shouldRecordAsFailure(HttpStatusCode statusCode) {

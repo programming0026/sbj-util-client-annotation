@@ -42,44 +42,49 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The Class RestHttpClientInvocationHandler.
+ * Atiende cada llamada al proxy de un cliente {@link RestHttpClient}.
+ *
+ * Lee las anotaciones de Spring Web del método y de sus parámetros, arma la petición, la ejecuta con
+ * RestClient o RestTemplate y la envuelve con los decoradores de Resilience4j en este orden:
+ * Retry (siempre) → CircuitBreaker → RateLimiter → TimeLimiter (el más externo).
  */
 public class RestHttpClientInvocationHandler implements InvocationHandler {
-    /** The logger. */
+    /** El logger. */
     private static final Logger LOG = LoggerFactory.getLogger(RestHttpClientInvocationHandler.class);
 
-    /** Prefix of the URI template variables generated for query parameter values. */
+    /** Prefijo de las variables de plantilla URI que se generan para los valores de query params. */
     private static final String QUERY_PARAM_VARIABLE_PREFIX = "__queryParam";
 
-    /** The http client. */
+    /** El cliente HTTP: un RestClient o un RestTemplate. */
     private final Object httpClient;
-    
-    /** The client config. */
+
+    /** La configuración del cliente. */
     private final RestHttpClient clientConfig;
-    
-    /** The error handler. */
+
+    /** El manejador de errores. */
     private final ErrorHandler errorHandler;
-    
-    /** The circuit breaker. */
+
+    /** El circuit breaker, o null si está deshabilitado. */
     private final CircuitBreaker circuitBreaker;
-    
-    /** The retry. */
+
+    /** El retry (siempre presente). */
     private final Retry retry;
-    
-    /** The rate limiter. */
+
+    /** El rate limiter, o null si está deshabilitado. */
     private final RateLimiter rateLimiter;
-    
-    /** The time limiter. */
+
+    /** El time limiter, o null si está deshabilitado. */
     private final TimeLimiter timeLimiter;
 
     /**
-     * Instantiates a new rest http client invocation handler.
+     * Crea el handler y las instancias de Resilience4j del cliente. Las instancias se nombran con
+     * {@code name()} de la anotación o, si está vacío, con el nombre simple de la interfaz.
      *
-     * @param httpClient the http client
-     * @param clientConfig the client config
-     * @param errorHandler the error handler
-     * @param clientInterface the client interface
-     * @param resilience4jConfig the resilience 4 j config
+     * @param httpClient el cliente HTTP (RestClient o RestTemplate)
+     * @param clientConfig la configuración del cliente
+     * @param errorHandler el manejador de errores
+     * @param clientInterface la interfaz del cliente
+     * @param resilience4jConfig la fábrica de instancias de Resilience4j
      */
     public RestHttpClientInvocationHandler(Object httpClient,
                                            RestHttpClient clientConfig,
@@ -90,10 +95,10 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
         this.clientConfig = clientConfig;
         this.errorHandler = errorHandler;
 
-        String clientName = clientConfig.name().isEmpty() 
-        		? clientInterface.getSimpleName() 
+        String clientName = clientConfig.name().isEmpty()
+        		? clientInterface.getSimpleName()
         		: clientConfig.name();
-                
+
 
         this.retry = resilience4jConfig.createRetry(clientName, clientConfig, errorHandler);
 
@@ -114,13 +119,14 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Invoke.
+     * Atiende una llamada al proxy. Los métodos de {@link Object} (toString, equals, hashCode) se
+     * ejecutan sobre este handler.
      *
-     * @param proxy the proxy
-     * @param method the method
-     * @param args the args
-     * @return the object
-     * @throws Throwable the throwable
+     * @param proxy el proxy
+     * @param method el método invocado
+     * @param args los argumentos
+     * @return el cuerpo de la respuesta, convertido al tipo de retorno del método
+     * @throws Throwable la excepción de la petición
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -134,33 +140,32 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Execute with resilience.
+     * Ejecuta la petición envuelta con los decoradores de Resilience4j habilitados.
      *
-     * @param metadata the metadata
-     * @param method the method
-     * @return the object
-     * @Exception the throwable
+     * @param metadata los datos de la petición
+     * @param method el método invocado
+     * @return el cuerpo de la respuesta
+     * @throws Exception la excepción de la petición
+     * @throws ClientException si se excede el tiempo del time limiter
      */
     private Object executeWithResilience(RequestMetadata metadata, Method method) throws Exception {
 
-        // Exceptions are propagated unwrapped so the retry predicate (ErrorHandler.shouldRetry) and the
-        // circuit breaker see the actual HttpStatusCodeException, and callers receive it as-is.
         Supplier<Object> decoratedSupplier = () -> executeRequest(metadata, method);
 
-        
+
         decoratedSupplier = Retry.decorateSupplier(retry, decoratedSupplier);
 
-       
+
         if (circuitBreaker != null) {
             decoratedSupplier = CircuitBreaker.decorateSupplier(circuitBreaker, decoratedSupplier);
         }
 
-       
+
         if (rateLimiter != null) {
             decoratedSupplier = RateLimiter.decorateSupplier(rateLimiter, decoratedSupplier);
         }
 
-        
+
         if (timeLimiter != null) {
             CompletableFuture<Object> future = CompletableFuture.supplyAsync(decoratedSupplier);
             Callable<Object> timeLimitedCallable = TimeLimiter.decorateFutureSupplier(
@@ -170,8 +175,6 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
             try {
                 return timeLimitedCallable.call();
             } catch (TimeoutException e) {
-                // TimeoutException is checked: wrap it so callers going through the proxy get a
-                // ClientException instead of an UndeclaredThrowableException.
                 throw new ClientException("Request timed out after "
                         + clientConfig.timeLimiter().timeout() + " ms", e);
             }
@@ -181,11 +184,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Execute request.
+     * Ejecuta la petición con el cliente HTTP configurado. Ante un error HTTP, primero consulta al
+     * {@link ErrorHandler}; si no lanza su propia excepción, se propaga la original.
      *
-     * @param metadata the metadata
-     * @param method the method
-     * @return the object
+     * @param metadata los datos de la petición
+     * @param method el método invocado
+     * @return el cuerpo de la respuesta
      */
     private Object executeRequest(RequestMetadata metadata, Method method)  {
         try {
@@ -208,11 +212,11 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Execute with rest client.
+     * Ejecuta la petición con RestClient.
      *
-     * @param metadata the metadata
-     * @param method the method
-     * @return the object
+     * @param metadata los datos de la petición
+     * @param method el método invocado
+     * @return el cuerpo de la respuesta
      */
     private Object executeWithRestClient(RequestMetadata metadata, Method method) {
         RestClient client = (RestClient) httpClient;
@@ -234,11 +238,11 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Execute with rest template.
+     * Ejecuta la petición con RestTemplate.
      *
-     * @param metadata the metadata
-     * @param method the method
-     * @return the object
+     * @param metadata los datos de la petición
+     * @param method el método invocado
+     * @return el cuerpo de la respuesta
      */
     private Object executeWithRestTemplate(RequestMetadata metadata, Method method) {
         RestTemplate template = (RestTemplate) httpClient;
@@ -264,21 +268,19 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
 
 
     /**
-     * Builds the fully encoded request URI.
+     * Construye la URI de la petición ya codificada.
+     * Las path variables y los valores de los query params se expanden como variables de plantilla URI,
+     * así cada valor se codifica exactamente una vez (incluidos caracteres reservados como '/', '&amp;'
+     * o '='). El resultado es un {@link URI}, que RestClient y RestTemplate envían tal cual sin volver
+     * a codificarlo.
      *
-     * Path variables and query parameter values are expanded as URI template variables, so each value
-     * is encoded exactly once (reserved characters such as '/', '&amp;' or '=' included). The result is a
-     * {@link URI}, which RestClient and RestTemplate send as-is without encoding it again.
-     *
-     * @param metadata the metadata
-     * @return the encoded URI
+     * @param metadata los datos de la petición
+     * @return la URI codificada
      */
     private URI buildUri(RequestMetadata metadata) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(clientConfig.url() + metadata.path);
         Map<String, Object> uriVariables = new HashMap<>(metadata.pathVariables);
 
-        // Each value (one per element for collections/arrays) becomes its own template variable,
-        // producing repeated parameters: ?tag=a&tag=b
         int index = 0;
         for (Map.Entry<String, List<String>> entry : metadata.queryParams.entrySet()) {
             for (String value : entry.getValue()) {
@@ -292,17 +294,18 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Extract metadata.
+     * Extrae los datos de la petición a partir de las anotaciones del método y de sus argumentos.
+     * Del mapping se usan el primer {@code path} y el primer {@code method}; {@code produces} se envía
+     * como {@code Accept} y el primer {@code consumes} como {@code Content-Type}.
      *
-     * @param method the method
-     * @param args the args
-     * @return the request metadata
+     * @param method el método invocado
+     * @param args los argumentos
+     * @return los datos de la petición
+     * @throws ClientException si el método no tiene una anotación de mapping con método HTTP
      */
     private RequestMetadata extractMetadata(Method method, Object[] args) {
         RequestMetadata metadata = new RequestMetadata();
 
-        // Resolves @GetMapping, @PostMapping, @PutMapping, @PatchMapping, @DeleteMapping and
-        // @RequestMapping(method = ...) uniformly, including the value/path alias.
         RequestMapping mapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
         if (mapping == null || mapping.method().length == 0) {
             throw new ClientException("Method " + method.getDeclaringClass().getSimpleName() + "."
@@ -328,15 +331,17 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Binds one method argument using Spring's {@link PathVariable}, {@link RequestParam},
-     * {@link RequestHeader} and {@link RequestBody} annotations. Merged annotations are used so the
-     * {@code value}/{@code name} alias is resolved. Arguments without any of them are ignored.
-     * Parameters declared as {@link Map} (including {@code MultiValueMap}) contribute one entry per key.
+     * Asocia un argumento a la petición según las anotaciones de Spring {@link PathVariable},
+     * {@link RequestParam}, {@link RequestHeader} y {@link RequestBody}. Se usan anotaciones combinadas
+     * (merged) para resolver el alias {@code value}/{@code name}. Los argumentos sin ninguna de estas
+     * anotaciones se ignoran. Los parámetros declarados como {@link Map} (incluido {@code MultiValueMap})
+     * aportan una entrada por clave.
      *
-     * @param metadata the request metadata
-     * @param method the invoked method
-     * @param param the parameter
-     * @param arg the argument value
+     * @param metadata los datos de la petición
+     * @param method el método invocado
+     * @param param el parámetro
+     * @param arg el valor del argumento
+     * @throws ClientException si falta un valor requerido
      */
     private void bindParameter(RequestMetadata metadata, Method method, Parameter param, Object arg) {
         PathVariable pathVariable = AnnotatedElementUtils.findMergedAnnotation(param, PathVariable.class);
@@ -397,26 +402,28 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Whether the parameter is declared as a {@link Map}.
+     * Indica si el parámetro está declarado como {@link Map}.
      *
-     * @param param the parameter
-     * @return true for Map (and MultiValueMap) parameters
+     * @param param el parámetro
+     * @return true para parámetros Map (y MultiValueMap)
      */
     private static boolean isMap(Parameter param) {
         return Map.class.isAssignableFrom(param.getType());
     }
 
     /**
-     * Binds every entry of a Map argument. Entry values go through {@link #toValues(Object)}, so a
-     * {@code MultiValueMap} or collection values produce several values; entries with a {@code null} key
-     * or without values are skipped. Only a {@code null} map counts as missing: an empty map sends nothing.
+     * Asocia cada entrada de un argumento Map. Los valores pasan por {@link #toValues(Object)}, así un
+     * {@code MultiValueMap} o los valores que son listas producen varios valores; se saltan las entradas
+     * con clave {@code null} o sin valores. Solo un mapa {@code null} cuenta como faltante: un mapa vacío
+     * no envía nada.
      *
-     * @param arg the Map argument (may be null)
-     * @param required whether the map is required
-     * @param kind the kind of value, for the error message
-     * @param param the parameter
-     * @param method the invoked method
-     * @param sink receives each entry name with its values
+     * @param arg el argumento Map (puede ser null)
+     * @param required si el mapa es requerido
+     * @param kind el tipo de valor, para el mensaje de error
+     * @param param el parámetro
+     * @param method el método invocado
+     * @param sink recibe el nombre de cada entrada con sus valores
+     * @throws ClientException si el mapa es requerido y viene null
      */
     private static void bindMapEntries(Object arg, boolean required, String kind, Parameter param, Method method,
                                        BiConsumer<String, List<String>> sink) {
@@ -435,28 +442,30 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Returns the annotation name, or the parameter name (requires {@code -parameters}) when empty.
+     * Devuelve el nombre de la anotación o, si está vacío, el nombre del parámetro (requiere compilar
+     * con {@code -parameters}).
      *
-     * @param annotatedName the name declared in the annotation
-     * @param param the parameter
-     * @return the effective name
+     * @param annotatedName el nombre declarado en la anotación
+     * @param param el parámetro
+     * @return el nombre efectivo
      */
     private static String nameOf(String annotatedName, Parameter param) {
         return annotatedName.isEmpty() ? param.getName() : annotatedName;
     }
 
     /**
-     * Resolves an argument into the values to send: its values (see {@link #toValues(Object)}), else the
-     * annotation default value, else an empty list when optional. A {@code null} argument and an empty
-     * collection/array are both treated as missing.
+     * Convierte un argumento en los valores a enviar: sus valores (ver {@link #toValues(Object)}); si no
+     * hay, el valor por defecto de la anotación; si tampoco hay y es opcional, una lista vacía. Un
+     * argumento {@code null} y una lista o arreglo vacío se consideran faltantes.
      *
-     * @param arg the argument
-     * @param defaultValue the annotation default value ({@link ValueConstants#DEFAULT_NONE} if unset)
-     * @param required whether the value is required
-     * @param kind the kind of value, for the error message
-     * @param name the value name
-     * @param method the invoked method
-     * @return the values to send; empty to omit them
+     * @param arg el argumento
+     * @param defaultValue el valor por defecto de la anotación ({@link ValueConstants#DEFAULT_NONE} si no hay)
+     * @param required si el valor es requerido
+     * @param kind el tipo de valor, para el mensaje de error
+     * @param name el nombre del valor
+     * @param method el método invocado
+     * @return los valores a enviar; vacío para omitirlos
+     * @throws ClientException si el valor es requerido y falta
      */
     private static List<String> resolveValues(Object arg, String defaultValue, boolean required, String kind,
                                               String name, Method method) {
@@ -474,12 +483,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Converts an argument to its string values: one per element for an {@link Iterable} or an array
-     * (primitive arrays included, {@code null} elements skipped), a single value otherwise, none for
-     * {@code null}.
+     * Convierte un argumento en sus valores de texto: uno por elemento para un {@link Iterable} o un
+     * arreglo (incluidos los primitivos; se saltan los elementos {@code null}), un único valor en otro
+     * caso y ninguno para {@code null}.
      *
-     * @param arg the argument
-     * @return the values
+     * @param arg el argumento
+     * @return los valores
      */
     private static List<String> toValues(Object arg) {
         if (arg == null) {
@@ -499,10 +508,10 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Adds the string form of a value when it is not {@code null}.
+     * Agrega el texto de un valor si no es {@code null}.
      *
-     * @param values the target list
-     * @param value the value
+     * @param values la lista destino
+     * @param value el valor
      */
     private static void addIfNotNull(List<String> values, Object value) {
         if (value != null) {
@@ -511,12 +520,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Builds the exception for a required value that was {@code null}.
+     * Crea la excepción para un valor requerido que viene {@code null} o vacío.
      *
-     * @param kind the kind of value
-     * @param name the value name
-     * @param method the invoked method
-     * @return the exception
+     * @param kind el tipo de valor
+     * @param name el nombre del valor
+     * @param method el método invocado
+     * @return la excepción
      */
     private static ClientException missingValue(String kind, String name, Method method) {
         return new ClientException("Required " + kind + " '" + name + "' is null or empty in "
@@ -524,13 +533,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Extract headers.
+     * Extrae los headers del atributo {@code headers} del mapping.
      *
-     * Uses the Spring mapping format {@code "Name=value"}. Expressions without a value
-     * (e.g. {@code "Name"} or {@code "!Name"}) are server-side conditions and are ignored.
+     * Usa el formato de Spring {@code "Nombre=valor"}. Las expresiones sin valor (por ejemplo
+     * {@code "Nombre"} o {@code "!Nombre"}) son condiciones del lado del servidor y se ignoran.
      *
-     * @param headerArray the header array
-     * @return the map
+     * @param headerArray las expresiones de headers
+     * @return los headers por nombre
      */
     private Map<String, String> extractHeaders(String[] headerArray) {
         Map<String, String> headers = new HashMap<>();
@@ -546,63 +555,64 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Convert to spring http method.
+     * Convierte el método HTTP al {@link HttpMethod} de Spring.
      *
-     * @param method the method
-     * @return the org.springframework.http. http method
+     * @param method el método HTTP
+     * @return el método HTTP de Spring
      */
     private HttpMethod convertToSpringHttpMethod(HttpMethod method) {
         return HttpMethod.valueOf(method.name());
     }
 
     /**
-     * The Class RequestMetadata.
+     * Datos de una petición extraídos de las anotaciones y los argumentos.
      */
     private static class RequestMetadata {
-        
-        /** The path. */
+
+        /** La ruta relativa a la URL base. */
         private String path;
-        
-        /** The http method. */
+
+        /** El método HTTP. */
         private HttpMethod httpMethod;
-        
-        /** The path variables (multiple values already joined with commas). */
+
+        /** Las path variables (si hay varios valores, ya vienen unidos con comas). */
         private final Map<String, Object> pathVariables = new HashMap<>();
 
-        /** The query params, in declaration order; one entry per value. */
+        /** Los query params, en el orden en que se declaran; una entrada por valor. */
         private final Map<String, List<String>> queryParams = new LinkedHashMap<>();
 
-        /** The headers (case-insensitive, multi-valued). */
+        /** Los headers (sin distinguir mayúsculas, con varios valores por nombre). */
         private final HttpHeaders headers = new HttpHeaders();
-        
-        /** The body. */
+
+        /** El cuerpo de la petición. */
         private Object body;
 
         /**
-         * Adds a path variable; like Spring, multiple values are joined with commas (then encoded).
+         * Agrega una path variable; igual que en Spring, varios valores se unen con comas (que luego
+         * se codifican).
          *
-         * @param name the variable name
-         * @param values the values
+         * @param name el nombre de la variable
+         * @param values los valores
          */
         private void addPathVariable(String name, List<String> values) {
             pathVariables.put(name, String.join(",", values));
         }
 
         /**
-         * Appends query parameter values.
+         * Agrega valores a un query param.
          *
-         * @param name the parameter name
-         * @param values the values
+         * @param name el nombre del parámetro
+         * @param values los valores
          */
         private void addQueryParam(String name, List<String> values) {
             queryParams.computeIfAbsent(name, key -> new ArrayList<>()).addAll(values);
         }
 
         /**
-         * Sets a header, replacing any value declared in the mapping's headers attribute.
+         * Define un header, reemplazando el valor declarado en el atributo {@code headers} del mapping.
          *
-         * @param name the header name
-         * @param values the values
+         * @param name el nombre del header
+         * @param values los valores
          */
         private void setHeader(String name, List<String> values) {
             headers.remove(name);

@@ -7,10 +7,9 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * The Interface RateLimiterConfig.
+ * Configuración del patrón Rate Limiter de Resilience4j.
  *
- * Configuration for Resilience4j Rate Limiter pattern.
- * Rate limiter controls the number of requests allowed in a given time period.
+ * Limita el número de peticiones permitidas en un periodo de tiempo.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -18,36 +17,30 @@ import java.lang.annotation.ElementType;
 public @interface RateLimiterConfig {
 
     /**
-     * Rate limiter enabled.
+     * Indica si el rate limiter está habilitado.
      *
-     * @return true, if rate limiter is enabled
+     * @return true si el rate limiter está habilitado
      */
     boolean enabled() default false;
 
     /**
-     * Rate limiter limit for period.
+     * Número máximo de peticiones permitidas por periodo de refresco.
      *
-     * Maximum number of requests allowed per refresh period.
-     *
-     * @return the limit for period
+     * @return el límite por periodo
      */
     int limitForPeriod() default 100;
 
     /**
-     * Rate limiter limit refresh period.
+     * Duración en milisegundos del periodo en el que aplica el límite.
      *
-     * Period in milliseconds during which the limit applies.
-     *
-     * @return the limit refresh period in milliseconds
+     * @return el periodo de refresco en milisegundos
      */
     long limitRefreshPeriod() default 1000;
 
     /**
-     * Rate limiter timeout duration.
+     * Tiempo máximo en milisegundos que un hilo espera a obtener permiso.
      *
-     * Maximum time in milliseconds a thread will wait for permission.
-     *
-     * @return the timeout duration in milliseconds
+     * @return el tiempo de espera en milisegundos
      */
     long timeoutDuration() default 5000;
 }

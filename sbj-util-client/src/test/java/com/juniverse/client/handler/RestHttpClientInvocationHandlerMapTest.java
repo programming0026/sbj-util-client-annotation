@@ -30,7 +30,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** Map arguments for {@link RestHttpClientInvocationHandler}. */
+/** Argumentos de tipo Map en {@link RestHttpClientInvocationHandler}. */
 class RestHttpClientInvocationHandlerMapTest {
 
     private static final String BASE = "http://localhost/api";

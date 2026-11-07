@@ -7,11 +7,18 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class RestClientUtilTest {
@@ -40,6 +47,16 @@ class RestClientUtilTest {
     interface BrokenClient {
     }
 
+    /** Dirección no enrutable: la conexión TCP queda colgada hasta que vence el timeout de conexión. */
+    @RestHttpClient(url = "http://10.255.255.1:81", connectTimeout = 300, readTimeout = 60000)
+    interface UnreachableClient {
+    }
+
+    /** El servidor de prueba acepta la conexión pero nunca responde. */
+    @RestHttpClient(url = "http://127.0.0.1", connectTimeout = 60000, readTimeout = 300)
+    interface SlowServerClient {
+    }
+
     private final RestClientUtil util = new RestClientUtil(new SSLUtil());
 
     private String previousProfile;
@@ -60,6 +77,31 @@ class RestClientUtilTest {
 
     private static RestHttpClient config(Class<?> type) {
         return type.getAnnotation(RestHttpClient.class);
+    }
+
+    @Test
+    void connectTimeoutLimitsTcpConnection() {
+        RestClient client = util.configureRestClient(config(UnreachableClient.class));
+
+        // Sin el timeout de conexión, HttpClient espera hasta 3 minutos. Si la red rechaza la
+        // dirección de inmediato, el test también pasa (falla rápido de todos modos).
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () ->
+                assertThatThrownBy(() -> client.get().uri("/").retrieve().toBodilessEntity())
+                        .isInstanceOf(ResourceAccessException.class));
+    }
+
+    @Test
+    void readTimeoutLimitsWaitingForResponse() throws Exception {
+        try (ServerSocket server = new ServerSocket(0, 50, InetAddress.getLoopbackAddress())) {
+            RestTemplate template = util.configureRestTemplate(config(SlowServerClient.class));
+            String url = "http://127.0.0.1:" + server.getLocalPort() + "/";
+
+            assertTimeoutPreemptively(Duration.ofSeconds(10), () ->
+                    assertThatThrownBy(() -> template.getForObject(url, String.class))
+                            .isInstanceOf(ResourceAccessException.class)
+                            .rootCause()
+                            .isInstanceOf(SocketTimeoutException.class));
+        }
     }
 
     @Test

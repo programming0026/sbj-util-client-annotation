@@ -28,7 +28,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** Collection and array arguments for {@link RestHttpClientInvocationHandler}. */
+/** Argumentos de tipo lista y arreglo en {@link RestHttpClientInvocationHandler}. */
 class RestHttpClientInvocationHandlerCollectionTest {
 
     private static final String BASE = "http://localhost/api";
