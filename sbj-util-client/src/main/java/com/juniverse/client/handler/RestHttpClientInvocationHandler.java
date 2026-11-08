@@ -20,6 +20,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URI;
@@ -236,19 +237,18 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * @param method el método de Object
      * @param args los argumentos
      * @return el resultado
-     * @throws Exception si falla la invocación
+     * @throws InvocationTargetException si falla la invocación
      */
-    private Object invokeObjectMethod(Object proxy, Method method, Object[] args) throws Exception {
-        switch (method.getName()) {
-            case "equals":
-                return proxy == args[0];
-            case "hashCode":
-                return System.identityHashCode(proxy);
-            case "toString":
-                return "RestHttpClient proxy for " + clientInterface.getName() + " [" + clientConfig.url() + "]";
-            default:
-                return method.invoke(this, args);
-        }
+    private Object invokeObjectMethod(Object proxy, Method method, Object[] args)
+            throws InvocationTargetException, IllegalAccessException {
+		return switch (method.getName()) {
+		    case "equals" -> proxy == args[0];
+		    case "hashCode" -> System.identityHashCode(proxy);
+		    case "toString" ->
+				    "RestHttpClient proxy for " + clientInterface.getName()
+                            + " [" + clientConfig.url() + "]";
+		    default -> method.invoke(this, args);
+	    };
     }
 
     /**
@@ -328,14 +328,19 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      */
     private Object executeRequest(MethodMetadata metadata, MethodMetadata.Request request, URI uri) {
         try {
-            if (httpClient instanceof RestClient restClient) {
-                return metadata.toReturnValue(executeWithRestClient(restClient, metadata, request, uri));
-            } else if (httpClient instanceof RestTemplate restTemplate) {
-                return metadata.toReturnValue(executeWithRestTemplate(restTemplate, metadata, request, uri));
-            } else {
-                throw new ClientException("Unsupported HTTP client type: "
-                        + httpClient.getClass().getName());
-            }
+            return switch (httpClient) {
+                case RestClient restClient ->
+                        metadata.toReturnValue(
+                                executeWithRestClient(restClient, metadata, request, uri));
+                case RestTemplate restTemplate ->
+                        metadata.toReturnValue(
+                                executeWithRestTemplate(restTemplate, metadata, request, uri));
+                case null ->
+                        throw new ClientException("HTTP client is null");
+                default ->
+                        throw new ClientException(
+                                "Unsupported HTTP client type: " + httpClient.getClass().getName());
+            };
         } catch (HttpStatusCodeException e) {
             errorHandler.handleError(e.getStatusCode(), e.getResponseBodyAsString(), e);
             throw e;

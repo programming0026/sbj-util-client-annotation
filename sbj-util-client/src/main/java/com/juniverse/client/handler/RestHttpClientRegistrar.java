@@ -26,6 +26,7 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.util.ClassUtils;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,7 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
     public static final String ENABLED_MARKER_BEAN = "restHttpClientEnabledMarker";
 
     /** Bean marcador: existe cuando la aplicación declaró {@link EnableRestHttpClients}. */
-    public static final class EnabledMarker {
+    public static final class EnabledMarker implements Serializable {
     }
 
     /**
@@ -110,7 +111,7 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
             LOG.info("No basePackages specified, using: {}", basePackage);
         }
 
-        // Indica a la autoconfiguración de Spring Boot que la aplicación eligió sus paquetes explícitamente.
+
         if (!registry.containsBeanDefinition(ENABLED_MARKER_BEAN)) {
             registry.registerBeanDefinition(ENABLED_MARKER_BEAN, new RootBeanDefinition(EnabledMarker.class));
         }
@@ -128,7 +129,8 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false, environment) {
                     @Override
-                    protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
+                    protected boolean isCandidateComponent(
+                            AnnotatedBeanDefinition beanDefinition) {
                         AnnotationMetadata annotationMetadata = beanDefinition.getMetadata();
                         return annotationMetadata.isInterface()
                                 && annotationMetadata.isIndependent();
@@ -142,7 +144,6 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
             String basePackage = environment.resolveRequiredPlaceholders(declaredPackage);
             LOG.debug("Scanning package: {}", basePackage);
             Set<BeanDefinition> candidates = scanner.findCandidateComponents(basePackage);
-
             LOG.info("Found {} in {}", candidates.size(), basePackage);
 
             for (BeanDefinition candidate : candidates) {
@@ -150,51 +151,66 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
                 LOG.debug("Processing: {}", className);
 
                 try {
-                    Class<?> clientInterface = ClassUtils.forName(className, resourceLoader.getClassLoader());
+                    Class<?> clientInterface =
+                            ClassUtils.forName(className, resourceLoader.getClassLoader());
 
                     if (!clientInterface.isAnnotationPresent(RestHttpClient.class)) {
                         LOG.warn("The interface {} does not have @RestHttpClient", className);
-                        continue;
-                    }
+                    } else {
+                        RestHttpClient annotation =
+                                clientInterface.getAnnotation(RestHttpClient.class);
+                        String beanName = determineBeanName(clientInterface, annotation);
 
-                    RestHttpClient annotation = clientInterface.getAnnotation(RestHttpClient.class);
-                    String beanName = determineBeanName(clientInterface, annotation);
+                        if (registry.containsBeanDefinition(beanName)) {
+                            BeanDefinition existing = registry.getBeanDefinition(beanName);
+                            Object existingObjectType =
+                                    existing.getAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE);
 
-                    if (registry.containsBeanDefinition(beanName)) {
-                        BeanDefinition existing = registry.getBeanDefinition(beanName);
-                        if (clientInterface.equals(existing.getAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE))) {
-                            LOG.debug("Client {} already registered as '{}'", className, beanName);
-                            continue;
+                            if (clientInterface.equals(existingObjectType)) {
+                                LOG.debug(
+                                        "Client {} already registered as '{}'",
+                                        className,
+                                        beanName);
+                            } else {
+                                throw new ClientException(
+                                        "Duplicate bean name '"
+                                                + beanName
+                                                + "' for client "
+                                                + className
+                                                + "; set a unique @RestHttpClient(name = ...)");
+                            }
+                        } else {
+                            LOG.info(
+                                    "Registering bean: {} for interface: {}",
+                                    beanName,
+                                    className);
+
+                            BeanDefinitionBuilder definition =
+                                    BeanDefinitionBuilder.genericBeanDefinition(
+                                            RestHttpClientFactoryBean.class);
+
+                            definition.addConstructorArgValue(clientInterface);
+                            definition.addConstructorArgReference(
+                                    ClientConfig.CIRCUIT_BREAKER_UTIL_BEAN);
+                            definition.addConstructorArgReference(
+                                    ClientConfig.REST_CLIENT_UTIL_BEAN);
+
+                            AbstractBeanDefinition beanDefinition =
+                                    definition.getBeanDefinition();
+                            beanDefinition.setAttribute(
+                                    FactoryBean.OBJECT_TYPE_ATTRIBUTE,
+                                    clientInterface);
+
+                            registry.registerBeanDefinition(beanName, beanDefinition);
+                            registeredClients.add(beanName);
+
+                            LOG.info("Bean '{}' successfully registered", beanName);
                         }
-                        throw new ClientException("Duplicate bean name '" + beanName + "' for client "
-                                + className + "; set a unique @RestHttpClient(name = ...)");
                     }
-
-                    LOG.info("Registering bean: {} for interface: {}", beanName, className);
-
-                    BeanDefinitionBuilder definition = BeanDefinitionBuilder
-                            .genericBeanDefinition(RestHttpClientFactoryBean.class);
-
-                    definition.addConstructorArgValue(clientInterface);
-                    // Los beans de la librería se referencian por su nombre con prefijo: así un bean de la
-                    // aplicación del mismo tipo no genera ambigüedad.
-                    definition.addConstructorArgReference(ClientConfig.CIRCUIT_BREAKER_UTIL_BEAN);
-                    definition.addConstructorArgReference(ClientConfig.REST_CLIENT_UTIL_BEAN);
-
-                    AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
-                    // Permite resolver el tipo del bean sin instanciar el factory bean (inyección por tipo).
-                    beanDefinition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, clientInterface);
-
-                    registry.registerBeanDefinition(beanName, beanDefinition);
-                    registeredClients.add(beanName);
-
-                    LOG.info("Bean '{}' successfully registered", beanName);
-
                 } catch (ClassNotFoundException e) {
                     LOG.error("The class could not be loaded: {}", className, e);
                     throw new ClientException("Cannot load client interface: " + className, e);
                 } catch (ClientException e) {
-                    LOG.error("Error registering bean for: {}", className, e);
                     throw e;
                 } catch (Exception e) {
                     LOG.error("Error registering bean for: {}", className, e);
@@ -202,6 +218,7 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
                 }
             }
         }
+
         LOG.info("Total number of registered clients: {}", registeredClients.size());
     }
 
