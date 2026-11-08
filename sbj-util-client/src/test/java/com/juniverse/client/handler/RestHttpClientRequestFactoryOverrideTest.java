@@ -3,6 +3,7 @@ package com.juniverse.client.handler;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.juniverse.client.enums.RequestFactoryOverridePolicy;
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.autoconfigure.RetryConfig;
 import com.juniverse.client.enums.ClientType;
@@ -366,5 +367,19 @@ class RestHttpClientRequestFactoryOverrideTest {
         assertThat(RequestFactoryOverridePolicy.isTestDouble(new AccidentalFactory())).isFalse();
         assertThat(RequestFactoryOverridePolicy.isTestDouble(org.mockito.Mockito.mock(ClientHttpRequestFactory.class)))
                 .isTrue();
+    }
+
+    @Test
+    void aSpringWrapperIsLookedIntoThroughItsPublicDelegate() {
+        ClientHttpRequestFactory mock = org.mockito.Mockito.mock(ClientHttpRequestFactory.class);
+
+        assertThat(RequestFactoryOverridePolicy.isTestDouble(
+                new org.springframework.http.client.BufferingClientHttpRequestFactory(mock))).isTrue();
+        assertThat(RequestFactoryOverridePolicy.isTestDouble(new org.springframework.http.client
+                .BufferingClientHttpRequestFactory(new org.springframework.http.client
+                .BufferingClientHttpRequestFactory(mock)))).isTrue();
+        assertThat(RequestFactoryOverridePolicy.isTestDouble(
+                new org.springframework.http.client.BufferingClientHttpRequestFactory(new AccidentalFactory())))
+                .isFalse();
     }
 }

@@ -128,15 +128,22 @@ public class SSLUtil {
         return sslContext;
     }
 
+    /**
+     * Administrador de confianza que no valida ningún certificado.
+     *
+     * Es el comportamiento pedido por {@code @SSLConfig(enabled = false)} y es un riesgo aceptado y acotado:
+     * {@link #createInsecureSSLContext()} lo crea solo si algún perfil activo es dev, local o development y, si no,
+     * falla al arrancar; además avisa con un WARN cada vez. Nunca se usa por defecto.
+     */
     private static class TrustAllManager implements X509TrustManager {
 
         @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+        public void checkClientTrusted(X509Certificate[] chain, String authType) { // NOSONAR solo dev
             LOG.debug("Insecure SSL: Skipping client certificate validation");
         }
 
         @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+        public void checkServerTrusted(X509Certificate[] chain, String authType) { // NOSONAR solo dev
             LOG.debug("Insecure SSL: Skipping server certificate validation");
         }
 

@@ -368,7 +368,11 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
             }
             LOG.warn("{} is unavailable ({}), using fallback {}", MethodMetadata.describe(method), e,
                     fallback.getClass().getSimpleName());
-            return invokeFallback(method, args);
+            try {
+                return invokeFallback(method, args);
+            } catch (InvocationTargetException failure) {
+                throw failure.getCause();
+            }
         }
     }
 
@@ -391,18 +395,22 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Ejecuta el método equivalente del fallback.
+     * Ejecuta el método equivalente del fallback. Se llama al método de la clase del fallback y no al de la
+     * interfaz, porque la interfaz puede no ser pública y entonces la reflexión no podría invocarlo.
      *
      * @param method el método de la interfaz
      * @param args los argumentos de la llamada
      * @return lo que devuelve el fallback
-     * @throws Throwable lo que lance el fallback
+     * @throws InvocationTargetException si el fallback lanza una excepción (viene en su causa)
+     * @throws ClientException si la clase del fallback no es accesible
      */
-    private Object invokeFallback(Method method, Object[] args) throws Throwable {
+    private Object invokeFallback(Method method, Object[] args) throws InvocationTargetException {
         try {
-            return method.invoke(fallback, args);
-        } catch (InvocationTargetException | IllegalAccessException e) {
-            throw e.getCause();
+            return fallback.getClass().getMethod(method.getName(), method.getParameterTypes())
+                    .invoke(fallback, args);
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new ClientException("Fallback " + fallback.getClass().getName() + " cannot be called for "
+                    + MethodMetadata.describe(method) + ": declare it as a public class", e);
         }
     }
 

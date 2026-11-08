@@ -1,5 +1,6 @@
 package com.juniverse.client.handler;
 
+import com.juniverse.client.enums.RequestFactoryOverridePolicy;
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.config.JsonMapperConfigurer;
 import com.juniverse.client.config.RestHttpClientCustomizer;

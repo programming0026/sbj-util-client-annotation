@@ -195,6 +195,24 @@ class RestHttpClientFallbackTest {
     }
 
     @Test
+    void aFallbackOfANonPublicInterfaceFromAnotherPackageStillWorks() throws Exception {
+        RestHttpClientFactoryBean<Object> factory = new RestHttpClientFactoryBean<>(
+                (Class<Object>) com.juniverse.client.handler.hidden.HiddenClients.type(), new CircuitBreakerUtil(),
+                new RestClientUtil(new SSLUtil()));
+
+        assertThat(com.juniverse.client.handler.hidden.HiddenClients.ping(factory.getObject())).isEqualTo("fallback");
+    }
+
+    @Test
+    void aNonPublicFallbackClassFailsWithAClearMessage() throws Exception {
+        com.juniverse.client.handler.hidden.HiddenClients.Open client =
+                client(com.juniverse.client.handler.hidden.HiddenClients.Open.class);
+
+        assertThatThrownBy(client::ping).isInstanceOf(ClientException.class)
+                .hasMessageContaining("PackageFallback").hasMessageContaining("declare it as a public class");
+    }
+
+    @Test
     void aSuccessfulCallDoesNotUseTheFallback() throws Exception {
         assertThat(client(ItemsClient.class).find("ok")).isEqualTo("real");
         assertThat(ItemsFallback.CALLS).hasValue(0);

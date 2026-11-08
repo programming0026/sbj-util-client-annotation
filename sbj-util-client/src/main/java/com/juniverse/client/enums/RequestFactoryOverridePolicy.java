@@ -1,10 +1,9 @@
-package com.juniverse.client.handler;
+package com.juniverse.client.enums;
 
 import com.juniverse.client.exception.ClientException;
+import org.springframework.http.client.AbstractClientHttpRequestFactoryWrapper;
 import org.springframework.http.client.ClientHttpRequestFactory;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.Locale;
 
 /**
@@ -18,7 +17,7 @@ import java.util.Locale;
  * sin su configuración. Esta política decide qué reemplazos se aceptan. Se configura con la propiedad
  * {@value #PROPERTY}.
  */
-enum RequestFactoryOverridePolicy {
+public enum RequestFactoryOverridePolicy {
 
     /** Por defecto: solo se aceptan los dobles de pruebas de Spring; cualquier otro reemplazo se ignora. */
     AUTO,
@@ -30,7 +29,7 @@ enum RequestFactoryOverridePolicy {
     DENY;
 
     /** Nombre de la propiedad que elige la política. */
-    static final String PROPERTY = "rest-http-client.request-factory-override";
+    public static final String PROPERTY = "rest-http-client.request-factory-override";
 
     /** Cuántos envoltorios (por ejemplo {@code BufferingClientHttpRequestFactory}) se miran por dentro. */
     private static final int MAX_UNWRAP_DEPTH = 5;
@@ -46,7 +45,7 @@ enum RequestFactoryOverridePolicy {
      * @return la política
      * @throws ClientException si el valor no es válido
      */
-    static RequestFactoryOverridePolicy from(String value) {
+    public static RequestFactoryOverridePolicy from(String value) {
         if (value == null || value.isBlank()) {
             return AUTO;
         }
@@ -64,7 +63,7 @@ enum RequestFactoryOverridePolicy {
      *                    pide la de Spring por defecto
      * @return true si se acepta
      */
-    boolean accepts(ClientHttpRequestFactory replacement) {
+    public boolean accepts(ClientHttpRequestFactory replacement) {
         return switch (this) {
             case ALLOW -> true;
             case DENY -> false;
@@ -81,7 +80,7 @@ enum RequestFactoryOverridePolicy {
      * @param factory la request factory
      * @return true si es un doble de pruebas
      */
-    static boolean isTestDouble(ClientHttpRequestFactory factory) {
+    public static boolean isTestDouble(ClientHttpRequestFactory factory) {
         ClientHttpRequestFactory current = factory;
         for (int depth = 0; current != null && depth < MAX_UNWRAP_DEPTH; depth++) {
             String name = current.getClass().getName();
@@ -95,27 +94,13 @@ enum RequestFactoryOverridePolicy {
     }
 
     /**
-     * Obtiene la request factory que envuelve un envoltorio de Spring, leyendo su campo privado: Spring no
-     * ofrece un método público para hacerlo.
+     * Obtiene la request factory que envuelve un envoltorio de Spring, con su método público
+     * {@code getDelegate()}.
      *
      * @param wrapper el envoltorio
-     * @return la request factory envuelta, o null si no se puede obtener
+     * @return la request factory envuelta, o null si no es un envoltorio de Spring
      */
     private static ClientHttpRequestFactory wrapped(ClientHttpRequestFactory wrapper) {
-        try {
-            for (Class<?> type = wrapper.getClass(); type != null && type != Object.class;
-                 type = type.getSuperclass()) {
-                for (Field field : type.getDeclaredFields()) {
-                    if (!Modifier.isStatic(field.getModifiers())
-                            && ClientHttpRequestFactory.class.isAssignableFrom(field.getType())) {
-                        field.setAccessible(true);
-                        return (ClientHttpRequestFactory) field.get(wrapper);
-                    }
-                }
-            }
-        } catch (ReflectiveOperationException | RuntimeException e) {
-            return null;
-        }
-        return null;
+        return wrapper instanceof AbstractClientHttpRequestFactoryWrapper spring ? spring.getDelegate() : null;
     }
 }
