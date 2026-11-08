@@ -27,7 +27,7 @@ Y agrégala como dependencia:
 <dependency>
     <groupId>com.juniverse.client</groupId>
     <artifactId>sbj-util-client</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -291,6 +291,232 @@ public class MiErrorHandler implements ErrorHandler {
   clientes antes de tiempo.
 - Si dos `@EnableRestHttpClients` escanean el mismo paquete, cada cliente se registra una sola vez. Si dos
   clientes distintos acaban con el mismo nombre de bean, el arranque falla pidiendo un `name` único.
+
+## Arquitectura
+
+### Diagrama de clases
+
+```mermaid
+classDiagram
+    direction LR
+
+    %% ---------- API pública (autoconfigure) ----------
+    class EnableRestHttpClients {
+        <<annotation>>
+        String[] basePackages
+    }
+    class RestHttpClient {
+        <<annotation>>
+        String name
+        String url
+        ClientType type
+        long connectTimeout
+        long readTimeout
+        int maxConnections
+        int maxConnectionsPerRoute
+        long connectionTimeToLive
+        SSLConfig ssl
+        RetryConfig retry
+        CircuitBreakerConfig circuitBreaker
+        RateLimiterConfig rateLimiter
+        TimeLimiterConfig timeLimiter
+        Class~ErrorHandler~ errorHandler
+    }
+    class SSLConfig {
+        <<annotation>>
+        boolean enabled
+        String keystorePath
+        String keystorePassword
+        String truststorePath
+        String truststorePassword
+    }
+    class RetryConfig {
+        <<annotation>>
+        int maxRetries
+        long retryDelay
+        double exponentialBackoffMultiplier
+        boolean retryNonIdempotent
+    }
+    class CircuitBreakerConfig {
+        <<annotation>>
+        boolean enabled
+        int failureRateThreshold
+        int slidingWindowSize
+        int minimumNumberOfCalls
+        long waitDurationInOpenState
+        int permittedNumberOfCallsInHalfOpenState
+    }
+    class RateLimiterConfig {
+        <<annotation>>
+        boolean enabled
+        int limitForPeriod
+        long limitRefreshPeriod
+        long timeoutDuration
+    }
+    class TimeLimiterConfig {
+        <<annotation>>
+        boolean enabled
+        long timeout
+    }
+    class ClientType {
+        <<enumeration>>
+        REST_CLIENT
+        REST_TEMPLATE
+    }
+
+    %% ---------- Registro y creación (config, handler) ----------
+    class ClientConfig {
+        <<Configuration>>
+        +resilience4jConfiguration() CircuitBreakerUtil
+        +httpClientConfigurer(SSLUtil) RestClientUtil
+        +sslUtil(Environment) SSLUtil
+    }
+    class RestHttpClientRegistrar {
+        -Environment environment
+        -ResourceLoader resourceLoader
+        +registerBeanDefinitions(AnnotationMetadata, BeanDefinitionRegistry)
+        +setEnvironment(Environment)
+        +setResourceLoader(ResourceLoader)
+    }
+    class RestHttpClientFactoryBean~T~ {
+        -Class~T~ clientInterface
+        -CircuitBreakerUtil circuitBreakerUtil
+        -RestClientUtil restClientUtil
+        -T proxy
+        -HttpComponentsClientHttpRequestFactory requestFactory
+        +getObject() T
+        +getObjectType() Class
+        +isSingleton() boolean
+        +destroy()
+    }
+    class RestHttpClientInvocationHandler {
+        -Object httpClient
+        -RestHttpClient clientConfig
+        -ErrorHandler errorHandler
+        -Retry retry
+        -Retry nonIdempotentRetry
+        -CircuitBreaker circuitBreaker
+        -RateLimiter rateLimiter
+        -TimeLimiter timeLimiter
+        -UnaryOperator~String~ valueResolver
+        +invoke(Object, Method, Object[]) Object
+    }
+    class RequestMetadata {
+        <<inner>>
+        HttpMethod httpMethod
+        String path
+        URI uri
+        HttpHeaders headers
+        Map queryParams
+        Map pathVariables
+        Object body
+    }
+
+    %% ---------- Utilidades (util) ----------
+    class CircuitBreakerUtil {
+        +createRetry(String, RestHttpClient, ErrorHandler, boolean) Retry
+        +createCircuitBreaker(String, RestHttpClient, ErrorHandler) CircuitBreaker
+        +createRateLimiter(String, RestHttpClient) RateLimiter
+        +createTimeLimiter(String, RestHttpClient) TimeLimiter
+        +isTimeout(Throwable)$ boolean
+        +isConnectionFailure(Throwable)$ boolean
+    }
+    class RestClientUtil {
+        +createRequestFactory(RestHttpClient) HttpComponentsClientHttpRequestFactory
+        +configureRestClient(RestHttpClient, ClientHttpRequestFactory) RestClient
+        +configureRestTemplate(ClientHttpRequestFactory) RestTemplate
+    }
+    class SSLUtil {
+        +createSSLContext(String, String, String, String) SSLContext
+        +createInsecureSSLContext() SSLContext
+    }
+    class AnnotationPlaceholderResolver {
+        <<utility>>
+        +resolve(A, UnaryOperator~String~)$ A
+    }
+
+    %% ---------- Errores (exception) ----------
+    class ErrorHandler {
+        <<interface>>
+        +handleError(HttpStatusCode, String, Exception)
+        +shouldRetry(HttpStatusCode) boolean
+        +shouldRecordAsFailure(HttpStatusCode) boolean
+    }
+    class DefaultErrorHandler
+    class ClientException
+
+    %% ---------- Spring / JDK ----------
+    class ImportBeanDefinitionRegistrar {
+        <<interface>>
+    }
+    class FactoryBean~T~ {
+        <<interface>>
+    }
+    class InvocationHandler {
+        <<interface>>
+    }
+    class RuntimeException
+
+    %% ---------- Relaciones ----------
+    EnableRestHttpClients ..> RestHttpClientRegistrar : @Import
+    EnableRestHttpClients ..> ClientConfig : @Import
+    RestHttpClient *-- SSLConfig
+    RestHttpClient *-- RetryConfig
+    RestHttpClient *-- CircuitBreakerConfig
+    RestHttpClient *-- RateLimiterConfig
+    RestHttpClient *-- TimeLimiterConfig
+    RestHttpClient --> ClientType
+    RestHttpClient ..> ErrorHandler : errorHandler
+
+    ImportBeanDefinitionRegistrar <|.. RestHttpClientRegistrar
+    FactoryBean <|.. RestHttpClientFactoryBean
+    InvocationHandler <|.. RestHttpClientInvocationHandler
+    ErrorHandler <|.. DefaultErrorHandler
+    RuntimeException <|-- ClientException
+
+    RestHttpClientRegistrar ..> RestHttpClient : escanea
+    RestHttpClientRegistrar ..> RestHttpClientFactoryBean : registra uno por cliente
+    ClientConfig ..> CircuitBreakerUtil : crea
+    ClientConfig ..> RestClientUtil : crea
+    ClientConfig ..> SSLUtil : crea
+    RestHttpClientFactoryBean --> CircuitBreakerUtil
+    RestHttpClientFactoryBean --> RestClientUtil
+    RestHttpClientFactoryBean ..> AnnotationPlaceholderResolver : resuelve placeholders
+    RestHttpClientFactoryBean ..> RestHttpClientInvocationHandler : crea el proxy
+    RestHttpClientInvocationHandler --> ErrorHandler
+    RestHttpClientInvocationHandler ..> CircuitBreakerUtil : instancias Resilience4j
+    RestHttpClientInvocationHandler *-- RequestMetadata
+    RestHttpClientInvocationHandler ..> ClientException : lanza
+    RestClientUtil --> SSLUtil
+```
+
+### Cómo encajan las piezas
+
+**Al arrancar el contexto**
+
+1. `@EnableRestHttpClients` importa `RestHttpClientRegistrar` y `ClientConfig`.
+2. `RestHttpClientRegistrar` escanea `basePackages` y registra un `RestHttpClientFactoryBean` por cada
+   interfaz `@RestHttpClient`.
+3. `ClientConfig` define los beans compartidos `CircuitBreakerUtil`, `RestClientUtil` y `SSLUtil`, que
+   los factory beans reciben por tipo.
+4. Cada `RestHttpClientFactoryBean` crea su proxy una sola vez:
+   - resuelve los placeholders con `AnnotationPlaceholderResolver`;
+   - crea el pool HTTP con `RestClientUtil`, que usa `SSLUtil`;
+   - obtiene el `ErrorHandler`;
+   - crea el proxy, respaldado por un `RestHttpClientInvocationHandler`.
+
+**En cada llamada a un método del cliente**
+
+1. `RestHttpClientInvocationHandler` lee las anotaciones de Spring Web de la interfaz, del método y de los
+   parámetros, y arma un `RequestMetadata` con el método HTTP, la URI codificada, los headers y el cuerpo.
+2. Ejecuta la petición con `RestClient` o `RestTemplate`, envuelta con Retry → CircuitBreaker →
+   RateLimiter → TimeLimiter. Las instancias de Resilience4j las crea `CircuitBreakerUtil`.
+3. Si la respuesta es un error HTTP, `ErrorHandler.handleError` decide qué excepción se lanza. Las
+   respuestas correctas se convierten al tipo de retorno del método.
+
+**Al cerrar el contexto**
+
+- `RestHttpClientFactoryBean.destroy()` cierra el pool de conexiones de cada cliente.
 
 ## Desarrollo
 
