@@ -654,7 +654,7 @@ solo a su `RestTemplateBuilder`. Con `bufferContent()` también funciona.
 
 ### Varios clientes: `MockRestHttpClients`
 
-`MockRestHttpClients` crea un `MockRestServiceServer` **por cliente** y los entrega por su nombre (el `name()` de
+`MockRestHttpClients` (una clase de apoyo para tus tests, ver abajo) crea un `MockRestServiceServer` **por cliente** y los entrega por su nombre (el `name()` de
 `@RestHttpClient` o, si está vacío, el nombre de la interfaz). Funciona con clientes `REST_CLIENT` y
 `REST_TEMPLATE`:
 
@@ -692,10 +692,89 @@ class PedidosServiceTest {
 - `verify()` revisa todos los clientes y, si fallan varios, el error nombra a cada uno; `reset()` limpia las
   expectativas para reutilizar el contexto.
 - `bufferContent()` e `ignoreExpectOrder()` se aplican a todos los servidores (llámalos al declarar el bean).
-- Requiere `spring-test` (ya viene con `spring-boot-starter-test`); la librería lo declara como dependencia
-  opcional, así que no llega a producción.
+- Copia la clase a tus tests (código abajo). No viene en el jar de la librería, para que esta no dependa de
+  `spring-test` en producción; el original, con Javadoc y pruebas, está en el repositorio:
+  `sbj-util-client/src/test/java/com/juniverse/client/testing/MockRestHttpClients.java`.
 - No lo combines con el `MockServerRestClientCustomizer` de Boot en la misma prueba: ambos intentan reemplazar
   la request factory del mismo cliente.
+
+<details>
+<summary>Código de <code>MockRestHttpClients</code></summary>
+
+```java
+public class MockRestHttpClients implements RestHttpClientCustomizer {
+
+    private final Map<String, MockRestServiceServer> servers = new ConcurrentHashMap<>();
+    private boolean bufferContent;
+    private boolean ignoreExpectOrder;
+
+    public MockRestHttpClients bufferContent() {
+        this.bufferContent = true;
+        return this;
+    }
+
+    public MockRestHttpClients ignoreExpectOrder() {
+        this.ignoreExpectOrder = true;
+        return this;
+    }
+
+    @Override
+    public void customize(String clientName, RestClient.Builder builder) {
+        register(clientName, MockRestServiceServer.bindTo(builder));
+    }
+
+    @Override
+    public void customize(String clientName, RestTemplate template) {
+        register(clientName, MockRestServiceServer.bindTo(template));
+    }
+
+    private void register(String clientName, MockRestServiceServer.MockRestServiceServerBuilder builder) {
+        if (bufferContent) {
+            builder.bufferContent();
+        }
+        builder.ignoreExpectOrder(ignoreExpectOrder);
+        servers.put(clientName, builder.build());
+    }
+
+    public MockRestServiceServer server(String clientName) {
+        MockRestServiceServer server = servers.get(clientName);
+        if (server == null) {
+            throw new IllegalStateException("There is no mocked client named '" + clientName
+                    + "'. Known clients: " + new TreeSet<>(servers.keySet()));
+        }
+        return server;
+    }
+
+    public MockRestServiceServer server(Class<?> clientInterface) {
+        RestHttpClient annotation = clientInterface.getAnnotation(RestHttpClient.class);
+        return server(annotation == null || annotation.name().isEmpty()
+                ? clientInterface.getSimpleName() : annotation.name());
+    }
+
+    public void verify() {
+        Map<String, AssertionError> failures = new TreeMap<>();
+        servers.forEach((name, server) -> {
+            try {
+                server.verify();
+            } catch (AssertionError e) {
+                failures.put(name, e);
+            }
+        });
+        if (!failures.isEmpty()) {
+            StringBuilder message = new StringBuilder("Unmet expectations in " + failures.size() + " client(s):");
+            failures.forEach((name, error) -> message.append("\n  [").append(name).append("] ")
+                    .append(error.getMessage()));
+            throw new AssertionError(message.toString());
+        }
+    }
+
+    public void reset() {
+        servers.values().forEach(MockRestServiceServer::reset);
+    }
+}
+```
+
+</details>
 
 ### Configurar un cliente concreto: `RestHttpClientCustomizer`
 

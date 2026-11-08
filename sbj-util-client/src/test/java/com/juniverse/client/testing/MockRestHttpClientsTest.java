@@ -1,4 +1,4 @@
-package com.juniverse.client.test;
+package com.juniverse.client.testing;
 
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.autoconfigure.RetryConfig;

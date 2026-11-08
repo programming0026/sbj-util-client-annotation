@@ -1,4 +1,4 @@
-package com.juniverse.client.test;
+package com.juniverse.client.testing;
 
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.config.RestHttpClientCustomizer;
@@ -28,10 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * mocks.verify();
  * }</pre>
  *
- * El README de la librería tiene el ejemplo completo.
- *
- * Requiere {@code spring-test} en el classpath (ya viene con {@code spring-boot-starter-test}); la librería lo
- * declara como dependencia opcional, así que no llega a producción.
+ * No forma parte del jar de la librería (para no depender de {@code spring-test} en producción): vive en los tests
+ * de la librería y se copia a los de tu aplicación; el README la muestra completa.
  */
 public class MockRestHttpClients implements RestHttpClientCustomizer {
 
