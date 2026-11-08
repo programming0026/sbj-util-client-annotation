@@ -23,6 +23,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.restclient.RestClientCustomizer;
+import org.springframework.boot.restclient.RestTemplateBuilder;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Crea el proxy de una interfaz {@link RestHttpClient}.
@@ -109,8 +114,8 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
         ErrorHandler errorHandler = createErrorHandler(annotation.errorHandler());
         HttpComponentsClientHttpRequestFactory factory = restClientUtil.createRequestFactory(annotation);
         Object httpClient = switch (annotation.type()) {
-            case REST_CLIENT -> restClientUtil.configureRestClient(annotation, factory);
-            case REST_TEMPLATE -> restClientUtil.configureRestTemplate(factory);
+            case REST_CLIENT -> buildRestClient(annotation, factory);
+            case REST_TEMPLATE -> buildRestTemplate(factory);
         };
 
         RestHttpClientInvocationHandler handler = new RestHttpClientInvocationHandler(
@@ -154,13 +159,10 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
      * @throws Exception si no se puede instanciar
      */
     private ErrorHandler createErrorHandler(Class<? extends ErrorHandler> type) throws Exception {
-        if (applicationContext == null) {
+        AutowireCapableBeanFactory beanFactory = beanFactory();
+        if (beanFactory == null) {
             return type.getDeclaredConstructor().newInstance();
         }
-        AutowireCapableBeanFactory beanFactory =
-                applicationContext instanceof ConfigurableApplicationContext configurable
-                        ? configurable.getBeanFactory()
-                        : applicationContext.getAutowireCapableBeanFactory();
         if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
             ErrorHandler bean = listableBeanFactory.getBeanProvider(type).getIfUnique();
             if (bean != null) {
@@ -168,6 +170,64 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
             }
         }
         return beanFactory.createBean(type);
+    }
+
+    /**
+     * Crea el RestClient sobre la request factory del cliente, aplicando los {@link RestClientCustomizer}
+     * de la aplicación en su orden. Así se usa la misma configuración que el {@code RestClient.Builder} de
+     * Spring Boot (message converters con el Jackson de la aplicación, observabilidad, interceptores), sin
+     * pedir ese bean: Boot lo crea con su propia request factory y su pool, que quedarían sin cerrar.
+     *
+     * @param annotation la configuración del cliente
+     * @param factory la request factory del cliente
+     * @return el RestClient
+     */
+    private RestClient buildRestClient(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory) {
+        RestClient.Builder builder = RestClient.builder();
+        AutowireCapableBeanFactory beanFactory = beanFactory();
+        if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
+            listableBeanFactory.getBeanProvider(RestClientCustomizer.class).orderedStream()
+                    .forEach(customizer -> customizer.customize(builder));
+        }
+        // La request factory y la URL del cliente se fijan al final para que ningún customizer las reemplace.
+        return restClientUtil.configureRestClient(annotation, factory, builder);
+    }
+
+    /**
+     * Crea el RestTemplate sobre la request factory del cliente. Si la aplicación tiene un
+     * {@link RestTemplateBuilder} (Spring Boot), lo usa para heredar sus message converters, interceptores
+     * y customizers; sus {@code clientSettings} globales se descartan para no pisar los timeouts y el SSL
+     * propios del cliente.
+     *
+     * @param factory la request factory del cliente
+     * @return el RestTemplate
+     */
+    private RestTemplate buildRestTemplate(HttpComponentsClientHttpRequestFactory factory) {
+        AutowireCapableBeanFactory beanFactory = beanFactory();
+        RestTemplateBuilder builder = beanFactory instanceof ListableBeanFactory listableBeanFactory
+                ? listableBeanFactory.getBeanProvider(RestTemplateBuilder.class).getIfAvailable()
+                : null;
+        if (builder == null) {
+            return restClientUtil.configureRestTemplate(factory);
+        }
+        return builder.clientSettings(HttpClientSettings.defaults())
+                .requestFactory(() -> factory)
+                .build();
+    }
+
+    /**
+     * Obtiene el bean factory del contexto. Se usa el de {@link ConfigurableApplicationContext} porque está
+     * disponible incluso antes del {@code refresh()}.
+     *
+     * @return el bean factory, o null si no hay contexto
+     */
+    private AutowireCapableBeanFactory beanFactory() {
+        if (applicationContext == null) {
+            return null;
+        }
+        return applicationContext instanceof ConfigurableApplicationContext configurable
+                ? configurable.getBeanFactory()
+                : applicationContext.getAutowireCapableBeanFactory();
     }
 
     /**

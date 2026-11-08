@@ -81,7 +81,21 @@ public class RestClientUtil {
      * @return el RestClient
      */
     public RestClient configureRestClient(RestHttpClient config, ClientHttpRequestFactory requestFactory) {
-        return RestClient.builder()
+        return configureRestClient(config, requestFactory, RestClient.builder());
+    }
+
+    /**
+     * Configura un RestClient a partir de un builder ya personalizado, fijando la request factory y la URL
+     * base del cliente (reemplazan lo que el builder tuviera).
+     *
+     * @param config la configuración del cliente
+     * @param requestFactory la request factory
+     * @param builder el builder a completar
+     * @return el RestClient
+     */
+    public RestClient configureRestClient(RestHttpClient config, ClientHttpRequestFactory requestFactory,
+                                          RestClient.Builder builder) {
+        return builder
                 .baseUrl(config.url())
                 .requestFactory(requestFactory)
                 .build();

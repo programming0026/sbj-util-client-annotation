@@ -284,6 +284,27 @@ public class MiErrorHandler implements ErrorHandler {
   activos de Spring (incluidos los de `application.properties`, por ejemplo `spring.profiles.active=dev,kafka`)
   es `dev`, `local` o `development`; en cualquier otro caso falla al arrancar.
 
+## Integración con Spring Boot
+
+En una aplicación Spring Boot los clientes usan la misma configuración HTTP que el resto de la aplicación:
+
+- **`REST_CLIENT`:** se aplican los `RestClientCustomizer` de la aplicación, entre ellos el que registra los
+  message converters con el **Jackson configurado** (por ejemplo `spring.jackson.property-naming-strategy`),
+  además de los interceptores u observabilidad que agreguen otros customizers.
+- **`REST_TEMPLATE`:** se construye con el `RestTemplateBuilder` de la aplicación (message converters,
+  interceptores, `RestTemplateCustomizer`).
+- Los timeouts, el pool y el SSL siempre son los de `@RestHttpClient`: la configuración HTTP global de
+  Spring Boot no los reemplaza.
+- Sin Spring Boot (Spring "plano") se usan los valores por defecto de `RestClient`/`RestTemplate`.
+
+La librería no agrega servidor web (Tomcat, Spring MVC) ni Spring Cloud a la aplicación: solo depende de
+`spring-boot-starter-restclient`, Apache HttpClient 5 y los módulos de Resilience4j (circuitbreaker, retry,
+ratelimiter, timelimiter).
+
+Los beans internos se llaman `restHttpClientCircuitBreakerUtil`, `restHttpClientRestClientUtil` y
+`restHttpClientSslUtil`, así que no chocan con beans de la aplicación, ni siquiera si esta define los suyos
+del mismo tipo.
+
 ## Ciclo de vida
 
 - Cada cliente tiene su propio pool de conexiones, que se cierra al cerrar el contexto de Spring.
@@ -367,9 +388,9 @@ classDiagram
     %% ---------- Registro y creación (config, handler) ----------
     class ClientConfig {
         <<Configuration>>
-        +resilience4jConfiguration() CircuitBreakerUtil
-        +httpClientConfigurer(SSLUtil) RestClientUtil
-        +sslUtil(Environment) SSLUtil
+        +restHttpClientCircuitBreakerUtil() CircuitBreakerUtil
+        +restHttpClientRestClientUtil(SSLUtil) RestClientUtil
+        +restHttpClientSslUtil(Environment) SSLUtil
     }
     class RestHttpClientRegistrar {
         -Environment environment
@@ -423,7 +444,7 @@ classDiagram
     }
     class RestClientUtil {
         +createRequestFactory(RestHttpClient) HttpComponentsClientHttpRequestFactory
-        +configureRestClient(RestHttpClient, ClientHttpRequestFactory) RestClient
+        +configureRestClient(RestHttpClient, ClientHttpRequestFactory, RestClient.Builder) RestClient
         +configureRestTemplate(ClientHttpRequestFactory) RestTemplate
     }
     class SSLUtil {
@@ -498,10 +519,12 @@ classDiagram
 2. `RestHttpClientRegistrar` escanea `basePackages` y registra un `RestHttpClientFactoryBean` por cada
    interfaz `@RestHttpClient`.
 3. `ClientConfig` define los beans compartidos `CircuitBreakerUtil`, `RestClientUtil` y `SSLUtil`, que
-   los factory beans reciben por tipo.
+   los factory beans reciben por nombre (con prefijo `restHttpClient`, para no chocar con beans de la
+   aplicación).
 4. Cada `RestHttpClientFactoryBean` crea su proxy una sola vez:
    - resuelve los placeholders con `AnnotationPlaceholderResolver`;
-   - crea el pool HTTP con `RestClientUtil`, que usa `SSLUtil`;
+   - crea el pool HTTP con `RestClientUtil`, que usa `SSLUtil`, y sobre él el `RestClient` (con los
+     `RestClientCustomizer` de la aplicación) o el `RestTemplate` (con su `RestTemplateBuilder`);
    - obtiene el `ErrorHandler`;
    - crea el proxy, respaldado por un `RestHttpClientInvocationHandler`.
 
@@ -527,7 +550,7 @@ mvn checkstyle:check               # solo checkstyle
 ```
 
 - La fase `test` falla si la cobertura de complejidad (JaCoCo) es menor a 80 %.
-- Checkstyle (`src/main/resources/checkstyle.xml`) falla con advertencias: líneas de máximo 120 caracteres,
+- Checkstyle (`config/checkstyle.xml`) falla con advertencias: líneas de máximo 120 caracteres,
   Javadoc obligatorio, sin tabuladores ni imports con `*`.
 
 ### Convención de idioma

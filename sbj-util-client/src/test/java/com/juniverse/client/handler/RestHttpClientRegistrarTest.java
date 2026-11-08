@@ -39,7 +39,9 @@ class RestHttpClientRegistrarTest {
     void registersInterfacesFromExplicitBasePackagesAndSharedBeans() {
         try (var context = new AnnotationConfigApplicationContext(ExplicitPackagesConfig.class)) {
             assertThat(context.getBean(ScannedClients.NamedClient.class)).isNotNull();
-            assertThat(context.getBean("resilience4jConfiguration")).isInstanceOf(CircuitBreakerUtil.class);
+            assertThat(context.getBean(ClientConfig.CIRCUIT_BREAKER_UTIL_BEAN)).isInstanceOf(CircuitBreakerUtil.class);
+            assertThat(context.getBean(ClientConfig.REST_CLIENT_UTIL_BEAN)).isInstanceOf(RestClientUtil.class);
+            assertThat(context.getBean(ClientConfig.SSL_UTIL_BEAN)).isInstanceOf(SSLUtil.class);
             assertThat(context.getBean(RestClientUtil.class)).isNotNull();
             assertThat(context.getBean(SSLUtil.class)).isNotNull();
             assertThat(context.getBean(ClientConfig.class)).isNotNull();
@@ -57,6 +59,16 @@ class RestHttpClientRegistrarTest {
         @Bean
         CircuitBreakerUtil customResilience() {
             return new CircuitBreakerUtil();
+        }
+
+        @Bean
+        SSLUtil customSslUtil() {
+            return new SSLUtil();
+        }
+
+        @Bean
+        RestClientUtil customRestClientUtil() {
+            return new RestClientUtil(new SSLUtil());
         }
     }
 
@@ -92,14 +104,19 @@ class RestHttpClientRegistrarTest {
     }
 
     @Test
-    void dependenciesAreResolvedByTypeNotByBeanName() {
+    void applicationBeansWithSameTypeOrGenericNamesDoNotInterfere() {
         try (var context = new AnnotationConfigApplicationContext()) {
+            // Un CircuitBreakerUtil propio de la aplicación y beans con los nombres genéricos de antes.
             context.register(ExplicitPackagesConfig.class, RenamedResilienceConfig.class);
-            // Quita el bean con el nombre que antes era obligatorio: debe usarse el otro por tipo.
-            context.registerBean("resilience4jConfiguration", String.class, () -> "not a CircuitBreakerUtil");
+            context.registerBean("sslUtil", String.class, () -> "application bean");
+            context.registerBean("httpClientConfigurer", String.class, () -> "application bean");
+            context.registerBean("resilience4jConfiguration", String.class, () -> "application bean");
             context.refresh();
 
             assertThat(context.getBean(ScannedClients.NamedClient.class)).isNotNull();
+            assertThat(context.getBean("sslUtil")).isEqualTo("application bean");
+            assertThat(context.getBeansOfType(CircuitBreakerUtil.class)).hasSize(2);
+            assertThat(context.getBeansOfType(SSLUtil.class)).hasSize(2);
         }
     }
 }

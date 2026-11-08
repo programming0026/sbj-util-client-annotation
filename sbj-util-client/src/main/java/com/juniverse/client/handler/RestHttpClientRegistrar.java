@@ -2,6 +2,7 @@ package com.juniverse.client.handler;
 
 import com.juniverse.client.autoconfigure.EnableRestHttpClients;
 import com.juniverse.client.autoconfigure.RestHttpClient;
+import com.juniverse.client.config.ClientConfig;
 import com.juniverse.client.exception.ClientException;
 import io.github.resilience4j.core.lang.NonNull;
 import org.slf4j.Logger;
@@ -75,8 +76,9 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
 
     /**
      * Busca los clientes y registra sus definiciones de bean. Los argumentos {@code CircuitBreakerUtil} y
-     * {@code RestClientUtil} del constructor del factory bean se resuelven por tipo (autowiring), sin
-     * depender del nombre de los beans.
+     * {@code RestClientUtil} del constructor del factory bean son los beans de {@link ClientConfig},
+     * referenciados por sus nombres con prefijo ({@link ClientConfig#CIRCUIT_BREAKER_UTIL_BEAN} y
+     * {@link ClientConfig#REST_CLIENT_UTIL_BEAN}).
      *
      * Si un cliente ya está registrado con el mismo nombre (por ejemplo, porque dos
      * {@code @EnableRestHttpClients} escanean el mismo paquete), se omite; si el nombre lo usa otro bean,
@@ -151,6 +153,10 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
                             .genericBeanDefinition(RestHttpClientFactoryBean.class);
 
                     definition.addConstructorArgValue(clientInterface);
+                    // Los beans de la librería se referencian por su nombre con prefijo: así un bean de la
+                    // aplicación del mismo tipo no genera ambigüedad.
+                    definition.addConstructorArgReference(ClientConfig.CIRCUIT_BREAKER_UTIL_BEAN);
+                    definition.addConstructorArgReference(ClientConfig.REST_CLIENT_UTIL_BEAN);
 
                     AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
                     // Permite resolver el tipo del bean sin instanciar el factory bean (inyección por tipo).
