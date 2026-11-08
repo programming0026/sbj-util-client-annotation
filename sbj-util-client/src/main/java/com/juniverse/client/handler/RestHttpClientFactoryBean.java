@@ -9,11 +9,13 @@ import com.juniverse.client.exception.ErrorHandler;
 import io.github.resilience4j.core.lang.NonNull;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.SmartFactoryBean;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
@@ -22,6 +24,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.boot.restclient.RestClientCustomizer;
@@ -33,12 +36,13 @@ import org.springframework.web.client.RestTemplate;
  * Crea el proxy de una interfaz {@link RestHttpClient}.
  *
  * Construye el RestClient o RestTemplate según {@code type()}, obtiene el {@link ErrorHandler} y devuelve
- * un proxy dinámico respaldado por {@link RestHttpClientInvocationHandler}. El proxy se crea una sola vez;
- * al cerrarse el contexto se libera el pool de conexiones.
+ * un proxy dinámico respaldado por {@link RestHttpClientInvocationHandler}. El proxy se crea una sola vez y
+ * al arrancar el contexto ({@link #isEagerInit()}), aunque nadie lo inyecte, para que un cliente mal
+ * declarado haga fallar el arranque; al cerrarse el contexto se libera el pool de conexiones.
  *
  * @param <T> el tipo de la interfaz del cliente
  */
-public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, ApplicationContextAware, DisposableBean {
+public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, ApplicationContextAware, DisposableBean {
 
     /** La interfaz del cliente. */
     private final Class<T> clientInterface;
@@ -111,21 +115,31 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
         RestHttpClient annotation = AnnotationPlaceholderResolver.resolve(
                 clientInterface.getAnnotation(RestHttpClient.class), placeholderResolver);
 
-        ErrorHandler errorHandler = createErrorHandler(annotation.errorHandler());
+        ErrorHandler errorHandler = resolveComponent(annotation.errorHandler());
+        List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
+        for (Class<? extends ClientHttpRequestInterceptor> type : annotation.interceptors()) {
+            interceptors.add(resolveComponent(type));
+        }
         HttpComponentsClientHttpRequestFactory factory = restClientUtil.createRequestFactory(annotation);
-        Object httpClient = switch (annotation.type()) {
-            case REST_CLIENT -> buildRestClient(annotation, factory);
-            case REST_TEMPLATE -> buildRestTemplate(factory);
-        };
-
-        RestHttpClientInvocationHandler handler = new RestHttpClientInvocationHandler(
-                httpClient,
-                annotation,
-                errorHandler,
-                clientInterface,
-                circuitBreakerUtil,
-                placeholderResolver
-        );
+        RestHttpClientInvocationHandler handler;
+        try {
+            Object httpClient = switch (annotation.type()) {
+                case REST_CLIENT -> buildRestClient(annotation, factory, interceptors);
+                case REST_TEMPLATE -> buildRestTemplate(factory, interceptors);
+            };
+            handler = new RestHttpClientInvocationHandler(
+                    httpClient,
+                    annotation,
+                    errorHandler,
+                    clientInterface,
+                    circuitBreakerUtil,
+                    placeholderResolver
+            );
+        } catch (RuntimeException e) {
+            // El cliente es inválido (por ejemplo, un método mal declarado): se libera el pool ya creado.
+            factory.destroy();
+            throw e;
+        }
 
         this.requestFactory = factory;
         this.proxy = (T) Proxy.newProxyInstance(
@@ -150,21 +164,23 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
     }
 
     /**
-     * Obtiene el manejador de errores. Con contexto de Spring, usa el bean de ese tipo si hay uno solo y,
-     * si no, crea una instancia con inyección de dependencias (puede usar {@code @Autowired} o constructor
-     * con beans). Sin contexto, lo instancia con su constructor sin argumentos.
+     * Obtiene un componente declarado por clase en la anotación (manejador de errores, interceptores). Con
+     * contexto de Spring, usa el bean de ese tipo si hay uno solo y, si no, crea una instancia con inyección
+     * de dependencias (puede usar {@code @Autowired} o constructor con beans). Sin contexto, lo instancia con
+     * su constructor sin argumentos.
      *
-     * @param type la clase del manejador de errores
-     * @return el manejador de errores
+     * @param type la clase del componente
+     * @param <C> el tipo del componente
+     * @return el componente
      * @throws Exception si no se puede instanciar
      */
-    private ErrorHandler createErrorHandler(Class<? extends ErrorHandler> type) throws Exception {
+    private <C> C resolveComponent(Class<C> type) throws Exception {
         AutowireCapableBeanFactory beanFactory = beanFactory();
         if (beanFactory == null) {
             return type.getDeclaredConstructor().newInstance();
         }
         if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
-            ErrorHandler bean = listableBeanFactory.getBeanProvider(type).getIfUnique();
+            C bean = listableBeanFactory.getBeanProvider(type).getIfUnique();
             if (bean != null) {
                 return bean;
             }
@@ -180,15 +196,18 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
      *
      * @param annotation la configuración del cliente
      * @param factory la request factory del cliente
+     * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
      * @return el RestClient
      */
-    private RestClient buildRestClient(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory) {
+    private RestClient buildRestClient(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory,
+                                       List<ClientHttpRequestInterceptor> interceptors) {
         RestClient.Builder builder = RestClient.builder();
         AutowireCapableBeanFactory beanFactory = beanFactory();
         if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
             listableBeanFactory.getBeanProvider(RestClientCustomizer.class).orderedStream()
                     .forEach(customizer -> customizer.customize(builder));
         }
+        interceptors.forEach(builder::requestInterceptor);
         // La request factory y la URL del cliente se fijan al final para que ningún customizer las reemplace.
         return restClientUtil.configureRestClient(annotation, factory, builder);
     }
@@ -200,19 +219,20 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
      * propios del cliente.
      *
      * @param factory la request factory del cliente
+     * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
      * @return el RestTemplate
      */
-    private RestTemplate buildRestTemplate(HttpComponentsClientHttpRequestFactory factory) {
+    private RestTemplate buildRestTemplate(HttpComponentsClientHttpRequestFactory factory,
+                                           List<ClientHttpRequestInterceptor> interceptors) {
         AutowireCapableBeanFactory beanFactory = beanFactory();
         RestTemplateBuilder builder = beanFactory instanceof ListableBeanFactory listableBeanFactory
                 ? listableBeanFactory.getBeanProvider(RestTemplateBuilder.class).getIfAvailable()
                 : null;
-        if (builder == null) {
-            return restClientUtil.configureRestTemplate(factory);
-        }
-        return builder.clientSettings(HttpClientSettings.defaults())
-                .requestFactory(() -> factory)
-                .build();
+        RestTemplate template = builder == null
+                ? restClientUtil.configureRestTemplate(factory)
+                : builder.clientSettings(HttpClientSettings.defaults()).requestFactory(() -> factory).build();
+        template.getInterceptors().addAll(interceptors);
+        return template;
     }
 
     /**
@@ -269,6 +289,16 @@ public class RestHttpClientFactoryBean<T> implements FactoryBean<T>, Application
      */
     @Override
     public boolean isSingleton() {
+        return true;
+    }
+
+    /**
+     * Pide crear el proxy al arrancar el contexto, para validar el cliente (URL y métodos) de inmediato.
+     *
+     * @return siempre true
+     */
+    @Override
+    public boolean isEagerInit() {
         return true;
     }
 

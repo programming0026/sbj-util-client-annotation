@@ -12,29 +12,33 @@
     <artifactId>sbj-util-client</artifactId>
     <version>1.0.0</version>
     <name>sbj-util-client</name>
-    <description/>
-    <url/>
+    <description>Clientes REST declarativos para Spring Boot con resiliencia de Resilience4j integrada.</description>
+    <url>https://github.com/programming0026/sbj-util-client-annotation</url>
     <licenses>
-        <license/>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <id>programming0026</id>
+            <name>programming0026</name>
+            <email>programming0026@gmail.com</email>
+            <url>https://github.com/programming0026</url>
+        </developer>
     </developers>
     <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>scm:git:https://github.com/programming0026/sbj-util-client-annotation.git</connection>
+        <developerConnection>scm:git:git@github.com:programming0026/sbj-util-client-annotation.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/programming0026/sbj-util-client-annotation</url>
     </scm>
     <properties>
         <java.version>21</java.version>
         <resilience4j.version>2.3.0</resilience4j.version>
     </properties>
-    <!--
-        Solo dependencias que el código usa: RestClient/RestTemplate (spring-web vía el starter de restclient),
-        Apache HttpClient 5 y los módulos sueltos de Resilience4j. No se incluye ningún servidor web
-        (Tomcat/Spring MVC) ni Spring Cloud, para no imponerlos a las aplicaciones que usan la librería.
-    -->
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -59,6 +63,16 @@
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-timelimiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-micrometer</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -98,6 +112,36 @@
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>5.5.0.6356</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <doclint>all,-missing</doclint>
+                    <failOnWarnings>false</failOnWarnings>
+                    <failOnError>true</failOnError>
+                    <show>protected</show>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -163,5 +207,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

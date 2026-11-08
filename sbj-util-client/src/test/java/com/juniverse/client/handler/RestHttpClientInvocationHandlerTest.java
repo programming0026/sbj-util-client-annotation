@@ -80,7 +80,7 @@ class RestHttpClientInvocationHandlerTest {
         String deleteByName(@PathVariable("name") String name);
 
         @GetMapping("/users")
-        String list(String ignored);
+        String list();
     }
 
     @RestHttpClient(url = BASE, retry = @RetryConfig(maxRetries = 1, retryDelay = 1))
@@ -94,8 +94,17 @@ class RestHttpClientInvocationHandlerTest {
         @RequestMapping(path = "/items/{id}", method = RequestMethod.HEAD)
         String head(@PathVariable("id") long id);
 
+    }
+
+    @RestHttpClient(url = BASE)
+    interface NoHttpMethodClient {
+
         @RequestMapping("/no-method")
         String noMethod();
+    }
+
+    @RestHttpClient(url = BASE)
+    interface NotMappedClient {
 
         String notMapped();
     }
@@ -217,7 +226,7 @@ class RestHttpClientInvocationHandlerTest {
         assertThat(client.update(1, "upd")).isEqualTo("updated");
         assertThat(client.patch(1, "p")).isEqualTo("patched");
         assertThat(client.delete(1)).isEqualTo("deleted");
-        assertThat(client.list("not-annotated")).isEqualTo("all");
+        assertThat(client.list()).isEqualTo("all");
         server.verify();
     }
 
@@ -258,15 +267,14 @@ class RestHttpClientInvocationHandlerTest {
 
     @Test
     void methodsWithoutHttpMethodAreRejected() {
-        SpringMappingClient client = proxy(SpringMappingClient.class, new RestTemplate(), new DefaultErrorHandler());
-
-        assertThatThrownBy(client::noMethod)
+        // Se rechazan al crear el cliente, no en la primera llamada.
+        assertThatThrownBy(() -> proxy(NoHttpMethodClient.class, new RestTemplate(), new DefaultErrorHandler()))
                 .isInstanceOf(ClientException.class)
-                .hasMessageContaining("SpringMappingClient.noMethod")
+                .hasMessageContaining("NoHttpMethodClient.noMethod")
                 .hasMessageContaining("@GetMapping");
-        assertThatThrownBy(client::notMapped)
+        assertThatThrownBy(() -> proxy(NotMappedClient.class, new RestTemplate(), new DefaultErrorHandler()))
                 .isInstanceOf(ClientException.class)
-                .hasMessageContaining("SpringMappingClient.notMapped");
+                .hasMessageContaining("NotMappedClient.notMapped");
     }
 
     @Test

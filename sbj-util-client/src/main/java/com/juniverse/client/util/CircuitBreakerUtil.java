@@ -61,6 +61,42 @@ public class CircuitBreakerUtil {
     }
 
     /**
+     * Obtiene el registro de circuit breakers (por ejemplo, para publicar sus métricas).
+     *
+     * @return el registro de circuit breakers
+     */
+    public CircuitBreakerRegistry getCircuitBreakerRegistry() {
+        return circuitBreakerRegistry;
+    }
+
+    /**
+     * Obtiene el registro de retries.
+     *
+     * @return el registro de retries
+     */
+    public RetryRegistry getRetryRegistry() {
+        return retryRegistry;
+    }
+
+    /**
+     * Obtiene el registro de rate limiters.
+     *
+     * @return el registro de rate limiters
+     */
+    public RateLimiterRegistry getRateLimiterRegistry() {
+        return rateLimiterRegistry;
+    }
+
+    /**
+     * Obtiene el registro de time limiters.
+     *
+     * @return el registro de time limiters
+     */
+    public TimeLimiterRegistry getTimeLimiterRegistry() {
+        return timeLimiterRegistry;
+    }
+
+    /**
      * Crea (u obtiene) el circuit breaker del cliente, con ventana deslizante por número de llamadas.
      *
      * Qué cuenta como falla: los errores HTTP según {@link ErrorHandler#shouldRecordAsFailure}; los

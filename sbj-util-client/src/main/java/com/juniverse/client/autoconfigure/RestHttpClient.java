@@ -4,6 +4,7 @@ package com.juniverse.client.autoconfigure;
 import com.juniverse.client.enums.ClientType;
 import com.juniverse.client.exception.DefaultErrorHandler;
 import com.juniverse.client.exception.ErrorHandler;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -122,4 +123,14 @@ public @interface RestHttpClient {
      * @return la clase del manejador de errores
      */
     Class<? extends ErrorHandler> errorHandler() default DefaultErrorHandler.class;
+
+    /**
+     * Interceptores de este cliente (por ejemplo, autenticación o logging), en el orden en que se aplican.
+     * Igual que el manejador de errores: si existe un bean de ese tipo se usa; si no, Spring crea la
+     * instancia con inyección de dependencias. Se agregan después de los interceptores globales de la
+     * aplicación ({@code RestClientCustomizer}/{@code RestTemplateBuilder}).
+     *
+     * @return las clases de los interceptores
+     */
+    Class<? extends ClientHttpRequestInterceptor>[] interceptors() default {};
 }

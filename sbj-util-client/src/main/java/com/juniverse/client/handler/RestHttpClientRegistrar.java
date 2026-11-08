@@ -13,6 +13,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -40,6 +41,13 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
         ResourceLoaderAware {
     /** El logger. */
     private static final Logger LOG = LoggerFactory.getLogger(RestHttpClientRegistrar.class);
+
+    /** Nombre del bean marcador que indica que la aplicación usa {@link EnableRestHttpClients}. */
+    public static final String ENABLED_MARKER_BEAN = "restHttpClientEnabledMarker";
+
+    /** Bean marcador: existe cuando la aplicación declaró {@link EnableRestHttpClients}. */
+    public static final class EnabledMarker {
+    }
 
     /**
      * El entorno para resolver placeholders en {@code basePackages} y {@code name}. Spring lo inyecta
@@ -102,6 +110,21 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
             LOG.info("No basePackages specified, using: {}", basePackage);
         }
 
+        // Indica a la autoconfiguración de Spring Boot que la aplicación eligió sus paquetes explícitamente.
+        if (!registry.containsBeanDefinition(ENABLED_MARKER_BEAN)) {
+            registry.registerBeanDefinition(ENABLED_MARKER_BEAN, new RootBeanDefinition(EnabledMarker.class));
+        }
+        registerClients(basePackages, registry);
+    }
+
+    /**
+     * Busca los clientes en los paquetes indicados y registra un {@link RestHttpClientFactoryBean} por cada uno.
+     *
+     * @param basePackages los paquetes donde buscar (admiten placeholders)
+     * @param registry el registro de definiciones de bean
+     * @throws ClientException si una interfaz no se puede cargar o registrar (por ejemplo, nombre duplicado)
+     */
+    protected void registerClients(String[] basePackages, BeanDefinitionRegistry registry) {
         ClassPathScanningCandidateComponentProvider scanner =
                 new ClassPathScanningCandidateComponentProvider(false, environment) {
                     @Override

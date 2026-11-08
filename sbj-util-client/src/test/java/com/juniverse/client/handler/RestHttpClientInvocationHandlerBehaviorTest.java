@@ -86,14 +86,22 @@ class RestHttpClientInvocationHandlerBehaviorTest {
         @RequestMapping("summary")
         String summary();
 
+        @GetMapping("/orgs/{org}/items/{id}")
+        String byPath(@PathVariable Map<String, Object> variables);
+    }
+
+    @RestHttpClient(url = BASE)
+    interface TwoPathsClient {
+
         @GetMapping(path = {"/a", "/b"})
         String twoPaths();
+    }
+
+    @RestHttpClient(url = BASE)
+    interface TwoMethodsClient {
 
         @RequestMapping(path = "/c", method = {RequestMethod.GET, RequestMethod.POST})
         String twoMethods();
-
-        @GetMapping("/orgs/{org}/items/{id}")
-        String byPath(@PathVariable Map<String, Object> variables);
     }
 
     @RestHttpClient(name = "cb-attempts", url = BASE, retry = @RetryConfig(maxRetries = 2, retryDelay = 1),
@@ -227,14 +235,12 @@ class RestHttpClientInvocationHandlerBehaviorTest {
 
     @Test
     void ambiguousMappingsAreRejected() {
-        PrefixedClient client = proxy(PrefixedClient.class, new RestTemplate());
-
-        assertThatThrownBy(client::twoPaths)
+        assertThatThrownBy(() -> proxy(TwoPathsClient.class, new RestTemplate()))
                 .isInstanceOf(ClientException.class)
-                .hasMessage("Method PrefixedClient.twoPaths declares more than one path");
-        assertThatThrownBy(client::twoMethods)
+                .hasMessage("Method TwoPathsClient.twoPaths declares more than one path");
+        assertThatThrownBy(() -> proxy(TwoMethodsClient.class, new RestTemplate()))
                 .isInstanceOf(ClientException.class)
-                .hasMessage("Method PrefixedClient.twoMethods declares more than one HTTP method");
+                .hasMessage("Method TwoMethodsClient.twoMethods declares more than one HTTP method");
     }
 
     @Test
@@ -249,11 +255,11 @@ class RestHttpClientInvocationHandlerBehaviorTest {
 
     @Test
     void pathsAreJoinedWithExactlyOneSlash() {
-        assertThat(RestHttpClientInvocationHandler.joinPath("http://h/api/", "/items")).isEqualTo("http://h/api/items");
-        assertThat(RestHttpClientInvocationHandler.joinPath("http://h/api", "items")).isEqualTo("http://h/api/items");
-        assertThat(RestHttpClientInvocationHandler.joinPath("http://h/api", "/items")).isEqualTo("http://h/api/items");
-        assertThat(RestHttpClientInvocationHandler.joinPath("http://h/api/", "")).isEqualTo("http://h/api/");
-        assertThat(RestHttpClientInvocationHandler.joinPath("", "/items")).isEqualTo("/items");
+        assertThat(MethodMetadata.joinPath("http://h/api/", "/items")).isEqualTo("http://h/api/items");
+        assertThat(MethodMetadata.joinPath("http://h/api", "items")).isEqualTo("http://h/api/items");
+        assertThat(MethodMetadata.joinPath("http://h/api", "/items")).isEqualTo("http://h/api/items");
+        assertThat(MethodMetadata.joinPath("http://h/api/", "")).isEqualTo("http://h/api/");
+        assertThat(MethodMetadata.joinPath("", "/items")).isEqualTo("/items");
     }
 
     @Test

@@ -33,8 +33,10 @@ Y agrégala como dependencia:
 
 ## Uso rápido
 
-1. Activa los clientes en una clase de configuración. Si no indicas `basePackages`, se busca en el paquete
-   de esa clase.
+1. En una aplicación **Spring Boot** no hace falta configurar nada: la autoconfiguración registra todas las
+   interfaces `@RestHttpClient` de los paquetes de la aplicación (los de la clase con
+   `@SpringBootApplication`). Para elegir los paquetes, o sin Spring Boot, usa `@EnableRestHttpClients` en
+   una clase de configuración (sin `basePackages` se busca en el paquete de esa clase):
 
 ```java
 @Configuration
@@ -42,6 +44,9 @@ Y agrégala como dependencia:
 public class ClientesConfig {
 }
 ```
+
+   Con `@EnableRestHttpClients` el escaneo automático se desactiva; también se puede desactivar con
+   `rest-http-client.auto-scan.enabled=false`.
 
 2. Declara el cliente:
 
@@ -105,9 +110,23 @@ public interface InventarioClient {
 }
 ```
 
-Un método sin anotación de mapping, sin método HTTP o con más de una ruta o método lanza `ClientException`
-al invocarlo. Los métodos `default` de la interfaz se ejecutan normalmente, sin petición HTTP, y
+Los métodos `default` (y `static`) de la interfaz se ejecutan normalmente, sin petición HTTP, y
 `equals`/`hashCode`/`toString` usan la identidad del proxy.
+
+### Validación al arrancar
+
+Cada cliente se valida **al arrancar el contexto**, aunque ningún bean lo inyecte: si algo está mal declarado,
+la aplicación no arranca y el `ClientException` dice qué método y qué parámetro corregir. Se rechaza:
+
+- una `url` vacía o que no sea absoluta `http(s)://host` (después de resolver placeholders);
+- un método sin anotación de mapping, sin método HTTP o con más de una ruta o método HTTP;
+- un parámetro sin `@PathVariable`, `@RequestParam`, `@RequestHeader` ni `@RequestBody`;
+- más de un `@RequestBody`;
+- una variable de la ruta (`{id}`) sin su `@PathVariable`, o un `@PathVariable` que no aparece en la ruta
+  (salvo con `@PathVariable Map`, que aporta las variables al llamar).
+
+Las anotaciones de cada método se analizan una sola vez, al crear el cliente (los placeholders del mapping
+y de `defaultValue` también); en cada llamada solo se enlazan los argumentos.
 
 ### Tipos de retorno
 
@@ -180,6 +199,7 @@ Todo se configura en `@RestHttpClient`:
 | `ssl` | `@SSLConfig` | Keystore y truststore. |
 | `retry`, `circuitBreaker`, `rateLimiter`, `timeLimiter` | | Resiliencia (ver abajo). |
 | `errorHandler` | `DefaultErrorHandler` | Manejo de respuestas con error. |
+| `interceptors` | `{}` | Interceptores propios del cliente (ver "Interceptores"). |
 
 ## Placeholders de propiedades
 
@@ -237,6 +257,37 @@ public interface PagosClient { ... }
 - **Timeout:** si un intento excede el time limiter, la petición se interrumpe y se lanza `ClientException`
   con un `TimeoutException` como causa (y se reintenta según `retry`). Las peticiones con time limiter
   corren en hilos virtuales, no en el `ForkJoinPool` común.
+
+## Interceptores
+
+Para agregar lógica a cada petición de un cliente (autenticación, logging, trazas), declara
+`ClientHttpRequestInterceptor` en `interceptors`. Igual que con el `ErrorHandler`, si existe un bean de ese
+tipo se usa; si no, Spring crea la instancia con inyección de dependencias:
+
+```java
+@Component
+class AuthInterceptor implements ClientHttpRequestInterceptor {
+
+    private final TokenProvider tokens;
+
+    AuthInterceptor(TokenProvider tokens) {
+        this.tokens = tokens;
+    }
+
+    @Override
+    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
+            throws IOException {
+        request.getHeaders().setBearerAuth(tokens.token());
+        return execution.execute(request, body);
+    }
+}
+
+@RestHttpClient(url = "${pagos.url}", interceptors = {AuthInterceptor.class, TraceInterceptor.class})
+public interface PagosClient { ... }
+```
+
+Se ejecutan en el orden declarado y **después** de los interceptores globales de la aplicación (los de los
+`RestClientCustomizer` o del `RestTemplateBuilder`).
 
 ## Manejo de errores
 
@@ -305,6 +356,22 @@ Los beans internos se llaman `restHttpClientCircuitBreakerUtil`, `restHttpClient
 `restHttpClientSslUtil`, así que no chocan con beans de la aplicación, ni siquiera si esta define los suyos
 del mismo tipo.
 
+### Métricas
+
+Si la aplicación usa Micrometer (por ejemplo, con Spring Boot Actuator) y tiene `resilience4j-micrometer`
+en el classpath, se publican automáticamente las métricas de Resilience4j de cada cliente, con el nombre del
+cliente en el tag `name`: `resilience4j.circuitbreaker.*`, `resilience4j.retry.*`, `resilience4j.ratelimiter.*`
+y `resilience4j.timelimiter.*`. La librería declara esas dependencias como opcionales, así que hay que
+agregarlas a la aplicación:
+
+```xml
+<dependency>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-micrometer</artifactId>
+    <version>2.3.0</version>
+</dependency>
+```
+
 ## Ciclo de vida
 
 - Cada cliente tiene su propio pool de conexiones, que se cierra al cerrar el contexto de Spring.
@@ -342,6 +409,7 @@ classDiagram
         RateLimiterConfig rateLimiter
         TimeLimiterConfig timeLimiter
         Class~ErrorHandler~ errorHandler
+        Class~ClientHttpRequestInterceptor~[] interceptors
     }
     class SSLConfig {
         <<annotation>>
@@ -392,10 +460,19 @@ classDiagram
         +restHttpClientRestClientUtil(SSLUtil) RestClientUtil
         +restHttpClientSslUtil(Environment) SSLUtil
     }
+    class RestHttpClientAutoConfiguration {
+        <<AutoConfiguration>>
+    }
+    class AutoConfigurationPackagesRegistrar
+    class RestHttpClientMetricsAutoConfiguration {
+        <<AutoConfiguration>>
+        +restHttpClientResilienceMetrics(CircuitBreakerUtil) MeterBinder
+    }
     class RestHttpClientRegistrar {
         -Environment environment
         -ResourceLoader resourceLoader
         +registerBeanDefinitions(AnnotationMetadata, BeanDefinitionRegistry)
+        #registerClients(String[], BeanDefinitionRegistry)
         +setEnvironment(Environment)
         +setResourceLoader(ResourceLoader)
     }
@@ -408,6 +485,7 @@ classDiagram
         +getObject() T
         +getObjectType() Class
         +isSingleton() boolean
+        +isEagerInit() boolean
         +destroy()
     }
     class RestHttpClientInvocationHandler {
@@ -419,14 +497,31 @@ classDiagram
         -CircuitBreaker circuitBreaker
         -RateLimiter rateLimiter
         -TimeLimiter timeLimiter
-        -UnaryOperator~String~ valueResolver
+        -Map~Method, MethodMetadata~ methods
         +invoke(Object, Method, Object[]) Object
     }
-    class RequestMetadata {
-        <<inner>>
-        HttpMethod httpMethod
-        String path
-        URI uri
+    class MethodMetadata {
+        -HttpMethod httpMethod
+        -String path
+        -HttpHeaders staticHeaders
+        -Map staticParams
+        -List~ParameterBinding~ bindings
+        -ParameterizedTypeReference bodyTypeReference
+        +of(Method, RequestMapping, UnaryOperator~String~)$ MethodMetadata
+        +bind(Object[]) Request
+        +uri(String, Request) URI
+        +toReturnValue(ResponseEntity) Object
+    }
+    class ParameterBinding {
+        <<record>>
+        Kind kind
+        String name
+        boolean required
+        String defaultValue
+        boolean map
+        +bind(Request, Object, String)
+    }
+    class Request {
         HttpHeaders headers
         Map queryParams
         Map pathVariables
@@ -441,6 +536,10 @@ classDiagram
         +createTimeLimiter(String, RestHttpClient) TimeLimiter
         +isTimeout(Throwable)$ boolean
         +isConnectionFailure(Throwable)$ boolean
+        +getCircuitBreakerRegistry() CircuitBreakerRegistry
+        +getRetryRegistry() RetryRegistry
+        +getRateLimiterRegistry() RateLimiterRegistry
+        +getTimeLimiterRegistry() TimeLimiterRegistry
     }
     class RestClientUtil {
         +createRequestFactory(RestHttpClient) HttpComponentsClientHttpRequestFactory
@@ -470,7 +569,7 @@ classDiagram
     class ImportBeanDefinitionRegistrar {
         <<interface>>
     }
-    class FactoryBean~T~ {
+    class SmartFactoryBean~T~ {
         <<interface>>
     }
     class InvocationHandler {
@@ -490,7 +589,8 @@ classDiagram
     RestHttpClient ..> ErrorHandler : errorHandler
 
     ImportBeanDefinitionRegistrar <|.. RestHttpClientRegistrar
-    FactoryBean <|.. RestHttpClientFactoryBean
+    RestHttpClientRegistrar <|-- AutoConfigurationPackagesRegistrar
+    SmartFactoryBean <|.. RestHttpClientFactoryBean
     InvocationHandler <|.. RestHttpClientInvocationHandler
     ErrorHandler <|.. DefaultErrorHandler
     RuntimeException <|-- ClientException
@@ -506,32 +606,42 @@ classDiagram
     RestHttpClientFactoryBean ..> RestHttpClientInvocationHandler : crea el proxy
     RestHttpClientInvocationHandler --> ErrorHandler
     RestHttpClientInvocationHandler ..> CircuitBreakerUtil : instancias Resilience4j
-    RestHttpClientInvocationHandler *-- RequestMetadata
+    RestHttpClientInvocationHandler *-- MethodMetadata : uno por método
+    MethodMetadata *-- ParameterBinding : uno por parámetro
+    MethodMetadata ..> Request : crea en cada llamada
     RestHttpClientInvocationHandler ..> ClientException : lanza
     RestClientUtil --> SSLUtil
+    RestHttpClientAutoConfiguration ..> AutoConfigurationPackagesRegistrar : @Import
+    RestHttpClientAutoConfiguration ..> ClientConfig : @Import
+    RestHttpClientMetricsAutoConfiguration ..> CircuitBreakerUtil : publica sus registros
 ```
 
 ### Cómo encajan las piezas
 
 **Al arrancar el contexto**
 
-1. `@EnableRestHttpClients` importa `RestHttpClientRegistrar` y `ClientConfig`.
+1. `@EnableRestHttpClients` importa `RestHttpClientRegistrar` y `ClientConfig`. Sin esa anotación, en
+   Spring Boot lo hace `RestHttpClientAutoConfiguration`, con `AutoConfigurationPackagesRegistrar` (escanea
+   los paquetes de la aplicación); `RestHttpClientMetricsAutoConfiguration` publica las métricas si hay
+   Micrometer.
 2. `RestHttpClientRegistrar` escanea `basePackages` y registra un `RestHttpClientFactoryBean` por cada
    interfaz `@RestHttpClient`.
 3. `ClientConfig` define los beans compartidos `CircuitBreakerUtil`, `RestClientUtil` y `SSLUtil`, que
    los factory beans reciben por nombre (con prefijo `restHttpClient`, para no chocar con beans de la
    aplicación).
-4. Cada `RestHttpClientFactoryBean` crea su proxy una sola vez:
+4. Cada `RestHttpClientFactoryBean` crea su proxy una sola vez, al arrancar (`isEagerInit`):
    - resuelve los placeholders con `AnnotationPlaceholderResolver`;
    - crea el pool HTTP con `RestClientUtil`, que usa `SSLUtil`, y sobre él el `RestClient` (con los
      `RestClientCustomizer` de la aplicación) o el `RestTemplate` (con su `RestTemplateBuilder`);
    - obtiene el `ErrorHandler`;
-   - crea el proxy, respaldado por un `RestHttpClientInvocationHandler`.
+   - crea el proxy, respaldado por un `RestHttpClientInvocationHandler`, que valida la URL y analiza cada
+     método en un `MethodMetadata` (método HTTP, ruta, headers y params fijos, un `ParameterBinding` por
+     parámetro y el tipo de la respuesta). Un error aquí detiene el arranque.
 
 **En cada llamada a un método del cliente**
 
-1. `RestHttpClientInvocationHandler` lee las anotaciones de Spring Web de la interfaz, del método y de los
-   parámetros, y arma un `RequestMetadata` con el método HTTP, la URI codificada, los headers y el cuerpo.
+1. `RestHttpClientInvocationHandler` toma el `MethodMetadata` ya calculado del método, enlaza los
+   argumentos en un `Request` (headers, query params, path variables y cuerpo) y arma la URI codificada.
 2. Ejecuta la petición con `RestClient` o `RestTemplate`, envuelta con Retry → CircuitBreaker →
    RateLimiter → TimeLimiter. Las instancias de Resilience4j las crea `CircuitBreakerUtil`.
 3. Si la respuesta es un error HTTP, `ErrorHandler.handleError` decide qué excepción se lanza. Las
