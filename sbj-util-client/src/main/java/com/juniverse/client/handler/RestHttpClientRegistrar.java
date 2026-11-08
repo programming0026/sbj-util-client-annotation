@@ -126,20 +126,9 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
      * @throws ClientException si una interfaz no se puede cargar o registrar (por ejemplo, nombre duplicado)
      */
     protected void registerClients(String[] basePackages, BeanDefinitionRegistry registry) {
-        ClassPathScanningCandidateComponentProvider scanner =
-                new ClassPathScanningCandidateComponentProvider(false, environment) {
-                    @Override
-                    protected boolean isCandidateComponent(
-                            AnnotatedBeanDefinition beanDefinition) {
-                        AnnotationMetadata annotationMetadata = beanDefinition.getMetadata();
-                        return annotationMetadata.isInterface()
-                                && annotationMetadata.isIndependent();
-                    }
-                };
-
-        scanner.setResourceLoader(resourceLoader);
-        scanner.addIncludeFilter(new AnnotationTypeFilter(RestHttpClient.class));
+        ClassPathScanningCandidateComponentProvider scanner = createClientScanner();
         List<String> registeredClients = new ArrayList<>();
+
         for (String declaredPackage : basePackages) {
             String basePackage = environment.resolveRequiredPlaceholders(declaredPackage);
             LOG.debug("Scanning package: {}", basePackage);
@@ -149,77 +138,107 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
             for (BeanDefinition candidate : candidates) {
                 String className = candidate.getBeanClassName();
                 LOG.debug("Processing: {}", className);
-
-                try {
-                    Class<?> clientInterface =
-                            ClassUtils.forName(className, resourceLoader.getClassLoader());
-
-                    if (!clientInterface.isAnnotationPresent(RestHttpClient.class)) {
-                        LOG.warn("The interface {} does not have @RestHttpClient", className);
-                    } else {
-                        RestHttpClient annotation =
-                                clientInterface.getAnnotation(RestHttpClient.class);
-                        String beanName = determineBeanName(clientInterface, annotation);
-
-                        if (registry.containsBeanDefinition(beanName)) {
-                            BeanDefinition existing = registry.getBeanDefinition(beanName);
-                            Object existingObjectType =
-                                    existing.getAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE);
-
-                            if (clientInterface.equals(existingObjectType)) {
-                                LOG.debug(
-                                        "Client {} already registered as '{}'",
-                                        className,
-                                        beanName);
-                            } else {
-                                throw new ClientException(
-                                        "Duplicate bean name '"
-                                                + beanName
-                                                + "' for client "
-                                                + className
-                                                + "; set a unique @RestHttpClient(name = ...)");
-                            }
-                        } else {
-                            LOG.info(
-                                    "Registering bean: {} for interface: {}",
-                                    beanName,
-                                    className);
-
-                            BeanDefinitionBuilder definition =
-                                    BeanDefinitionBuilder.genericBeanDefinition(
-                                            RestHttpClientFactoryBean.class);
-
-                            definition.addConstructorArgValue(clientInterface);
-                            definition.addConstructorArgReference(
-                                    ClientConfig.CIRCUIT_BREAKER_UTIL_BEAN);
-                            definition.addConstructorArgReference(
-                                    ClientConfig.REST_CLIENT_UTIL_BEAN);
-
-                            AbstractBeanDefinition beanDefinition =
-                                    definition.getBeanDefinition();
-                            beanDefinition.setAttribute(
-                                    FactoryBean.OBJECT_TYPE_ATTRIBUTE,
-                                    clientInterface);
-
-                            registry.registerBeanDefinition(beanName, beanDefinition);
-                            registeredClients.add(beanName);
-
-                            LOG.info("Bean '{}' successfully registered", beanName);
-                        }
-                    }
-                } catch (ClassNotFoundException e) {
-                    LOG.error("The class could not be loaded: {}", className, e);
-                    throw new ClientException("Cannot load client interface: " + className, e);
-                } catch (ClientException e) {
-                    throw e;
-                } catch (Exception e) {
-                    LOG.error("Error registering bean for: {}", className, e);
-                    throw new ClientException("Error registering client: " + className, e);
-                }
+                processCandidate(className, registry, registeredClients);
             }
         }
-
         LOG.info("Total number of registered clients: {}", registeredClients.size());
+    }
+
+    private ClassPathScanningCandidateComponentProvider createClientScanner() {
+        ClassPathScanningCandidateComponentProvider scanner =
+                new ClassPathScanningCandidateComponentProvider(false, environment) {
+                    @Override
+                    protected boolean isCandidateComponent(
+                            AnnotatedBeanDefinition beanDefinition) {
+                        AnnotationMetadata metadata = beanDefinition.getMetadata();
+                        return metadata.isInterface() && metadata.isIndependent();
+                    }
+                };
+
+        scanner.setResourceLoader(resourceLoader);
+        scanner.addIncludeFilter(new AnnotationTypeFilter(RestHttpClient.class));
+        return scanner;
+    }
+
+    private void processCandidate(String className,
+            BeanDefinitionRegistry registry,
+            List<String> registeredClients) {
+        try {
+            Class<?> clientInterface =
+                    ClassUtils.forName(className, resourceLoader.getClassLoader());
+            registerClientIfAnnotated(clientInterface, className, registry, registeredClients);
+        } catch (ClassNotFoundException e) {
+            LOG.error("The class could not be loaded: {}", className, e);
+            throw new ClientException("Cannot load client interface: " + className, e);
+        } catch (ClientException e) {
+            throw e;
+        } catch (Exception e) {
+            LOG.error("Error registering bean for: {}", className, e);
+            throw new ClientException("Error registering client: " + className, e);
+        }
+    }
+
+    private void registerClientIfAnnotated(
+            Class<?> clientInterface,
+            String className,
+            BeanDefinitionRegistry registry,
+            List<String> registeredClients) {
+        if (!clientInterface.isAnnotationPresent(RestHttpClient.class)) {
+            LOG.warn("The interface {} does not have @RestHttpClient", className);
+            return;
+        }
+
+        RestHttpClient annotation = clientInterface.getAnnotation(RestHttpClient.class);
+        String beanName = determineBeanName(clientInterface, annotation);
+
+        if (registry.containsBeanDefinition(beanName)) {
+            validateExistingClient(registry.getBeanDefinition(beanName), clientInterface, beanName, className);
+            return;
+        }
+
+        registerBean(clientInterface, className, beanName, registry);
+        registeredClients.add(beanName);
+    }
+
+    private void validateExistingClient(
+            BeanDefinition existing,
+            Class<?> clientInterface,
+            String beanName,
+            String className) {
+        Object existingObjectType = existing.getAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE);
+
+        if (clientInterface.equals(existingObjectType)) {
+            LOG.debug("Client {} already registered as '{}'", className, beanName);
+            return;
+        }
+
+        throw new ClientException(
+                "Duplicate bean name '"
+                        + beanName
+                        + "' for client "
+                        + className
+                        + "; set a unique @RestHttpClient(name = ...)");
+    }
+
+    private void registerBean(
+            Class<?> clientInterface,
+            String className,
+            String beanName,
+            BeanDefinitionRegistry registry) {
+        LOG.info("Registering bean: {} for interface: {}", beanName, className);
+
+        BeanDefinitionBuilder definition =
+                BeanDefinitionBuilder.genericBeanDefinition(RestHttpClientFactoryBean.class);
+
+        definition.addConstructorArgValue(clientInterface);
+        definition.addConstructorArgReference(ClientConfig.CIRCUIT_BREAKER_UTIL_BEAN);
+        definition.addConstructorArgReference(ClientConfig.REST_CLIENT_UTIL_BEAN);
+
+        AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
+        beanDefinition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, clientInterface);
+
+        registry.registerBeanDefinition(beanName, beanDefinition);
+        LOG.info("Bean '{}' successfully registered", beanName);
     }
 
     /**

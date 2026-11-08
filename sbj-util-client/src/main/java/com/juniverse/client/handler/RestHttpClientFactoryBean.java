@@ -13,6 +13,7 @@ import org.springframework.beans.factory.SmartFactoryBean;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -172,9 +173,10 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
      * @param type la clase del componente
      * @param <C> el tipo del componente
      * @return el componente
-     * @throws Exception si no se puede instanciar
+     * @throws NoSuchMethodException si no se puede instanciar
      */
-    private <C> C resolveComponent(Class<C> type) throws Exception {
+    private <C> C resolveComponent(Class<C> type) throws NoSuchMethodException, InvocationTargetException,
+            InstantiationException, IllegalAccessException {
         AutowireCapableBeanFactory beanFactory = beanFactory();
         if (beanFactory == null) {
             return type.getDeclaredConstructor().newInstance();
