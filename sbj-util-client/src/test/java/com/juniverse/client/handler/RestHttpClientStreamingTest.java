@@ -210,6 +210,20 @@ class RestHttpClientStreamingTest {
     }
 
     @Test
+    void theBodyCanBeReadInBlocksWithAnOffset() throws Exception {
+        try (InputStream in = client(DownloadClient.class).small().getBody()) {
+            byte[] buffer = new byte[SMALL_BODY.length + 2];
+            int first = in.read(buffer, 1, 3);
+            int second = in.read(buffer, 1 + first, SMALL_BODY.length - first);
+
+            assertThat(first).isEqualTo(3);
+            assertThat(java.util.Arrays.copyOfRange(buffer, 1, 1 + first + second)).isEqualTo(SMALL_BODY);
+            assertThat(buffer[0]).isZero();
+            assertThat(in.read(buffer, 0, buffer.length)).isEqualTo(-1);
+        }
+    }
+
+    @Test
     void aResponseEntityExposesStatusAndHeadersAndTheBody() throws Exception {
         ResponseEntity<InputStream> response = client(DownloadClient.class).small();
 

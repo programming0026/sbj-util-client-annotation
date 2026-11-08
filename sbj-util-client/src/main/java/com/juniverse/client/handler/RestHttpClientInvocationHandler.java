@@ -1,3 +1,4 @@
+
 package com.juniverse.client.handler;
 
 import com.juniverse.client.autoconfigure.RestHttpClient;
@@ -365,7 +366,7 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
             if (fallback == null || !isUnavailability(e)) {
                 throw e;
             }
-            LOG.warn("{} is unavailable ({}), using fallback {}", MethodMetadata.describe(method), e.toString(),
+            LOG.warn("{} is unavailable ({}), using fallback {}", MethodMetadata.describe(method), e,
                     fallback.getClass().getSimpleName());
             return invokeFallback(method, args);
         }
@@ -400,7 +401,7 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     private Object invokeFallback(Method method, Object[] args) throws Throwable {
         try {
             return method.invoke(fallback, args);
-        } catch (InvocationTargetException e) {
+        } catch (InvocationTargetException | IllegalAccessException e) {
             throw e.getCause();
         }
     }
@@ -442,8 +443,7 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
         MethodResilience own = methodResilience.get(metadata);
         boolean idempotent = isIdempotent(metadata.httpMethod());
         TimeLimiter limiter = metadata.settings().overridesTimeLimiter() ? own.timeLimiter() : timeLimiter;
-        Retry methodRetry = own == null || own.retry() == null ? null
-                : (idempotent ? own.retry() : own.nonIdempotentRetry());
+        Retry selectedRetry = retryFor(own, idempotent);
 
         if (limiter != null) {
             call = withTimeLimit(call, limiter);
@@ -454,10 +454,24 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
         if (circuitBreaker != null) {
             call = CircuitBreaker.decorateCallable(circuitBreaker, call);
         }
-        call = Retry.decorateCallable(methodRetry != null ? methodRetry
-                : (idempotent ? retry : nonIdempotentRetry), call);
+        call = Retry.decorateCallable(selectedRetry, call);
 
         return call.call();
+    }
+
+    /**
+     * Elige el retry de la llamada: el propio del método si su {@code @MethodConfig} cambia los reintentos y, si
+     * no, el del cliente. En ambos casos distingue las peticiones idempotentes de las que no lo son.
+     *
+     * @param own los ajustes propios del método, o null si no tiene
+     * @param idempotent si el método HTTP es idempotente
+     * @return el retry a aplicar
+     */
+    private Retry retryFor(MethodResilience own, boolean idempotent) {
+        if (own != null && own.retry() != null) {
+            return idempotent ? own.retry() : own.nonIdempotentRetry();
+        }
+        return idempotent ? retry : nonIdempotentRetry;
     }
 
     /**

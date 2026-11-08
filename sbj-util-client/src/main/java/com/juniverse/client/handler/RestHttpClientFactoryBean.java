@@ -117,7 +117,6 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
             return proxy;
         }
         UnaryOperator<String> placeholderResolver = placeholderResolver();
-        // Los placeholders ${...} de la anotación (url, SSL, etc.) se resuelven una sola vez aquí.
         RestHttpClient annotation = AnnotationPlaceholderResolver.resolve(
                 clientInterface.getAnnotation(RestHttpClient.class), placeholderResolver);
 
@@ -253,7 +252,7 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
                     .forEach(customizer -> guard.customize(builder, customizer));
             if (jsonConfigurer != null) {
                 HttpMessageConverter<?> json = ClientJson.converter(listableBeanFactory, jsonConfigurer);
-                builder.messageConverters(converters -> ClientJson.install(converters, json));
+                builder.configureMessageConverters(converters -> converters.registerDefaults().withJsonConverter(json));
             }
             String clientName = clientName(annotation);
             listableBeanFactory.getBeanProvider(RestHttpClientCustomizer.class).orderedStream()

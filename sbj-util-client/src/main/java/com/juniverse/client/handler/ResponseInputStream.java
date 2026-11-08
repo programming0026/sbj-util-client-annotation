@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * recibe el flujo es responsable de cerrarlo (con {@code try-with-resources}). Al cerrarlo se libera la
  * conexión; si no se leyó el cuerpo, HttpClient descarta el resto para poder reutilizarla.
  */
-final class ResponseInputStream extends FilterInputStream {
+public final class ResponseInputStream extends FilterInputStream {
 
     /** La respuesta a la que pertenece el cuerpo; cerrarla libera la conexión. */
     private final ClientHttpResponse response;
@@ -36,6 +36,20 @@ final class ResponseInputStream extends FilterInputStream {
     private static InputStream bodyOf(ClientHttpResponse response) throws IOException {
         InputStream body = response.getBody();
         return body != null ? body : InputStream.nullInputStream();
+    }
+
+    /**
+     * Lee hasta {@code len} bytes directamente del cuerpo de la respuesta, sin pasar por la lectura byte a byte.
+     *
+     * @param buffer el destino
+     * @param offset la posición inicial en el destino
+     * @param length el máximo de bytes a leer
+     * @return los bytes leídos, o -1 al llegar al final
+     * @throws IOException si falla la lectura
+     */
+    @Override
+    public int read(byte[] buffer, int offset, int length) throws IOException {
+        return in.read(buffer, offset, length);
     }
 
     /**

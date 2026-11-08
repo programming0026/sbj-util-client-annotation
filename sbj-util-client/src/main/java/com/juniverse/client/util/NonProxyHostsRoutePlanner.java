@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Envía todo por un proxy salvo los destinos de {@code nonProxyHosts}, a los que se llega directamente.
+ * Envía por un proxy salvo los destinos de {@code nonProxyHosts}, a los que se llega directamente.
  */
 class NonProxyHostsRoutePlanner extends DefaultProxyRoutePlanner {
 

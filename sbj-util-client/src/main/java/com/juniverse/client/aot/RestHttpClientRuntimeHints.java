@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * Registra los hints de GraalVM (proxies y reflexión) que necesita un cliente {@code @RestHttpClient}.
  *
- * En la JVM la librería descubre todo por reflexión: crea un proxy JDK de la interfaz, lee sus métodos,
+ * En la JVM la librería descubre por reflexión: crea un proxy JDK de la interfaz, lee sus métodos,
  * parámetros y anotaciones, crea copias sintetizadas de las anotaciones (para resolver los placeholders),
  * instancia el manejador de errores, los interceptores y el fallback, y Jackson enlaza los tipos de retorno y
  * de cuerpo. En una imagen nativa nada de eso existe si no se declara antes.

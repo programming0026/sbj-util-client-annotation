@@ -9,6 +9,9 @@ import org.springframework.http.client.ClientHttpResponse;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Registra método, URL, estado y duración de cada petición HTTP de un cliente ({@code logging = true}).
@@ -71,30 +74,38 @@ public final class RequestLoggingInterceptor implements ClientHttpRequestInterce
      * @return el texto que se registra
      */
     public static String describe(URI uri) {
-        StringBuilder text = new StringBuilder();
-        if (uri.getScheme() != null) {
-            text.append(uri.getScheme()).append("://");
+        String names = queryNames(uri.getRawQuery());
+        return origin(uri) + Objects.toString(uri.getRawPath(), "") + (names.isEmpty() ? "" : "?" + names);
+    }
+
+    /**
+     * Devuelve el protocolo, el host y el puerto de la URL, sin usuario ni contraseña.
+     *
+     * @param uri la URL
+     * @return por ejemplo {@code https://host:8443}, o solo lo que la URL tenga
+     */
+    private static String origin(URI uri) {
+        String scheme = uri.getScheme() == null ? "" : uri.getScheme() + "://";
+        if (uri.getHost() == null) {
+            return scheme;
         }
-        if (uri.getHost() != null) {
-            text.append(uri.getHost());
-            if (uri.getPort() != -1) {
-                text.append(':').append(uri.getPort());
-            }
+        return scheme + uri.getHost() + (uri.getPort() == -1 ? "" : ":" + uri.getPort());
+    }
+
+    /**
+     * Devuelve los nombres de los parámetros de una query, sin sus valores, unidos con {@code &}.
+     *
+     * @param query la query sin el {@code ?}, o {@code null}
+     * @return los nombres, o un texto vacío si no hay
+     */
+    private static String queryNames(String query) {
+        if (query == null) {
+            return "";
         }
-        text.append(uri.getRawPath() == null ? "" : uri.getRawPath());
-        String query = uri.getRawQuery();
-        if (query != null && !query.isEmpty()) {
-            StringBuilder names = new StringBuilder();
-            for (String pair : query.split("&")) {
-                if (pair.isEmpty()) {
-                    continue;
-                }
-                int equals = pair.indexOf('=');
-                names.append(names.isEmpty() ? "" : "&").append(equals < 0 ? pair : pair.substring(0, equals));
-            }
-            text.append('?').append(names);
-        }
-        return text.toString();
+        return Arrays.stream(query.split("&"))
+                .filter(pair -> !pair.isEmpty())
+                .map(pair -> pair.indexOf('=') < 0 ? pair : pair.substring(0, pair.indexOf('=')))
+                .collect(Collectors.joining("&"));
     }
 
     private static long elapsedMillis(long startNanos) {

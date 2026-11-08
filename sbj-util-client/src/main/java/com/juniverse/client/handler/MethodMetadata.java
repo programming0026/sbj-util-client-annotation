@@ -198,7 +198,7 @@ final class MethodMetadata {
      */
     record MethodSettings(long readTimeout, int maxRetries, long timeLimiterTimeout) {
 
-        /** Sin ajustes: todo se hereda del cliente. */
+        /** Se hereda del cliente. */
         static final MethodSettings NONE = new MethodSettings(-1, -1, -1);
 
         /**
