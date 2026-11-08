@@ -1,0 +1,35 @@
+{
+  "properties": [
+    {
+      "name": "rest-http-client.request-factory-override",
+      "type": "java.lang.String",
+      "description": "What to do when a RestClientCustomizer or RestTemplateBuilder customizer replaces the request factory of an @RestHttpClient client, which would drop its connection pool, timeouts and SSL.",
+      "defaultValue": "auto"
+    },
+    {
+      "name": "rest-http-client.auto-scan.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether the @RestHttpClient interfaces of the application packages are registered automatically (it is skipped anyway when @EnableRestHttpClients is used).",
+      "defaultValue": true
+    }
+  ],
+  "hints": [
+    {
+      "name": "rest-http-client.request-factory-override",
+      "values": [
+        {
+          "value": "auto",
+          "description": "Accept only test doubles such as MockRestServiceServer; ignore any other replacement and log a warning."
+        },
+        {
+          "value": "allow",
+          "description": "Accept any replacement, logging a warning when it is not a test double."
+        },
+        {
+          "value": "deny",
+          "description": "Never accept a replacement, not even a test double."
+        }
+      ]
+    }
+  ]
+}

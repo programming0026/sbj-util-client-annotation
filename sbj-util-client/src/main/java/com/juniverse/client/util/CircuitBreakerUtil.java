@@ -178,6 +178,23 @@ public class CircuitBreakerUtil {
      * @return el retry
      */
     public Retry createRetry(String name, RestHttpClient config, ErrorHandler errorHandler, boolean idempotent) {
+        return createRetry(name, config, errorHandler, idempotent, config.retry().maxRetries());
+    }
+
+    /**
+     * Igual que {@link #createRetry(String, RestHttpClient, ErrorHandler, boolean)} pero con un total de
+     * intentos propio, para los métodos con {@code @MethodConfig(maxRetries = ...)}; el resto de la configuración
+     * de reintentos se toma del cliente. El {@code name} debe ser distinto al del retry del cliente.
+     *
+     * @param name el nombre de la instancia
+     * @param config la configuración del cliente
+     * @param errorHandler el manejador de errores que decide qué estados se reintentan
+     * @param idempotent si el retry es para peticiones idempotentes
+     * @param maxAttempts el total de intentos, el primero incluido
+     * @return el retry
+     */
+    public Retry createRetry(String name, RestHttpClient config, ErrorHandler errorHandler, boolean idempotent,
+                             int maxAttempts) {
         var retryConf = config.retry();
 
         Predicate<Throwable> retryable = throwable -> {
@@ -198,7 +215,7 @@ public class CircuitBreakerUtil {
                 : retryable;
 
         RetryConfig retryConfig = RetryConfig.custom()
-                .maxAttempts(retryConf.maxRetries())
+                .maxAttempts(maxAttempts)
                 .intervalFunction(io.github.resilience4j.core.IntervalFunction.ofExponentialBackoff(
                         retryConf.retryDelay(),
                         retryConf.exponentialBackoffMultiplier()
@@ -256,10 +273,21 @@ public class CircuitBreakerUtil {
      * @return el time limiter
      */
     public TimeLimiter createTimeLimiter(String name, RestHttpClient config) {
-        var tlConfig = config.timeLimiter();
+        return createTimeLimiter(name, config.timeLimiter().timeout());
+    }
 
+    /**
+     * Crea (u obtiene) un time limiter con un tiempo propio, para los métodos con
+     * {@code @MethodConfig(timeLimiterTimeout = ...)}. El {@code name} debe ser distinto al del time limiter del
+     * cliente.
+     *
+     * @param name el nombre de la instancia
+     * @param timeoutMillis el tiempo máximo de cada intento, en milisegundos
+     * @return el time limiter
+     */
+    public TimeLimiter createTimeLimiter(String name, long timeoutMillis) {
         TimeLimiterConfig timeLimiterConfig = TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofMillis(tlConfig.timeout()))
+                .timeoutDuration(Duration.ofMillis(timeoutMillis))
                 .cancelRunningFuture(true)
                 .build();
 

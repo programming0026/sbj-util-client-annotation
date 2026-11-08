@@ -1,5 +1,6 @@
 package com.juniverse.client.handler;
 
+import com.juniverse.client.autoconfigure.MethodConfig;
 import com.juniverse.client.exception.ClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +14,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -28,6 +31,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriTemplate;
 
 import java.io.File;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -42,8 +46,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
+import java.util.stream.BaseStream;
 
 /**
  * Lo que se sabe de un método de un cliente sin conocer sus argumentos: método HTTP, ruta, headers y params
@@ -92,6 +99,9 @@ final class MethodMetadata {
     /** El tipo de retorno del método. */
     private final Class<?> returnType;
 
+    /** Los ajustes propios del método ({@code @MethodConfig}). */
+    private final MethodSettings settings;
+
     /**
      * Crea los metadatos ya validados.
      *
@@ -101,9 +111,12 @@ final class MethodMetadata {
      * @param staticHeaders los headers fijos
      * @param staticParams los query params fijos
      * @param bindings los enlaces de parámetros
+     * @param settings los ajustes propios del método
      */
     private MethodMetadata(Method method, HttpMethod httpMethod, String path, HttpHeaders staticHeaders,
-                           Map<String, List<String>> staticParams, List<ParameterBinding> bindings) {
+                           Map<String, List<String>> staticParams, List<ParameterBinding> bindings,
+                           MethodSettings settings) {
+        this.settings = settings;
         this.description = describe(method);
         this.httpMethod = httpMethod;
         this.path = path;
@@ -112,7 +125,7 @@ final class MethodMetadata {
         this.bindings = bindings;
         this.returnType = method.getReturnType();
         this.bodyType = responseBodyType(method);
-        this.bodyTypeReference = isBodiless() ? null : ParameterizedTypeReference.forType(bodyType);
+        this.bodyTypeReference = isBodiless() || isStreaming() ? null : ParameterizedTypeReference.forType(bodyType);
     }
 
     /**
@@ -135,6 +148,7 @@ final class MethodMetadata {
         if (mapping == null) {
             throw new ClientException("Method " + describe(method) + MAPPING_REQUIRED);
         }
+        validateReturnType(method);
         HttpMethod httpMethod = resolveHttpMethod(mapping, typeMapping, method);
         String path = joinPath(singlePath(typeMapping, method, resolver), singlePath(mapping, method, resolver));
 
@@ -164,7 +178,79 @@ final class MethodMetadata {
             applyMultipartContentType(headers, method);
         }
 
-        return new MethodMetadata(method, httpMethod, path, headers, params, List.copyOf(bindings));
+        return new MethodMetadata(method, httpMethod, path, headers, params, List.copyOf(bindings),
+                MethodSettings.of(method));
+    }
+
+    /**
+     * Los ajustes propios de un método ({@code @MethodConfig}). Cada valor {@code -1} significa "heredar el del
+     * cliente".
+     *
+     * @param readTimeout el read timeout en milisegundos
+     * @param maxRetries el total de intentos
+     * @param timeLimiterTimeout el tiempo máximo por intento en milisegundos ({@code 0} = sin límite)
+     */
+    record MethodSettings(long readTimeout, int maxRetries, long timeLimiterTimeout) {
+
+        /** Sin ajustes: todo se hereda del cliente. */
+        static final MethodSettings NONE = new MethodSettings(-1, -1, -1);
+
+        /**
+         * Lee y valida el {@code @MethodConfig} de un método.
+         *
+         * @param method el método
+         * @return los ajustes, o {@link #NONE} si no tiene la anotación
+         * @throws ClientException si algún valor no es válido
+         */
+        static MethodSettings of(Method method) {
+            MethodConfig config = AnnotatedElementUtils.findMergedAnnotation(method, MethodConfig.class);
+            if (config == null) {
+                return NONE;
+            }
+            if (config.readTimeout() != -1 && config.readTimeout() <= 0) {
+                throw invalidSetting(method, "readTimeout", config.readTimeout(), "greater than 0, or -1 to inherit");
+            }
+            if (config.maxRetries() != -1 && config.maxRetries() < 1) {
+                throw invalidSetting(method, "maxRetries", config.maxRetries(), "at least 1, or -1 to inherit");
+            }
+            if (config.timeLimiterTimeout() < -1) {
+                throw invalidSetting(method, "timeLimiterTimeout", config.timeLimiterTimeout(),
+                        "0 (no limit), greater than 0, or -1 to inherit");
+            }
+            return new MethodSettings(config.readTimeout(), config.maxRetries(), config.timeLimiterTimeout());
+        }
+
+        private static ClientException invalidSetting(Method method, String name, long value, String expected) {
+            return new ClientException("Method " + describe(method) + " declares @MethodConfig." + name + " = "
+                    + value + ", but it must be " + expected);
+        }
+
+        /**
+         * Indica si el método reemplaza el total de intentos del cliente.
+         *
+         * @return true si {@code maxRetries} está definido
+         */
+        boolean overridesRetries() {
+            return maxRetries != -1;
+        }
+
+        /**
+         * Indica si el método reemplaza el time limiter del cliente (con otro tiempo o sin límite).
+         *
+         * @return true si {@code timeLimiterTimeout} está definido
+         */
+        boolean overridesTimeLimiter() {
+            return timeLimiterTimeout != -1;
+        }
+    }
+
+    /**
+     * Devuelve los ajustes propios del método.
+     *
+     * @return los ajustes ({@link MethodSettings#NONE} si no tiene {@code @MethodConfig})
+     */
+    MethodSettings settings() {
+        return settings;
     }
 
     /**
@@ -318,6 +404,85 @@ final class MethodMetadata {
      */
     HttpMethod httpMethod() {
         return httpMethod;
+    }
+
+    /**
+     * Indica si el método devuelve el cuerpo como {@link InputStream} (o {@code ResponseEntity<InputStream>}):
+     * la respuesta se deja abierta y se lee progresivamente en vez de cargarla en memoria.
+     *
+     * @return true si el cuerpo se lee en streaming
+     */
+    boolean isStreaming() {
+        return bodyType == InputStream.class;
+    }
+
+    /**
+     * Rechaza los tipos de retorno que la librería no sabe leer, para que el error salga al crear el cliente y
+     * no, con un mensaje confuso, en la primera llamada.
+     *
+     * @param method el método
+     * @throws ClientException si el tipo de retorno (o el cuerpo de un {@code ResponseEntity}) no es soportado
+     */
+    private static void validateReturnType(Method method) {
+        Class<?> bodyClass = ResolvableType.forType(responseBodyType(method)).resolve(Object.class);
+        for (Class<?> candidate : List.of(method.getReturnType(), bodyClass)) {
+            String reason = unsupportedReason(candidate);
+            if (reason != null) {
+                throw new ClientException("Method " + describe(method) + " returns "
+                        + ResolvableType.forMethodReturnType(method) + ", which is not supported: " + reason);
+            }
+        }
+    }
+
+    /**
+     * Explica por qué un tipo de retorno no se soporta.
+     *
+     * @param type el tipo
+     * @return el motivo, o null si el tipo se soporta
+     */
+    private static String unsupportedReason(Class<?> type) {
+        if (Future.class.isAssignableFrom(type) || CompletionStage.class.isAssignableFrom(type)) {
+            return "the clients are synchronous. Return the value directly (or ResponseEntity<T>) and call the "
+                    + "method from your own executor if you need it to run asynchronously";
+        }
+        if (isReactive(type)) {
+            return "it is a reactive type and this library is imperative (RestClient/RestTemplate). Return the "
+                    + "value directly (or ResponseEntity<T>)";
+        }
+        if (BaseStream.class.isAssignableFrom(type)) {
+            return "a Stream cannot be built from a response. Return a List, or an InputStream to read a "
+                    + "download progressively";
+        }
+        if (InputStream.class.isAssignableFrom(type) && type != InputStream.class) {
+            return "only InputStream itself is supported, not its subclasses";
+        }
+        return null;
+    }
+
+    /**
+     * Indica si el tipo es reactivo (Reactor, Reactive Streams, RxJava o Kotlin Flow). Se detecta por el
+     * nombre de la clase y de sus supertipos, para no depender de esas librerías.
+     *
+     * @param type el tipo
+     * @return true si es un tipo reactivo
+     */
+    private static boolean isReactive(Class<?> type) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            if (isReactiveName(current.getName())) {
+                return true;
+            }
+            for (Class<?> implemented : ClassUtils.getAllInterfacesForClass(current)) {
+                if (isReactiveName(implemented.getName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isReactiveName(String name) {
+        return name.startsWith("reactor.core.publisher.") || name.equals("org.reactivestreams.Publisher")
+                || name.startsWith("io.reactivex.") || name.equals("kotlinx.coroutines.flow.Flow");
     }
 
     /**
@@ -491,6 +656,8 @@ final class MethodMetadata {
             REQUEST_PARAM,
             /** {@code @RequestHeader}. */
             REQUEST_HEADER,
+            /** {@code @CookieValue}: un par {@code nombre=valor} del header {@code Cookie}. */
+            COOKIE,
             /** {@code @RequestBody}. */
             REQUEST_BODY,
             /** {@code @RequestPart}: una parte de una petición {@code multipart/form-data}. */
@@ -524,6 +691,11 @@ final class MethodMetadata {
                 return new ParameterBinding(Kind.REQUEST_HEADER, nameOf(requestHeader.name(), parameter),
                         requestHeader.required(), defaultOf(requestHeader.defaultValue(), resolver), map);
             }
+            CookieValue cookieValue = AnnotatedElementUtils.findMergedAnnotation(parameter, CookieValue.class);
+            if (cookieValue != null) {
+                return new ParameterBinding(Kind.COOKIE, nameOf(cookieValue.name(), parameter),
+                        cookieValue.required(), defaultOf(cookieValue.defaultValue(), resolver), map);
+            }
             RequestBody requestBody = AnnotatedElementUtils.findMergedAnnotation(parameter, RequestBody.class);
             if (requestBody != null) {
                 return new ParameterBinding(Kind.REQUEST_BODY, parameter.getName(), requestBody.required(), null,
@@ -535,8 +707,8 @@ final class MethodMetadata {
                         requestPart.required(), null, false);
             }
             throw new ClientException("Parameter '" + parameter.getName() + "' of method " + describe(method)
-                    + " must be annotated with @PathVariable, @RequestParam, @RequestHeader, @RequestBody or "
-                    + "@RequestPart");
+                    + " must be annotated with @PathVariable, @RequestParam, @RequestHeader, @CookieValue, "
+                    + "@RequestBody or @RequestPart");
         }
 
         /**
@@ -573,6 +745,7 @@ final class MethodMetadata {
                 }
                 case REQUEST_PART -> bindPart(request, arg, description);
                 case REQUEST_PARAM -> bindValues(arg, "request parameter", description, request::addQueryParam);
+                case COOKIE -> bindValues(arg, "cookie", description, request::addCookie);
                 default -> bindValues(arg, "request header", description, request::setHeader);
             }
         }
@@ -876,6 +1049,34 @@ final class MethodMetadata {
         private void setHeader(String name, List<String> values) {
             headers.remove(name);
             headers.addAll(name, values);
+        }
+
+        /**
+         * Agrega cookies al header {@code Cookie}: un par {@code nombre=valor} por valor, separados por
+         * {@code "; "} y a continuación de las cookies que ya tuviera el header (por ejemplo, las del atributo
+         * {@code headers} del mapping). El valor se envía tal cual, sin codificar.
+         *
+         * @param name el nombre de la cookie
+         * @param values los valores
+         * @throws ClientException si un valor contiene {@code ;} o saltos de línea, que romperían el header
+         */
+        private void addCookie(String name, List<String> values) {
+            StringBuilder cookie = new StringBuilder();
+            String existing = headers.getFirst(HttpHeaders.COOKIE);
+            if (existing != null && !existing.isBlank()) {
+                cookie.append(existing);
+            }
+            for (String value : values) {
+                if (value.indexOf(';') >= 0 || value.indexOf('\r') >= 0 || value.indexOf('\n') >= 0) {
+                    throw new ClientException("The value of cookie '" + name
+                            + "' cannot contain ';' or line breaks");
+                }
+                if (!cookie.isEmpty()) {
+                    cookie.append("; ");
+                }
+                cookie.append(name).append('=').append(value);
+            }
+            headers.set(HttpHeaders.COOKIE, cookie.toString());
         }
     }
 }

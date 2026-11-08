@@ -114,7 +114,7 @@ class RestHttpClientValidationTest {
         assertThatThrownBy(() -> handler(UnannotatedParameterClient.class, null, UnaryOperator.identity()))
                 .isInstanceOf(ClientException.class)
                 .hasMessage("Parameter 'query' of method UnannotatedParameterClient.search must be annotated with "
-                        + "@PathVariable, @RequestParam, @RequestHeader, @RequestBody or @RequestPart");
+                        + "@PathVariable, @RequestParam, @RequestHeader, @CookieValue, @RequestBody or @RequestPart");
     }
 
     @Test

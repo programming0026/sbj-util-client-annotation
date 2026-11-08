@@ -118,30 +118,33 @@ public class SSLUtil {
             );
         }
 
-        LOG.warn("Insecure SSL enabled, active profiles: {}", Arrays.toString(activeProfiles));
+        if (LOG.isWarnEnabled()) {
+            LOG.warn("Insecure SSL enabled, active profiles: {}", Arrays.toString(activeProfiles));
+        }
         SSLContext sslContext = SSLContext.getInstance("TLS");
-
-        TrustManager[] trustAllCerts = new TrustManager[]{
-            new X509TrustManager() {
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }
-
-                public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                    LOG.debug("Insecure SSL: Skipping client certificate validation");
-                }
-
-                public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                    LOG.debug("Insecure SSL: Skipping server certificate validation");
-                }
-            }
-        };
-
+        TrustManager[] trustAllCerts = new TrustManager[1];
+        trustAllCerts[0] = new TrustAllManager();
         sslContext.init(null, trustAllCerts, new SecureRandom());
-
         return sslContext;
     }
 
+    private static class TrustAllManager implements X509TrustManager {
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            LOG.debug("Insecure SSL: Skipping client certificate validation");
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            LOG.debug("Insecure SSL: Skipping server certificate validation");
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }
     /**
      * Indica si alguno de los perfiles activos es de desarrollo.
      *

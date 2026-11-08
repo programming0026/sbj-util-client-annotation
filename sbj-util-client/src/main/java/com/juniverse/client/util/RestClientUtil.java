@@ -7,6 +7,7 @@ import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
@@ -64,6 +65,7 @@ public class RestClientUtil {
 
             factory.setConnectionRequestTimeout(Duration.ofMillis(config.connectTimeout()));
             factory.setReadTimeout(Duration.ofMillis(config.readTimeout()));
+            factory.setHttpContextFactory((method, uri) -> methodContext(config));
             return factory;
 
         } catch (IOException | KeyManagementException | KeyStoreException
@@ -71,6 +73,40 @@ public class RestClientUtil {
                  | CertificateException e) {
             throw new ClientException("Error configuring HTTP client", e);
         }
+    }
+
+    /**
+     * Crea el contexto de la petición cuando el método tiene su propio {@code readTimeout}
+     * ({@link MethodReadTimeout}); si no, devuelve null y se usa la configuración del cliente. Al ser un
+     * {@code RequestConfig} propio, Spring lo respeta tal cual, así que repite el timeout de espera de una
+     * conexión del pool del cliente.
+     *
+     * @param config la configuración del cliente
+     * @return el contexto con el timeout del método, o null
+     */
+    private static HttpClientContext methodContext(RestHttpClient config) {
+        return MethodReadTimeout.current().stream().mapToObj(millis -> {
+            HttpClientContext context = HttpClientContext.create();
+            context.setRequestConfig(RequestConfig.custom()
+                    .setConnectionRequestTimeout(Timeout.of(config.connectTimeout(), TimeUnit.MILLISECONDS))
+                    .setResponseTimeout(Timeout.of(millis, TimeUnit.MILLISECONDS))
+                    .build());
+            return context;
+        }).findFirst().orElse(null);
+    }
+
+    /**
+     * Crea el builder de un RestClient con la request factory y la URL base del cliente, listo para que se le
+     * apliquen más customizers.
+     *
+     * @param config la configuración del cliente
+     * @param requestFactory la request factory
+     * @return el builder
+     */
+    public RestClient.Builder restClientBuilder(RestHttpClient config, ClientHttpRequestFactory requestFactory) {
+        return RestClient.builder()
+                .baseUrl(config.url())
+                .requestFactory(requestFactory);
     }
 
     /**

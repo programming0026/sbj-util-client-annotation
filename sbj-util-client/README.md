@@ -27,7 +27,7 @@ Y agrégala como dependencia:
 <dependency>
     <groupId>com.juniverse.client</groupId>
     <artifactId>sbj-util-client</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
@@ -120,11 +120,14 @@ la aplicación no arranca y el `ClientException` dice qué método y qué parám
 
 - una `url` vacía o que no sea absoluta `http(s)://host` (después de resolver placeholders);
 - un método sin anotación de mapping, sin método HTTP o con más de una ruta o método HTTP;
-- un parámetro sin `@PathVariable`, `@RequestParam`, `@RequestHeader`, `@RequestBody` ni `@RequestPart`;
+- un parámetro sin `@PathVariable`, `@RequestParam`, `@RequestHeader`, `@CookieValue`, `@RequestBody` ni `@RequestPart`;
 - más de un `@RequestBody`, o un `@RequestBody` junto a un `@RequestPart`;
 - un `@RequestPart` en un método cuyo `consumes` no es `multipart/form-data`;
 - una variable de la ruta (`{id}`) sin su `@PathVariable`, o un `@PathVariable` que no aparece en la ruta
-  (salvo con `@PathVariable Map`, que aporta las variables al llamar).
+  (salvo con `@PathVariable Map`, que aporta las variables al llamar);
+- un tipo de retorno no soportado (ver [Tipos de retorno](#tipos-de-retorno)): `Future`, `CompletableFuture`,
+  `CompletionStage`, tipos reactivos (`Mono`, `Flux`, ...), `java.util.stream.Stream` y subclases de
+  `InputStream`. También se valida el tipo del cuerpo dentro de `ResponseEntity<...>`.
 
 Las anotaciones de cada método se analizan una sola vez, al crear el cliente (los placeholders del mapping
 y de `defaultValue` también); en cada llamada solo se enlazan los argumentos.
@@ -136,9 +139,43 @@ y de `defaultValue` también); en cada llamada solo se enlazan los argumentos.
 | `T` (incluidos genéricos como `List<User>`) | El cuerpo convertido a `T`, sin perder los genéricos. |
 | `ResponseEntity<T>` | La respuesta completa (estado, headers y cuerpo). |
 | `void` / `ResponseEntity<Void>` | No se lee el cuerpo. |
+| `InputStream` / `ResponseEntity<InputStream>` | El cuerpo **sin leer**, para procesarlo progresivamente (ver [Descargas](#descargas-inputstream)). |
 
 Si el método devuelve un primitivo (`int`, `boolean`, ...) y la respuesta no tiene cuerpo, se lanza
 `ClientException`.
+
+Los clientes son síncronos e imperativos, así que `Future`, `CompletableFuture`, `CompletionStage`, los tipos
+reactivos (`Mono`, `Flux`) y `Stream` se rechazan al arrancar con un mensaje que sugiere la alternativa
+(devolver el valor directamente y llamar al método desde tu propio ejecutor si necesitas asincronía).
+
+### Descargas (`InputStream`)
+
+Con `Resource` o `byte[]` el cuerpo completo se carga en memoria. Para archivos grandes devuelve un
+`InputStream`: la llamada vuelve en cuanto llegan los headers y tú lees el cuerpo a tu ritmo.
+
+```java
+@GetMapping("/reports/{id}")
+ResponseEntity<InputStream> report(@PathVariable String id);
+
+try (InputStream in = client.report("42").getBody()) {
+    Files.copy(in, destination, StandardCopyOption.REPLACE_EXISTING);
+}
+```
+
+Reglas:
+
+- **Cierra siempre el flujo** (`try-with-resources`): mientras esté abierto retiene una conexión del pool. Leerlo
+  hasta el final también la libera; cerrarlo varias veces es inofensivo.
+- Solo con `type = ClientType.REST_CLIENT`; con `REST_TEMPLATE` se rechaza al arrancar (cierra la respuesta
+  antes de volver).
+- Los errores `4xx`/`5xx` siguen siendo excepciones (con el `ErrorHandler`), y los reintentos, el circuit
+  breaker, el rate limiter y el time limiter se aplican **hasta que llegan los headers**; después, la lectura
+  del cuerpo ya no está protegida por ellos.
+- `readTimeout` se aplica a cada lectura: una descarga detenida falla con `SocketTimeoutException` en vez de
+  quedarse colgada, aunque la descarga completa tarde más.
+- **Cerrar el flujo antes de terminar de leerlo descarga igualmente el resto del cuerpo** (el cliente HTTP lo
+  consume para poder reutilizar la conexión): medido, cerrar tras leer 1 KB de una respuesta de 3 s tardó
+  3,7 s. Si necesitas cancelar descargas enormes, ten presente este costo.
 
 ## Anotaciones de los parámetros
 
@@ -147,6 +184,7 @@ Si el método devuelve un primitivo (`int`, `boolean`, ...) y la respuesta no ti
 | `@PathVariable` | Variable de la ruta (`{id}`). |
 | `@RequestParam` | Query param. |
 | `@RequestHeader` | Header; reemplaza al del mismo nombre declarado en `headers` del mapping. |
+| `@CookieValue` | Un par `nombre=valor` del header `Cookie`. |
 | `@RequestBody` | Cuerpo de la petición. |
 | `@RequestPart` | Una parte de una petición `multipart/form-data` (archivos, ver "Archivos y multipart"). |
 
@@ -156,6 +194,11 @@ Si el método devuelve un primitivo (`int`, `boolean`, ...) y la respuesta no ti
   requerido se lanza `ClientException`. Una `@PathVariable` sin valor siempre lanza error, y un
   `@RequestBody` `null` solo se permite con `required = false`.
 - **Codificación:** cada valor se codifica una sola vez en la URL (`a&b` → `a%26b`, `a b/c` → `a%20b%2Fc`).
+- **Cookies:** todos los `@CookieValue` se unen en un único header `Cookie` (`session=abc; theme=dark`), en el
+  orden de los parámetros y a continuación de las cookies que declare `headers = "Cookie=..."` en el mapping.
+  Las listas y los `Map` aportan un par por valor/entrada. El valor se envía tal cual (sin codificar) y se
+  rechaza si contiene `;` o saltos de línea. Es una cookie de **esta petición**: la librería no guarda las
+  cookies que devuelve el servidor (`Set-Cookie`).
 
 ### Listas y arreglos
 
@@ -240,6 +283,7 @@ Todo se configura en `@RestHttpClient`:
 | `ssl` | `@SSLConfig` | Keystore y truststore. |
 | `retry`, `circuitBreaker`, `rateLimiter`, `timeLimiter` | | Resiliencia (ver abajo). |
 | `errorHandler` | `DefaultErrorHandler` | Manejo de respuestas con error. |
+| `fallback` | `void.class` (ninguno) | Clase que responde cuando el servicio no está disponible (ver "Fallback"). |
 | `interceptors` | `{}` | Interceptores propios del cliente (ver "Interceptores"). |
 
 ## Placeholders de propiedades
@@ -303,6 +347,39 @@ public interface PagosClient { ... }
   con un `TimeoutException` como causa (y se reintenta según `retry`). Las peticiones con time limiter
   corren en hilos virtuales, no en el `ForkJoinPool` común.
 
+### Ajustes por método (`@MethodConfig`)
+
+Los timeouts y reintentos del cliente aplican a todos sus métodos. Con `@MethodConfig` un método puede
+reemplazarlos solo para sí mismo; lo que no indiques se hereda del cliente:
+
+```java
+@RestHttpClient(url = "${reportes.url}", readTimeout = 5_000,
+        retry = @RetryConfig(maxRetries = 3))
+public interface ReportesClient {
+
+    @GetMapping("/resumen")
+    Resumen resumen();                     // 5 s de espera, 3 intentos (los del cliente)
+
+    @GetMapping("/exportar/{id}")
+    @MethodConfig(readTimeout = 120_000, maxRetries = 1, timeLimiterTimeout = 0)
+    InputStream exportar(@PathVariable String id);   // 2 min de espera, sin reintentos, sin límite de tiempo
+}
+```
+
+| Atributo | Reemplaza a | Valores |
+|---|---|---|
+| `readTimeout` | `@RestHttpClient.readTimeout` (ms) | `> 0`; `-1` (por defecto) hereda. Con `InputStream` rige también cada lectura del cuerpo. |
+| `maxRetries` | `@RetryConfig.maxRetries` (total de intentos) | `>= 1` (`1` = sin reintentos); `-1` hereda. La espera, el backoff y `retryNonIdempotent` se heredan. |
+| `timeLimiterTimeout` | `@TimeLimiterConfig.timeout` (ms) | `> 0` pone ese límite aunque el cliente no tenga time limiter; `0` lo quita para el método; `-1` hereda. |
+
+- El circuit breaker y el rate limiter siguen siendo del cliente completo (todos los métodos comparten su
+  estado).
+- Un valor fuera de rango hace fallar el arranque con un `ClientException` que nombra el método y el atributo.
+- Si un método tiene un `readTimeout` mayor que el límite de tiempo que le toca (el del cliente, si lo hay),
+  el límite corta primero: sube también `timeLimiterTimeout`, o ponlo en `0`.
+- Cada método con ajustes de reintento o de time limiter tiene sus propias instancias de Resilience4j
+  (llamadas `Cliente#metodo(Tipos)`), que aparecen con ese nombre en las métricas.
+
 ## Interceptores
 
 Para agregar lógica a cada petición de un cliente (autenticación, logging, trazas), declara
@@ -365,6 +442,42 @@ public class MiErrorHandler implements ErrorHandler {
 }
 ```
 
+### Fallback
+
+Con `fallback` declaras una clase que responde cuando el servicio no está disponible, en lugar de propagar la
+excepción:
+
+```java
+@RestHttpClient(url = "${catalogo.url}", fallback = CatalogoFallback.class)
+public interface CatalogoClient {
+
+    @GetMapping("/productos/{id}")
+    Producto producto(@PathVariable("id") long id);
+}
+
+public class CatalogoFallback implements CatalogoClient {
+
+    @Override
+    public Producto producto(long id) {
+        return Producto.desconocido(id);   // por ejemplo, un valor por defecto o el último valor en caché
+    }
+}
+```
+
+- **Cuándo se usa:** cuando, agotados los reintentos, la llamada falla por indisponibilidad: respuesta `5xx`,
+  error de red (`ResourceAccessException`), timeout, circuito abierto (`CallNotPermittedException`) o límite de
+  peticiones excedido (`RequestNotPermitted`). Se escribe un `WARN` con el motivo.
+- **Cuándo no:** los `4xx` y los errores de uso (un parámetro requerido ausente, un cuerpo que no se puede
+  convertir) se propagan siempre; un fallback no debe ocultar errores del llamador.
+- **Qué debe ser:** una clase concreta que implemente la interfaz del cliente; si no, el cliente no arranca.
+  Cada método atiende al de la interfaz con la misma firma, con los mismos argumentos.
+- **Cómo se crea:** igual que el `errorHandler`: el bean único de ese tipo o una instancia con inyección de
+  dependencias. No la anotes con `@Component` si implementa la interfaz del cliente: habría dos beans de ese tipo
+  y la inyección del cliente sería ambigua.
+- Una excepción lanzada por el fallback llega tal cual a quien llama. El fallback no recibe la causa del fallo
+  (queda en el `WARN`). Si tu `ErrorHandler` lanza una excepción propia que no es una `HttpStatusCodeException`,
+  esa no se considera indisponibilidad.
+
 ## SSL
 
 ```java
@@ -417,6 +530,139 @@ agregarlas a la aplicación:
 </dependency>
 ```
 
+## Probar tus clientes
+
+Los clientes se prueban con `MockRestServiceServer` como cualquier `RestClient` o `RestTemplate` de Spring: la
+librería aplica los `RestClientCustomizer` (y los del `RestTemplateBuilder`) **después** de su propia
+configuración, así que un mock puede reemplazar la request factory del cliente. Funciona con el
+`MockServerRestClientCustomizer` y el `MockServerRestTemplateCustomizer` de Spring Boot:
+
+```java
+@SpringBootTest
+class UsuariosClientTest {
+
+    @TestConfiguration
+    static class MockConfig {
+        @Bean
+        MockServerRestClientCustomizer mockServer() {
+            return new MockServerRestClientCustomizer();
+        }
+    }
+
+    @Autowired UsuariosClient client;
+    @Autowired MockServerRestClientCustomizer mockServer;
+
+    @Test
+    void consultaUnUsuario() {
+        mockServer.getServer().expect(requestTo("https://api.ejemplo.com/usuarios/1"))
+                .andRespond(withSuccess("{\"id\":1,\"nombre\":\"Ana\"}", MediaType.APPLICATION_JSON));
+
+        assertThat(client.consultar(1).nombre()).isEqualTo("Ana");
+    }
+}
+```
+
+Para un cliente `REST_TEMPLATE` el bean es un `MockServerRestTemplateCustomizer`, que Spring Boot agrega
+solo a su `RestTemplateBuilder`. Con `bufferContent()` también funciona.
+
+> Con **varios** clientes en la aplicación, `getServer()` falla (Spring Boot lo enlaza a más de un `RestClient`).
+> Para eso está `MockRestHttpClients`, descrito a continuación.
+
+### Varios clientes: `MockRestHttpClients`
+
+`MockRestHttpClients` crea un `MockRestServiceServer` **por cliente** y los entrega por su nombre (el `name()` de
+`@RestHttpClient` o, si está vacío, el nombre de la interfaz). Funciona con clientes `REST_CLIENT` y
+`REST_TEMPLATE`:
+
+```java
+@SpringBootTest
+class PedidosServiceTest {
+
+    @TestConfiguration
+    static class Mocks {
+        @Bean
+        MockRestHttpClients mocks() {
+            return new MockRestHttpClients();
+        }
+    }
+
+    @Autowired PedidosService pedidos;
+    @Autowired MockRestHttpClients mocks;
+
+    @Test
+    void creaElPedido() {
+        mocks.server(UsuariosClient.class).expect(requestTo("https://usuarios.ejemplo.com/usuarios/1"))
+                .andRespond(withSuccess("{\"id\":1}", MediaType.APPLICATION_JSON));
+        mocks.server(PagosClient.class).expect(requestTo("https://pagos.ejemplo.com/cobros"))
+                .andRespond(withSuccess("{\"estado\":\"OK\"}", MediaType.APPLICATION_JSON));
+
+        pedidos.crear(1);
+
+        mocks.verify();   // todas las peticiones esperadas de todos los clientes
+    }
+}
+```
+
+- `server(Class)` usa la interfaz del cliente; `server(String)` el nombre (úsalo si el `name()` lleva
+  placeholders). Un nombre desconocido lanza un error que lista los clientes que sí existen.
+- `verify()` revisa todos los clientes y, si fallan varios, el error nombra a cada uno; `reset()` limpia las
+  expectativas para reutilizar el contexto.
+- `bufferContent()` e `ignoreExpectOrder()` se aplican a todos los servidores (llámalos al declarar el bean).
+- Requiere `spring-test` (ya viene con `spring-boot-starter-test`); la librería lo declara como dependencia
+  opcional, así que no llega a producción.
+- No lo combines con el `MockServerRestClientCustomizer` de Boot en la misma prueba: ambos intentan reemplazar
+  la request factory del mismo cliente.
+
+### Configurar un cliente concreto: `RestHttpClientCustomizer`
+
+Un `RestClientCustomizer` de Spring Boot se aplica igual a todos los clientes. `RestHttpClientCustomizer` recibe
+además **el nombre del cliente**, así que puede configurar solo alguno (`MockRestHttpClients` es una
+implementación). Se declara como bean; se aplica después de los `RestClientCustomizer`, en el orden de `@Order`
+y antes de los interceptores de `@RestHttpClient`:
+
+```java
+@Bean
+RestHttpClientCustomizer origen() {
+    return new RestHttpClientCustomizer() {
+        @Override
+        public void customize(String clientName, RestClient.Builder builder) {        // REST_CLIENT
+            if (clientName.equals("PagosClient")) {
+                builder.defaultHeader("X-Origen", "mi-app");
+            }
+        }
+
+        @Override
+        public void customize(String clientName, RestTemplate template) { ... }       // REST_TEMPLATE
+    };
+}
+```
+
+Ambos métodos son opcionales. Reemplazar la request factory sigue sujeto a
+`rest-http-client.request-factory-override` (ver más abajo): un reemplazo que no sea un doble de pruebas se ignora
+por defecto.
+
+### Un customizer no puede quitarle al cliente su configuración por accidente
+
+La request factory de cada cliente lleva su **pool de conexiones, timeouts y SSL**. Como los customizers se
+aplican después, un customizer pensado para *otros* clientes de la aplicación (por ejemplo, uno global que fija
+sus propios timeouts con otra request factory) podría reemplazarla y dejar al cliente sin esa configuración,
+sin que nadie lo note. La librería lo vigila: sabe qué customizer intentó el reemplazo y aplica la propiedad
+`rest-http-client.request-factory-override`:
+
+| Valor | Qué pasa cuando un customizer reemplaza la request factory |
+|---|---|
+| `auto` (por defecto) | Se acepta solo si es un **doble de pruebas** de Spring (`MockRestServiceServer` y los `MockServer*Customizer`, también con `bufferContent()`, o un mock de Mockito). Cualquier otro reemplazo se **ignora** y se avisa con un `WARN`; el resto de lo que hizo el customizer sí se aplica. |
+| `allow` | Se acepta cualquier reemplazo, con un `WARN` si no es un doble de pruebas. Úsalo si reemplazas la request factory a propósito. |
+| `deny` | Nunca se acepta un reemplazo, ni siquiera el de un mock. |
+
+El aviso dice quién lo hizo y cómo aceptarlo:
+
+```
+WARN Ignored the request factory com.ejemplo.MiFactory set by RestClientCustomizer com.ejemplo.TimeoutsGlobales
+for client UsuariosClient: it would drop the connection pool, timeouts and SSL of @RestHttpClient.
+Set rest-http-client.request-factory-override=allow to accept it (currently 'auto')
+```
+
 ## Ciclo de vida
 
 - Cada cliente tiene su propio pool de conexiones, que se cierra al cerrar el contexto de Spring.
@@ -424,6 +670,17 @@ agregarlas a la aplicación:
   clientes antes de tiempo.
 - Si dos `@EnableRestHttpClients` escanean el mismo paquete, cada cliente se registra una sola vez. Si dos
   clientes distintos acaban con el mismo nombre de bean, el arranque falla pidiendo un `name` único.
+
+## Imagen nativa (GraalVM)
+
+La librería incluye un procesador AOT de Spring (`META-INF/spring/aot.factories`) que, al compilar con
+`spring-boot:process-aot` o con el perfil `native`, declara los hints de cada cliente: el proxy de la interfaz,
+la reflexión de sus métodos y anotaciones, las clases de `errorHandler`, `interceptors` y `fallback`, y los
+tipos de retorno y de `@RequestBody` para Jackson. No hay que configurar nada.
+
+Estado: verificado con una imagen nativa real del ejemplo (GraalVM 25; Spring Boot 4.1 no acepta la 21). Los
+hints también tienen pruebas con `RuntimeHintsPredicates`. Detalles en el punto 7 de `MEJORAS.md`; si te falta
+algún hint en tu aplicación, abre un issue.
 
 ## Arquitectura
 
@@ -455,6 +712,13 @@ classDiagram
         TimeLimiterConfig timeLimiter
         Class~ErrorHandler~ errorHandler
         Class~ClientHttpRequestInterceptor~[] interceptors
+        Class fallback
+    }
+    class MethodConfig {
+        <<annotation>>
+        long readTimeout
+        int maxRetries
+        long timeLimiterTimeout
     }
     class SSLConfig {
         <<annotation>>
@@ -537,6 +801,7 @@ classDiagram
         -Object httpClient
         -RestHttpClient clientConfig
         -ErrorHandler errorHandler
+        -Object fallback
         -Retry retry
         -Retry nonIdempotentRetry
         -CircuitBreaker circuitBreaker
@@ -544,6 +809,20 @@ classDiagram
         -TimeLimiter timeLimiter
         -Map~Method, MethodMetadata~ methods
         +invoke(Object, Method, Object[]) Object
+    }
+    class RequestFactoryGuard {
+        -String clientName
+        -RequestFactoryOverridePolicy policy
+        +customize(RestClient.Builder, RestClientCustomizer)
+        +guardTemplate(RestTemplate, ClientHttpRequestFactory)
+    }
+    class RequestFactoryOverridePolicy {
+        <<enumeration>>
+        AUTO
+        ALLOW
+        DENY
+        +accepts(ClientHttpRequestFactory) boolean
+        +isTestDouble(ClientHttpRequestFactory)$ boolean
     }
     class MethodMetadata {
         -HttpMethod httpMethod
@@ -556,6 +835,11 @@ classDiagram
         +bind(Object[]) Request
         +uri(String, Request) URI
         +toReturnValue(ResponseEntity) Object
+        +isStreaming() boolean
+    }
+    class ResponseInputStream {
+        <<package-private>>
+        +close()
     }
     class ParameterBinding {
         <<record>>
@@ -589,6 +873,7 @@ classDiagram
     }
     class RestClientUtil {
         +createRequestFactory(RestHttpClient) HttpComponentsClientHttpRequestFactory
+        +restClientBuilder(RestHttpClient, ClientHttpRequestFactory) RestClient.Builder
         +configureRestClient(RestHttpClient, ClientHttpRequestFactory, RestClient.Builder) RestClient
         +configureRestTemplate(ClientHttpRequestFactory) RestTemplate
     }
@@ -599,6 +884,19 @@ classDiagram
     class AnnotationPlaceholderResolver {
         <<utility>>
         +resolve(A, UnaryOperator~String~)$ A
+    }
+
+    %% ---------- Pruebas y extensión ----------
+    class RestHttpClientCustomizer {
+        <<interface>>
+        +customize(String, Builder)
+        +customize(String, RestTemplate)
+    }
+    class MockRestHttpClients {
+        +server(String) MockRestServiceServer
+        +server(Class) MockRestServiceServer
+        +verify()
+        +reset()
     }
 
     %% ---------- Errores (exception) ----------
@@ -624,6 +922,8 @@ classDiagram
     class RuntimeException
 
     %% ---------- Relaciones ----------
+    MockRestHttpClients ..|> RestHttpClientCustomizer
+    RestHttpClientFactoryBean ..> RestHttpClientCustomizer : aplica los beans
     EnableRestHttpClients ..> RestHttpClientRegistrar : @Import
     EnableRestHttpClients ..> ClientConfig : @Import
     RestHttpClient *-- SSLConfig
@@ -650,11 +950,15 @@ classDiagram
     RestHttpClientFactoryBean --> RestClientUtil
     RestHttpClientFactoryBean ..> AnnotationPlaceholderResolver : resuelve placeholders
     RestHttpClientFactoryBean ..> RestHttpClientInvocationHandler : crea el proxy
+    RestHttpClientFactoryBean ..> RequestFactoryGuard : vigila los customizers
+    RequestFactoryGuard --> RequestFactoryOverridePolicy
     RestHttpClientInvocationHandler --> ErrorHandler
     RestHttpClientInvocationHandler ..> CircuitBreakerUtil : instancias Resilience4j
     RestHttpClientInvocationHandler *-- MethodMetadata : uno por método
     MethodMetadata *-- ParameterBinding : uno por parámetro
     MethodMetadata ..> Request : crea en cada llamada
+    MethodMetadata ..> MethodConfig : lee los ajustes del método
+    RestHttpClientInvocationHandler ..> ResponseInputStream : devuelve en las descargas
     RestHttpClientInvocationHandler ..> ClientException : lanza
     RestClientUtil --> SSLUtil
     RestHttpClientAutoConfiguration ..> AutoConfigurationPackagesRegistrar : @Import
@@ -678,7 +982,8 @@ classDiagram
 4. Cada `RestHttpClientFactoryBean` crea su proxy una sola vez, al arrancar (`isEagerInit`):
    - resuelve los placeholders con `AnnotationPlaceholderResolver`;
    - crea el pool HTTP con `RestClientUtil`, que usa `SSLUtil`, y sobre él el `RestClient` (con los
-     `RestClientCustomizer` de la aplicación) o el `RestTemplate` (con su `RestTemplateBuilder`);
+     `RestClientCustomizer` de la aplicación, vigilados por `RequestFactoryGuard`) o el `RestTemplate` (con su
+     `RestTemplateBuilder`);
    - obtiene el `ErrorHandler`;
    - crea el proxy, respaldado por un `RestHttpClientInvocationHandler`, que valida la URL y analiza cada
      método en un `MethodMetadata` (método HTTP, ruta, headers y params fijos, un `ParameterBinding` por

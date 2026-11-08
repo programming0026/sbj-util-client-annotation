@@ -133,4 +133,20 @@ public @interface RestHttpClient {
      * @return las clases de los interceptores
      */
     Class<? extends ClientHttpRequestInterceptor>[] interceptors() default {};
+
+    /**
+     * Clase que responde cuando el servicio no está disponible. Debe implementar la interfaz del cliente y
+     * ser concreta; cada método de la clase atiende al método de la interfaz con la misma firma. Se usa cuando,
+     * agotados los reintentos, la llamada falla por indisponibilidad: respuesta {@code 5xx}, error de red,
+     * timeout, circuito abierto o límite de peticiones. Los errores {@code 4xx} y los errores de uso (por
+     * ejemplo, un parámetro requerido ausente) <b>no</b> activan el fallback: se propagan al llamador.
+     *
+     * La clase se obtiene como el manejador de errores (bean único de ese tipo o instancia creada con
+     * inyección de dependencias). No la declares como bean que implemente la interfaz del cliente, o la
+     * inyección de esa interfaz dejaría de ser unívoca. {@code void.class} (el valor por defecto) significa
+     * que no hay fallback.
+     *
+     * @return la clase del fallback, o {@code void.class} si no hay
+     */
+    Class<?> fallback() default void.class;
 }

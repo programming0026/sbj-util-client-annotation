@@ -1,6 +1,7 @@
 package com.juniverse.client.handler;
 
 import com.juniverse.client.autoconfigure.RestHttpClient;
+import com.juniverse.client.config.RestHttpClientCustomizer;
 import com.juniverse.client.exception.ClientException;
 import com.juniverse.client.util.AnnotationPlaceholderResolver;
 import com.juniverse.client.util.RestClientUtil;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -117,6 +119,12 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
                 clientInterface.getAnnotation(RestHttpClient.class), placeholderResolver);
 
         ErrorHandler errorHandler = resolveComponent(annotation.errorHandler());
+        validateFallback(annotation.fallback());
+        Object fallback = annotation.fallback() == void.class ? null : resolveComponent(annotation.fallback());
+        RequestFactoryGuard guard = new RequestFactoryGuard(
+                clientName(annotation),
+                RequestFactoryOverridePolicy.from(applicationContext == null ? null
+                        : applicationContext.getEnvironment().getProperty(RequestFactoryOverridePolicy.PROPERTY)));
         List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
         for (Class<? extends ClientHttpRequestInterceptor> type : annotation.interceptors()) {
             interceptors.add(resolveComponent(type));
@@ -125,8 +133,8 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
         RestHttpClientInvocationHandler handler;
         try {
             Object httpClient = switch (annotation.type()) {
-                case REST_CLIENT -> buildRestClient(annotation, factory, interceptors);
-                case REST_TEMPLATE -> buildRestTemplate(factory, interceptors);
+                case REST_CLIENT -> buildRestClient(annotation, factory, interceptors, guard);
+                case REST_TEMPLATE -> buildRestTemplate(annotation, factory, interceptors, guard);
             };
             handler = new RestHttpClientInvocationHandler(
                     httpClient,
@@ -134,7 +142,8 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
                     errorHandler,
                     clientInterface,
                     circuitBreakerUtil,
-                    placeholderResolver
+                    placeholderResolver,
+                    fallback
             );
         } catch (RuntimeException e) {
             // El cliente es inválido (por ejemplo, un método mal declarado): se libera el pool ya creado.
@@ -149,6 +158,24 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
                 handler
         );
         return proxy;
+    }
+
+    /**
+     * Comprueba que la clase del fallback sirva para reemplazar al cliente.
+     *
+     * @param fallbackType la clase declarada en {@code fallback()} ({@code void.class} si no hay)
+     * @throws ClientException si no implementa la interfaz del cliente o no es una clase concreta
+     */
+    private void validateFallback(Class<?> fallbackType) {
+        if (fallbackType == void.class) {
+            return;
+        }
+        if (!clientInterface.isAssignableFrom(fallbackType) || fallbackType.isInterface()
+                || Modifier.isAbstract(fallbackType.getModifiers())) {
+            throw new ClientException("Fallback " + fallbackType.getName() + " of client "
+                    + clientInterface.getSimpleName() + " must be a concrete class that implements "
+                    + clientInterface.getName());
+        }
     }
 
     /**
@@ -191,27 +218,37 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Crea el RestClient sobre la request factory del cliente, aplicando los {@link RestClientCustomizer}
-     * de la aplicación en su orden. Así se usa la misma configuración que el {@code RestClient.Builder} de
-     * Spring Boot (message converters con el Jackson de la aplicación, observabilidad, interceptores), sin
-     * pedir ese bean: Boot lo crea con su propia request factory y su pool, que quedarían sin cerrar.
+     * Crea el RestClient. Parte de la request factory y la URL del cliente y después aplica los
+     * {@link RestClientCustomizer} de la aplicación en su orden. Así se usa la misma configuración que el
+     * {@code RestClient.Builder} de Spring Boot (message converters con el Jackson de la aplicación,
+     * observabilidad, interceptores), sin pedir ese bean: Boot lo crea con su propia request factory y su
+     * pool, que quedarían sin cerrar.
+     *
+     * Como los customizers van después, un test puede reemplazar la request factory por un
+     * {@code MockRestServiceServer}; el {@code guard} impide que lo haga por accidente un customizer pensado
+     * para otros clientes (ver {@link RequestFactoryOverridePolicy}).
      *
      * @param annotation la configuración del cliente
      * @param factory la request factory del cliente
      * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
+     * @param guard vigila los reemplazos de la request factory
      * @return el RestClient
      */
     private RestClient buildRestClient(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory,
-                                       List<ClientHttpRequestInterceptor> interceptors) {
-        RestClient.Builder builder = RestClient.builder();
+                                       List<ClientHttpRequestInterceptor> interceptors, RequestFactoryGuard guard) {
+        RestClient.Builder builder = restClientUtil.restClientBuilder(annotation, factory);
         AutowireCapableBeanFactory beanFactory = beanFactory();
         if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
             listableBeanFactory.getBeanProvider(RestClientCustomizer.class).orderedStream()
-                    .forEach(customizer -> customizer.customize(builder));
+                    .forEach(customizer -> guard.customize(builder, customizer));
+            String clientName = clientName(annotation);
+            listableBeanFactory.getBeanProvider(RestHttpClientCustomizer.class).orderedStream()
+                    .forEach(customizer -> guard.customizeBuilder(builder,
+                            guarded -> customizer.customize(clientName, guarded),
+                            "RestHttpClientCustomizer " + customizer.getClass().getName()));
         }
         interceptors.forEach(builder::requestInterceptor);
-        // La request factory y la URL del cliente se fijan al final para que ningún customizer las reemplace.
-        return restClientUtil.configureRestClient(annotation, factory, builder);
+        return builder.build();
     }
 
     /**
@@ -220,12 +257,19 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
      * y customizers; sus {@code clientSettings} globales se descartan para no pisar los timeouts y el SSL
      * propios del cliente.
      *
+     * Los customizers del builder se aplican después de la request factory del cliente (así un test puede
+     * reemplazarla por un {@code MockRestServiceServer}); el {@code guard} revisa el resultado y restaura la
+     * del cliente si el reemplazo no es aceptable. Después se aplican los {@link RestHttpClientCustomizer}.
+     *
+     * @param annotation la configuración del cliente
      * @param factory la request factory del cliente
      * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
+     * @param guard vigila los reemplazos de la request factory
      * @return el RestTemplate
      */
-    private RestTemplate buildRestTemplate(HttpComponentsClientHttpRequestFactory factory,
-                                           List<ClientHttpRequestInterceptor> interceptors) {
+    private RestTemplate buildRestTemplate(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory,
+                                           List<ClientHttpRequestInterceptor> interceptors,
+                                           RequestFactoryGuard guard) {
         AutowireCapableBeanFactory beanFactory = beanFactory();
         RestTemplateBuilder builder = beanFactory instanceof ListableBeanFactory listableBeanFactory
                 ? listableBeanFactory.getBeanProvider(RestTemplateBuilder.class).getIfAvailable()
@@ -233,8 +277,27 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
         RestTemplate template = builder == null
                 ? restClientUtil.configureRestTemplate(factory)
                 : builder.clientSettings(HttpClientSettings.defaults()).requestFactory(() -> factory).build();
+        guard.guardTemplate(template, factory);
+        if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
+            String clientName = clientName(annotation);
+            listableBeanFactory.getBeanProvider(RestHttpClientCustomizer.class).orderedStream()
+                    .forEach(customizer -> guard.customizeTemplate(template,
+                            target -> customizer.customize(clientName, target),
+                            "RestHttpClientCustomizer " + customizer.getClass().getName()));
+        }
         template.getInterceptors().addAll(interceptors);
         return template;
+    }
+
+    /**
+     * Obtiene el nombre del cliente que ven los {@link RestHttpClientCustomizer}: el {@code name()} de la
+     * anotación o, si está vacío, el nombre simple de la interfaz.
+     *
+     * @param annotation la configuración del cliente (con los placeholders resueltos)
+     * @return el nombre del cliente
+     */
+    private String clientName(RestHttpClient annotation) {
+        return annotation.name().isEmpty() ? clientInterface.getSimpleName() : annotation.name();
     }
 
     /**

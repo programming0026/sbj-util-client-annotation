@@ -2,13 +2,18 @@ package com.juniverse.client.handler;
 
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.util.CircuitBreakerUtil;
+import com.juniverse.client.util.MethodReadTimeout;
 import com.juniverse.client.exception.ClientException;
 import com.juniverse.client.exception.ErrorHandler;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,13 +22,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -31,6 +40,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * Atiende cada llamada al proxy de un cliente {@link RestHttpClient}.
@@ -49,6 +59,9 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * {@code ForkJoinPool} común y para poder interrumpir la petición cuando vence el tiempo.
      */
     private static final ExecutorService TIME_LIMITER_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+
+    /** El logger. */
+    private static final Logger LOG = LoggerFactory.getLogger(RestHttpClientInvocationHandler.class);
 
     /** El cliente HTTP: un RestClient o un RestTemplate. */
     private final Object httpClient;
@@ -79,6 +92,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
 
     /** El time limiter, o null si está deshabilitado. */
     private final TimeLimiter timeLimiter;
+
+    /** La implementación que responde cuando el servicio no está disponible, o null si no hay. */
+    private final Object fallback;
+
+    /** Los reintentos y el time limiter propios de los métodos con {@code @MethodConfig}. */
+    private final Map<MethodMetadata, MethodResilience> methodResilience;
 
     /**
      * Crea el handler sin resolución de placeholders en los mappings.
@@ -117,6 +136,36 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
                                            Class<?> clientInterface,
                                            CircuitBreakerUtil resilience4jConfig,
                                            UnaryOperator<String> valueResolver) {
+        this(httpClient, clientConfig, errorHandler, clientInterface, resilience4jConfig, valueResolver, null);
+    }
+
+    /**
+     * Crea el handler con un fallback. Ver {@link #RestHttpClientInvocationHandler(Object, RestHttpClient,
+     * ErrorHandler, Class, CircuitBreakerUtil, UnaryOperator)}.
+     *
+     * @param httpClient el cliente HTTP (RestClient o RestTemplate)
+     * @param clientConfig la configuración del cliente (con sus placeholders ya resueltos)
+     * @param errorHandler el manejador de errores
+     * @param clientInterface la interfaz del cliente
+     * @param resilience4jConfig la fábrica de instancias de Resilience4j
+     * @param valueResolver resuelve placeholders en los atributos de mapping y de parámetros
+     * @param fallback la implementación de la interfaz que responde cuando el servicio no está disponible, o
+     *                 null si no hay
+     * @throws ClientException si la URL o algún método del cliente están mal declarados, o si el fallback no
+     *                         implementa la interfaz
+     */
+    public RestHttpClientInvocationHandler(Object httpClient,
+                                           RestHttpClient clientConfig,
+                                           ErrorHandler errorHandler,
+                                           Class<?> clientInterface,
+                                           CircuitBreakerUtil resilience4jConfig,
+                                           UnaryOperator<String> valueResolver,
+                                           Object fallback) {
+        if (fallback != null && !clientInterface.isInstance(fallback)) {
+            throw new ClientException("Fallback " + fallback.getClass().getName() + " of client "
+                    + clientInterface.getSimpleName() + " must implement " + clientInterface.getName());
+        }
+        this.fallback = fallback;
         this.httpClient = httpClient;
         this.clientConfig = clientConfig;
         this.errorHandler = errorHandler;
@@ -124,6 +173,7 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
 
         validateBaseUrl(clientConfig.url(), clientInterface);
         this.methods = analyzeMethods(clientInterface, valueResolver);
+        rejectStreamingWithRestTemplate(httpClient, methods);
 
         String clientName = clientConfig.name().isEmpty()
                 ? clientInterface.getSimpleName()
@@ -143,6 +193,67 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
         this.timeLimiter = clientConfig.timeLimiter().enabled()
                 ? resilience4jConfig.createTimeLimiter(clientName, clientConfig)
                 : null;
+
+        Map<MethodMetadata, MethodResilience> overrides = new HashMap<>();
+        methods.forEach((method, metadata) -> {
+            MethodMetadata.MethodSettings settings = metadata.settings();
+            if (settings.overridesRetries() || settings.overridesTimeLimiter()) {
+                overrides.put(metadata, createMethodResilience(clientName + "#" + signature(method),
+                        settings, clientConfig, errorHandler, resilience4jConfig));
+            }
+        });
+        this.methodResilience = Map.copyOf(overrides);
+    }
+
+    /**
+     * Los reintentos y el time limiter propios de un método con {@code @MethodConfig}; un valor null significa
+     * que ese aspecto se hereda del cliente (o, en el time limiter, que el método no tiene límite).
+     *
+     * @param retry el retry de las peticiones idempotentes, o null si hereda el del cliente
+     * @param nonIdempotentRetry el retry de las no idempotentes, o null si hereda el del cliente
+     * @param timeLimiter el time limiter, o null si el método no tiene límite de tiempo
+     */
+    private record MethodResilience(Retry retry, Retry nonIdempotentRetry, TimeLimiter timeLimiter) {
+    }
+
+    /**
+     * Crea las instancias de Resilience4j propias de un método. Llevan el nombre del cliente más la firma del
+     * método, para no compartir estado con las del cliente ni con otros métodos.
+     *
+     * @param name el nombre base de las instancias
+     * @param settings los ajustes del método
+     * @param clientConfig la configuración del cliente
+     * @param errorHandler el manejador de errores
+     * @param resilience4jConfig la fábrica de instancias de Resilience4j
+     * @return las instancias propias del método
+     */
+    private static MethodResilience createMethodResilience(String name, MethodMetadata.MethodSettings settings,
+                                                           RestHttpClient clientConfig, ErrorHandler errorHandler,
+                                                           CircuitBreakerUtil resilience4jConfig) {
+        Retry methodRetry = null;
+        Retry methodNonIdempotentRetry = null;
+        if (settings.overridesRetries()) {
+            methodRetry = resilience4jConfig.createRetry(name, clientConfig, errorHandler, true,
+                    settings.maxRetries());
+            methodNonIdempotentRetry = resilience4jConfig.createRetry(name, clientConfig, errorHandler, false,
+                    settings.maxRetries());
+        }
+        TimeLimiter methodTimeLimiter = settings.overridesTimeLimiter() && settings.timeLimiterTimeout() > 0
+                ? resilience4jConfig.createTimeLimiter(name, settings.timeLimiterTimeout())
+                : null;
+        return new MethodResilience(methodRetry, methodNonIdempotentRetry, methodTimeLimiter);
+    }
+
+    /**
+     * Describe un método con sus tipos de parámetros, por ejemplo {@code find(String,int)}, para nombrar sus
+     * instancias de Resilience4j sin que choquen las sobrecargas.
+     *
+     * @param method el método
+     * @return la firma
+     */
+    private static String signature(Method method) {
+        return method.getName() + Arrays.stream(method.getParameterTypes()).map(Class::getSimpleName)
+                .collect(Collectors.joining(",", "(", ")"));
     }
 
     /**
@@ -201,6 +312,27 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
+     * Un retorno {@code InputStream} necesita dejar la respuesta abierta, y {@code RestTemplate} la cierra antes
+     * de devolver: solo {@code RestClient} puede hacer streaming.
+     *
+     * @param httpClient el cliente HTTP
+     * @param methods los metadatos de los métodos
+     * @throws ClientException si el cliente es un RestTemplate y algún método devuelve un InputStream
+     */
+    private static void rejectStreamingWithRestTemplate(Object httpClient, Map<Method, MethodMetadata> methods) {
+        if (!(httpClient instanceof RestTemplate)) {
+            return;
+        }
+        methods.forEach((method, metadata) -> {
+            if (metadata.isStreaming()) {
+                throw new ClientException("Method " + MethodMetadata.describe(method) + " returns InputStream, "
+                        + "which needs type = ClientType.REST_CLIENT: RestTemplate closes the response before the "
+                        + "method returns, so the body cannot be streamed");
+            }
+        });
+    }
+
+    /**
      * Atiende una llamada al proxy. {@code equals}, {@code hashCode} y {@code toString} se resuelven
      * sobre el proxy; los métodos {@code default} de la interfaz se ejecutan tal cual; el resto se
      * convierte en una petición HTTP.
@@ -227,7 +359,50 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
 
         MethodMetadata.Request request = metadata.bind(args);
         URI uri = metadata.uri(clientConfig.url(), request);
-        return executeWithResilience(metadata, request, uri);
+        try {
+            return executeWithResilience(metadata, request, uri);
+        } catch (Exception e) {
+            if (fallback == null || !isUnavailability(e)) {
+                throw e;
+            }
+            LOG.warn("{} is unavailable ({}), using fallback {}", MethodMetadata.describe(method), e.toString(),
+                    fallback.getClass().getSimpleName());
+            return invokeFallback(method, args);
+        }
+    }
+
+    /**
+     * Indica si el error significa que el servicio no está disponible, que es cuando se usa el fallback: una
+     * respuesta 5xx, un error de red, un timeout, el circuito abierto o el límite de peticiones. Los 4xx y
+     * los demás errores (conversión del cuerpo, cliente mal usado) no.
+     *
+     * @param error el error de la llamada
+     * @return true si corresponde usar el fallback
+     */
+    static boolean isUnavailability(Throwable error) {
+        return switch (error) {
+            case HttpStatusCodeException http -> http.getStatusCode().is5xxServerError();
+            case ResourceAccessException ignored -> true;
+            case CallNotPermittedException ignored -> true;
+            case RequestNotPermitted ignored -> true;
+            default -> CircuitBreakerUtil.isTimeout(error);
+        };
+    }
+
+    /**
+     * Ejecuta el método equivalente del fallback.
+     *
+     * @param method el método de la interfaz
+     * @param args los argumentos de la llamada
+     * @return lo que devuelve el fallback
+     * @throws Throwable lo que lance el fallback
+     */
+    private Object invokeFallback(Method method, Object[] args) throws Throwable {
+        try {
+            return method.invoke(fallback, args);
+        } catch (InvocationTargetException e) {
+            throw e.getCause();
+        }
     }
 
     /**
@@ -264,8 +439,14 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
             throws Exception {
         Callable<Object> call = () -> executeRequest(metadata, request, uri);
 
-        if (timeLimiter != null) {
-            call = withTimeLimit(call);
+        MethodResilience own = methodResilience.get(metadata);
+        boolean idempotent = isIdempotent(metadata.httpMethod());
+        TimeLimiter limiter = metadata.settings().overridesTimeLimiter() ? own.timeLimiter() : timeLimiter;
+        Retry methodRetry = own == null || own.retry() == null ? null
+                : (idempotent ? own.retry() : own.nonIdempotentRetry());
+
+        if (limiter != null) {
+            call = withTimeLimit(call, limiter);
         }
         if (rateLimiter != null) {
             call = RateLimiter.decorateCallable(rateLimiter, call);
@@ -273,7 +454,8 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
         if (circuitBreaker != null) {
             call = CircuitBreaker.decorateCallable(circuitBreaker, call);
         }
-        call = Retry.decorateCallable(isIdempotent(metadata.httpMethod()) ? retry : nonIdempotentRetry, call);
+        call = Retry.decorateCallable(methodRetry != null ? methodRetry
+                : (idempotent ? retry : nonIdempotentRetry), call);
 
         return call.call();
     }
@@ -299,17 +481,18 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * proxy no lo convierta en {@code UndeclaredThrowableException}.
      *
      * @param attempt el intento a limitar
+     * @param limiter el time limiter que se aplica (el del cliente o el del método)
      * @return el intento con límite de tiempo
      */
-    private Callable<Object> withTimeLimit(Callable<Object> attempt) {
-        Callable<Object> limited = TimeLimiter.decorateFutureSupplier(timeLimiter,
+    private Callable<Object> withTimeLimit(Callable<Object> attempt, TimeLimiter limiter) {
+        Callable<Object> limited = TimeLimiter.decorateFutureSupplier(limiter,
                 () -> TIME_LIMITER_EXECUTOR.submit(attempt));
         return () -> {
             try {
                 return limited.call();
             } catch (TimeoutException e) {
                 throw new ClientException("Request timed out after "
-                        + clientConfig.timeLimiter().timeout() + " ms", e);
+                        + limiter.getTimeLimiterConfig().getTimeoutDuration().toMillis() + " ms", e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new ClientException("Request interrupted", e);
@@ -327,6 +510,10 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * @return el resultado según el tipo de retorno del método
      */
     private Object executeRequest(MethodMetadata metadata, MethodMetadata.Request request, URI uri) {
+        long readTimeout = metadata.settings().readTimeout();
+        if (readTimeout != -1) {
+            MethodReadTimeout.set(readTimeout);
+        }
         try {
             return switch (httpClient) {
                 case RestClient restClient ->
@@ -344,6 +531,10 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
         } catch (HttpStatusCodeException e) {
             errorHandler.handleError(e.getStatusCode(), e.getResponseBodyAsString(), e);
             throw e;
+        } finally {
+            if (readTimeout != -1) {
+                MethodReadTimeout.clear();
+            }
         }
     }
 
@@ -366,10 +557,40 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
             bodySpec.body(request.body());
         }
 
+        if (metadata.isStreaming()) {
+            return streamResponse(bodySpec);
+        }
         RestClient.ResponseSpec responseSpec = bodySpec.retrieve();
         return metadata.isBodiless()
                 ? responseSpec.toBodilessEntity()
                 : responseSpec.toEntity(metadata.bodyTypeReference());
+    }
+
+    /**
+     * Ejecuta la petición y devuelve la respuesta abierta, con el cuerpo como {@link InputStream} que se lee
+     * progresivamente. La respuesta (y su conexión del pool) se libera al cerrar el flujo.
+     *
+     * Reintentos, circuit breaker, rate limiter y límite de tiempo actúan hasta que llegan los headers de la
+     * respuesta; la lectura del cuerpo queda en manos de quien recibe el flujo (cada lectura tiene el
+     * {@code readTimeout} del cliente). Un 4xx/5xx se lanza como excepción, igual que sin streaming, y la
+     * respuesta se cierra antes de lanzarla.
+     *
+     * @param bodySpec la petición, ya con headers y cuerpo
+     * @return la respuesta con el cuerpo abierto
+     */
+    private static ResponseEntity<InputStream> streamResponse(RestClient.RequestBodySpec bodySpec) {
+        return bodySpec.exchange((clientRequest, response) -> {
+            try {
+                if (response.getStatusCode().isError()) {
+                    throw response.createException();
+                }
+                return ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders())
+                        .body(new ResponseInputStream(response));
+            } catch (IOException | RuntimeException e) {
+                response.close();
+                throw e;
+            }
+        }, false);
     }
 
     /**
