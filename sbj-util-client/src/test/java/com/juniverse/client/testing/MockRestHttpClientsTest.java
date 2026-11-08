@@ -100,8 +100,7 @@ class MockRestHttpClientsTest {
         mocks.server(PaymentsClient.class).expect(requestTo("http://payments.test/charge"))
                 .andRespond(withSuccess("paid", MediaType.TEXT_PLAIN));
 
-        // El cliente de usuarios no tiene expectativas: la llamada falla sin tocar las de pagos.
-        assertThatThrownBy(() -> users.find(1)).isInstanceOf(AssertionError.class);
+       assertThatThrownBy(() -> users.find(1)).isInstanceOf(AssertionError.class);
         assertThatThrownBy(mocks::verify).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("[PaymentsClient]").hasMessageNotContaining("[UsersClient]");
     }
@@ -157,8 +156,7 @@ class MockRestHttpClientsTest {
         mocks.server(UsersClient.class).expect(requestTo("http://users.test/users/2"))
                 .andRespond(withSuccess("two", MediaType.TEXT_PLAIN));
 
-        // Sin ignoreExpectOrder, pedir primero el 2 fallaría.
-        assertThat(users.find(2)).isEqualTo("two");
+       assertThat(users.find(2)).isEqualTo("two");
         assertThat(users.find(1)).isEqualTo("one");
         assertThat(payments).isNotNull();
         mocks.verify();

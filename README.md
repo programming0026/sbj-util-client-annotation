@@ -4,14 +4,14 @@ Clientes REST **declarativos** para Spring Boot, con resiliencia integrada, y un
 usa. Declaras una interfaz con las anotaciones de Spring Web que ya conoces y la librería genera el cliente:
 
 ```java
-@RestHttpClient(url = "${usuarios.url}", retry = @RetryConfig(maxRetries = 3))
-public interface UsuariosClient {
+@RestHttpClient(url = "${users.url}", retry = @RetryConfig(maxRetries = 3))
+public interface UsersClient {
 
-    @GetMapping("/usuarios/{id}")
-    Usuario consultar(@PathVariable("id") long id);
+    @GetMapping("/users/{id}")
+    User find(@PathVariable("id") long id);
 
-    @PostMapping("/usuarios")
-    Usuario crear(@RequestBody Usuario usuario);
+    @PostMapping("/users")
+    User create(@RequestBody User user);
 }
 ```
 

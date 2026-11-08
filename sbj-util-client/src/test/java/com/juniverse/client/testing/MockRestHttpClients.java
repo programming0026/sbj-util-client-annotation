@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * prueba y funciona con clientes {@code REST_CLIENT} y {@code REST_TEMPLATE}. Después, en cada prueba:
  *
  * <pre>{@code
- * mocks.server(UsuariosClient.class).expect(requestTo("https://usuarios/1")).andRespond(...);
- * mocks.server(PagosClient.class).expect(requestTo("https://pagos/cobro")).andRespond(...);
+ * mocks.server(UsersClient.class).expect(requestTo("https://users/1")).andRespond(...);
+ * mocks.server(PaymentsClient.class).expect(requestTo("https://payments/charge")).andRespond(...);
  * // ... ejecutar el código bajo prueba ...
  * mocks.verify();
  * }</pre>

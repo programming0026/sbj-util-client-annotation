@@ -40,8 +40,8 @@ Y agrégala como dependencia:
 
 ```java
 @Configuration
-@EnableRestHttpClients(basePackages = "com.miempresa.clientes")
-public class ClientesConfig {
+@EnableRestHttpClients(basePackages = "com.mycompany.clients")
+public class ClientsConfig {
 }
 ```
 
@@ -51,7 +51,7 @@ public class ClientesConfig {
 2. Declara el cliente:
 
 ```java
-@RestHttpClient(name = "userClient", url = "https://api.ejemplo.com")
+@RestHttpClient(name = "userClient", url = "https://api.example.com")
 public interface UserClient {
 
     @GetMapping(value = "/users/{id}", headers = "X-App=demo")
@@ -102,10 +102,10 @@ Un `@RequestMapping` en la **interfaz** aporta un prefijo de ruta y valores por 
 
 ```java
 @RestHttpClient(url = "${api.url}")
-@RequestMapping(path = "/v1", headers = "X-Client=inventario", params = "tenant=acme")
-public interface InventarioClient {
+@RequestMapping(path = "/v1", headers = "X-Client=inventory", params = "tenant=acme")
+public interface InventoryClient {
 
-    @GetMapping("/stock")          // GET {api.url}/v1/stock?tenant=acme con X-Client: inventario
+    @GetMapping("/stock")          // GET {api.url}/v1/stock?tenant=acme con X-Client: inventory
     Stock stock();
 }
 ```
@@ -225,7 +225,7 @@ anotación se ignora):
 
 ```java
 @GetMapping("/items")
-String search(@RequestParam Map<String, Object> filtros);
+String search(@RequestParam Map<String, Object> filters);
 // {q: "a&b", tag: [x, y], page: 2}  →  /items?q=a%26b&tag=x&tag=y&page=2
 
 @GetMapping("/orgs/{org}/items/{id}")
@@ -242,16 +242,16 @@ No hace falta declarar `consumes`: la librería fija `Content-Type: multipart/fo
 `boundary`). Si lo declaras, debe ser `multipart/form-data`.
 
 ```java
-@RestHttpClient(url = "${archivos.url}")
-public interface ArchivosClient {
+@RestHttpClient(url = "${files.url}")
+public interface FilesClient {
 
-    @PostMapping("/documentos")
-    DocumentoResponse subir(@RequestPart("archivo") MultipartFile archivo,
-                            @RequestPart("descripcion") String descripcion,
-                            @RequestPart("metadatos") Metadatos metadatos);   // se envía como parte JSON
+    @PostMapping("/documents")
+    DocumentResponse upload(@RequestPart("file") MultipartFile file,
+                            @RequestPart("description") String description,
+                            @RequestPart("metadata") Metadata metadata);   // se envía como parte JSON
 
-    @PostMapping("/lote")
-    void subirVarios(@RequestPart("archivos") List<MultipartFile> archivos);  // una parte por archivo
+    @PostMapping("/batch")
+    void uploadAll(@RequestPart("files") List<MultipartFile> files);  // una parte por archivo
 }
 ```
 
@@ -304,12 +304,12 @@ Los atributos de texto admiten placeholders `${...}` que se resuelven con el `En
 opcional `${clave:valor}`:
 
 ```java
-@RestHttpClient(name = "${clientes.pagos.nombre:pagosClient}", url = "${clientes.pagos.url}",
-        ssl = @SSLConfig(keystorePath = "${clientes.pagos.keystore}", keystorePassword = "${KEYSTORE_PASSWORD}"))
-public interface PagosClient {
+@RestHttpClient(name = "${clients.payments.name:paymentsClient}", url = "${clients.payments.url}",
+        ssl = @SSLConfig(keystorePath = "${clients.payments.keystore}", keystorePassword = "${KEYSTORE_PASSWORD}"))
+public interface PaymentsClient {
 
-    @GetMapping(path = "${clientes.pagos.version:/v1}/pagos", headers = "X-Api-Key=${clientes.pagos.api-key}")
-    List<Pago> list(@RequestParam(name = "size", defaultValue = "${clientes.pagos.page-size:20}") int size);
+    @GetMapping(path = "${clients.payments.version:/v1}/payments", headers = "X-Api-Key=${clients.payments.api-key}")
+    List<Payment> list(@RequestParam(name = "size", defaultValue = "${clients.payments.page-size:20}") int size);
 }
 ```
 
@@ -328,13 +328,13 @@ por el circuit breaker, consume un permiso del rate limiter y tiene su propio l�
 
 ```java
 @RestHttpClient(
-        url = "https://api.ejemplo.com",
+        url = "https://api.example.com",
         retry = @RetryConfig(maxRetries = 3, retryDelay = 500, exponentialBackoffMultiplier = 2.0,
                              retryNonIdempotent = false),
         circuitBreaker = @CircuitBreakerConfig(enabled = true, failureRateThreshold = 50),
         rateLimiter = @RateLimiterConfig(enabled = true, limitForPeriod = 100, limitRefreshPeriod = 1000),
         timeLimiter = @TimeLimiterConfig(enabled = true, timeout = 2000))
-public interface PagosClient { ... }
+public interface PaymentsClient { ... }
 ```
 
 - **Retry:** siempre activo. `maxRetries` es el número total de intentos (incluido el primero). Los errores
@@ -364,16 +364,16 @@ Los timeouts y reintentos del cliente aplican a todos sus métodos. Con `@Method
 reemplazarlos solo para sí mismo; lo que no indiques se hereda del cliente:
 
 ```java
-@RestHttpClient(url = "${reportes.url}", readTimeout = 5_000,
+@RestHttpClient(url = "${reports.url}", readTimeout = 5_000,
         retry = @RetryConfig(maxRetries = 3))
-public interface ReportesClient {
+public interface ReportsClient {
 
-    @GetMapping("/resumen")
-    Resumen resumen();                     // 5 s de espera, 3 intentos (los del cliente)
+    @GetMapping("/summary")
+    Summary summary();                     // 5 s de espera, 3 intentos (los del cliente)
 
-    @GetMapping("/exportar/{id}")
+    @GetMapping("/export/{id}")
     @MethodConfig(readTimeout = 120_000, maxRetries = 1, timeLimiterTimeout = 0)
-    InputStream exportar(@PathVariable String id);   // 2 min de espera, sin reintentos, sin límite de tiempo
+    InputStream export(@PathVariable String id);   // 2 min de espera, sin reintentos, sin límite de tiempo
 }
 ```
 
@@ -415,8 +415,8 @@ class AuthInterceptor implements ClientHttpRequestInterceptor {
     }
 }
 
-@RestHttpClient(url = "${pagos.url}", interceptors = {AuthInterceptor.class, TraceInterceptor.class})
-public interface PagosClient { ... }
+@RestHttpClient(url = "${payments.url}", interceptors = {AuthInterceptor.class, TraceInterceptor.class})
+public interface PaymentsClient { ... }
 ```
 
 Se ejecutan en el orden declarado y **después** de los interceptores globales de la aplicación (los de los
@@ -427,8 +427,8 @@ Se ejecutan en el orden declarado y **después** de los interceptores globales d
 Para ver qué llama cada cliente no hace falta escribir un interceptor: `@RestHttpClient(logging = true)`.
 
 ```
-INFO  com.juniverse.client.http.pagos : GET https://pagos.interna.com/cobros?desde&limite -> 200 (84 ms)
-WARN  com.juniverse.client.http.pagos : POST https://pagos.interna.com/cobros failed after 5012 ms: ...
+INFO  com.juniverse.client.http.payments : GET https://payments.internal.com/charges?from&limit -> 200 (84 ms)
+WARN  com.juniverse.client.http.payments : POST https://payments.internal.com/charges failed after 5012 ms: ...
 ```
 
 - Una línea por **intento** (los reintentos se ven uno a uno): INFO con el estado y la duración, o WARN si la
@@ -436,7 +436,7 @@ WARN  com.juniverse.client.http.pagos : POST https://pagos.interna.com/cobros fa
 - **Nunca** registra headers ni cuerpos, y de la query solo los **nombres** de los parámetros (sus valores
   pueden llevar tokens o datos personales). Las credenciales de la URL tampoco salen.
 - Cada cliente tiene su logger, `com.juniverse.client.http.<nombre del cliente>` (el `name()` o el nombre
-  simple de la interfaz), así que se puede subir o bajar por cliente (`logging.level.com.juniverse.client.http.pagos=WARN`).
+  simple de la interfaz), así que se puede subir o bajar por cliente (`logging.level.com.juniverse.client.http.payments=WARN`).
 - Se aplica **antes** que los `interceptors` del cliente: la duración incluye lo que ellos hagan.
 
 ## JSON por cliente
@@ -453,8 +453,8 @@ public class SnakeCaseJson implements JsonMapperConfigurer {
     }
 }
 
-@RestHttpClient(url = "${pagos.url}", jsonConfig = SnakeCaseJson.class)
-public interface PagosClient { ... }
+@RestHttpClient(url = "${payments.url}", jsonConfig = SnakeCaseJson.class)
+public interface PaymentsClient { ... }
 ```
 
 - **Punto de partida:** el `JsonMapper` de la aplicación (con sus `spring.jackson.*`) si hay uno solo; si no, el
@@ -487,7 +487,7 @@ usa ese; si no, Spring crea la instancia con inyección de dependencias (puede r
 constructor):
 
 ```java
-public class MiErrorHandler implements ErrorHandler {
+public class MyErrorHandler implements ErrorHandler {
     @Override
     public void handleError(HttpStatusCode status, String body, Exception e) { ... }
 
@@ -505,18 +505,18 @@ Con `fallback` declaras una clase que responde cuando el servicio no está dispo
 excepción:
 
 ```java
-@RestHttpClient(url = "${catalogo.url}", fallback = CatalogoFallback.class)
-public interface CatalogoClient {
+@RestHttpClient(url = "${catalog.url}", fallback = CatalogFallback.class)
+public interface CatalogClient {
 
-    @GetMapping("/productos/{id}")
-    Producto producto(@PathVariable("id") long id);
+    @GetMapping("/products/{id}")
+    Product product(@PathVariable("id") long id);
 }
 
-public class CatalogoFallback implements CatalogoClient {
+public class CatalogFallback implements CatalogClient {
 
     @Override
-    public Producto producto(long id) {
-        return Producto.desconocido(id);   // por ejemplo, un valor por defecto o el último valor en caché
+    public Product product(long id) {
+        return Product.unknown(id);   // por ejemplo, un valor por defecto o el último valor en caché
     }
 }
 ```
@@ -538,8 +538,8 @@ public class CatalogoFallback implements CatalogoClient {
 ## SSL
 
 ```java
-@RestHttpClient(url = "https://api.interna.com",
-        ssl = @SSLConfig(keystorePath = "classpath:cliente.p12", keystorePassword = "...",
+@RestHttpClient(url = "https://api.internal.com",
+        ssl = @SSLConfig(keystorePath = "classpath:client.p12", keystorePassword = "...",
                          truststorePath = "/etc/certs/truststore.jks", truststorePassword = "..."))
 ```
 
@@ -553,12 +553,12 @@ public class CatalogoFallback implements CatalogoClient {
 ## Redirecciones y proxy
 
 ```java
-@RestHttpClient(url = "https://api.interna.com",
+@RestHttpClient(url = "https://api.internal.com",
         followRedirects = false,                      // por defecto true
         maxRedirects = 10,                            // por defecto 50
         proxy = @ProxyConfig(host = "${proxy.host:}", port = "${proxy.port:3128}",
                              username = "${proxy.user:}", password = "${PROXY_PASSWORD:}",
-                             nonProxyHosts = {"localhost", "*.interno.com", "10.0.*"}))
+                             nonProxyHosts = {"localhost", "*.internal.com", "10.0.*"}))
 ```
 
 - **Redirecciones:** por defecto se siguen (301, 302, 303, 307 y 308) hasta `maxRedirects`; al superarlo la
@@ -572,7 +572,7 @@ public class CatalogoFallback implements CatalogoClient {
 - **Autenticación:** con `username` se usa autenticación básica contra el proxy (se envía al recibir el 407).
   Usa un placeholder para la contraseña. Una `password` sin `username` falla al crear el cliente.
 - **`nonProxyHosts`:** destinos a los que se llega directamente. Cada patrón es un nombre exacto, o lleva `*`
-  al principio (`*.interno.com`) o al final (`10.0.*`); no distingue mayúsculas. Sin patrones, todo pasa por el
+  al principio (`*.internal.com`) o al final (`10.0.*`); no distingue mayúsculas. Sin patrones, todo pasa por el
   proxy, `localhost` incluido.
 - El proxy y las redirecciones valen para `REST_CLIENT` y `REST_TEMPLATE`, y también para las descargas con
   `InputStream`. No se leen las propiedades de la JVM (`http.proxyHost`...): el proxy solo sale de la anotación.
@@ -623,7 +623,7 @@ configuración, así que un mock puede reemplazar la request factory del cliente
 
 ```java
 @SpringBootTest
-class UsuariosClientTest {
+class UsersClientTest {
 
     @TestConfiguration
     static class MockConfig {
@@ -633,15 +633,15 @@ class UsuariosClientTest {
         }
     }
 
-    @Autowired UsuariosClient client;
+    @Autowired UsersClient client;
     @Autowired MockServerRestClientCustomizer mockServer;
 
     @Test
-    void consultaUnUsuario() {
-        mockServer.getServer().expect(requestTo("https://api.ejemplo.com/usuarios/1"))
-                .andRespond(withSuccess("{\"id\":1,\"nombre\":\"Ana\"}", MediaType.APPLICATION_JSON));
+    void fetchesAUser() {
+        mockServer.getServer().expect(requestTo("https://api.example.com/users/1"))
+                .andRespond(withSuccess("{\"id\":1,\"name\":\"Ana\"}", MediaType.APPLICATION_JSON));
 
-        assertThat(client.consultar(1).nombre()).isEqualTo("Ana");
+        assertThat(client.find(1).name()).isEqualTo("Ana");
     }
 }
 ```
@@ -660,7 +660,7 @@ solo a su `RestTemplateBuilder`. Con `bufferContent()` también funciona.
 
 ```java
 @SpringBootTest
-class PedidosServiceTest {
+class OrdersServiceTest {
 
     @TestConfiguration
     static class Mocks {
@@ -670,17 +670,17 @@ class PedidosServiceTest {
         }
     }
 
-    @Autowired PedidosService pedidos;
+    @Autowired OrdersService orders;
     @Autowired MockRestHttpClients mocks;
 
     @Test
-    void creaElPedido() {
-        mocks.server(UsuariosClient.class).expect(requestTo("https://usuarios.ejemplo.com/usuarios/1"))
+    void createsTheOrder() {
+        mocks.server(UsersClient.class).expect(requestTo("https://users.example.com/users/1"))
                 .andRespond(withSuccess("{\"id\":1}", MediaType.APPLICATION_JSON));
-        mocks.server(PagosClient.class).expect(requestTo("https://pagos.ejemplo.com/cobros"))
-                .andRespond(withSuccess("{\"estado\":\"OK\"}", MediaType.APPLICATION_JSON));
+        mocks.server(PaymentsClient.class).expect(requestTo("https://payments.example.com/charges"))
+                .andRespond(withSuccess("{\"status\":\"OK\"}", MediaType.APPLICATION_JSON));
 
-        pedidos.crear(1);
+        orders.create(1);
 
         mocks.verify();   // todas las peticiones esperadas de todos los clientes
     }
@@ -785,12 +785,12 @@ y antes de los interceptores de `@RestHttpClient`:
 
 ```java
 @Bean
-RestHttpClientCustomizer origen() {
+RestHttpClientCustomizer origin() {
     return new RestHttpClientCustomizer() {
         @Override
         public void customize(String clientName, RestClient.Builder builder) {        // REST_CLIENT
-            if (clientName.equals("PagosClient")) {
-                builder.defaultHeader("X-Origen", "mi-app");
+            if (clientName.equals("PaymentsClient")) {
+                builder.defaultHeader("X-Origin", "my-app");
             }
         }
 
@@ -821,8 +821,8 @@ sin que nadie lo note. La librería lo vigila: sabe qué customizer intentó el 
 El aviso dice quién lo hizo y cómo aceptarlo:
 
 ```
-WARN Ignored the request factory com.ejemplo.MiFactory set by RestClientCustomizer com.ejemplo.TimeoutsGlobales
-for client UsuariosClient: it would drop the connection pool, timeouts and SSL of @RestHttpClient.
+WARN Ignored the request factory com.example.MyFactory set by RestClientCustomizer com.example.GlobalTimeouts
+for client UsersClient: it would drop the connection pool, timeouts and SSL of @RestHttpClient.
 Set rest-http-client.request-factory-override=allow to accept it (currently 'auto')
 ```
 
@@ -841,9 +841,6 @@ La librería incluye un procesador AOT de Spring (`META-INF/spring/aot.factories
 la reflexión de sus métodos y anotaciones, las clases de `errorHandler`, `interceptors` y `fallback`, y los
 tipos de retorno y de `@RequestBody` para Jackson. No hay que configurar nada.
 
-Estado: verificado con una imagen nativa real del ejemplo (GraalVM 25; Spring Boot 4.1 no acepta la 21). Los
-hints también tienen pruebas con `RuntimeHintsPredicates`. Detalles en el punto 7 de `MEJORAS.md`; si te falta
-algún hint en tu aplicación, abre un issue.
 
 ## Arquitectura
 
@@ -1197,9 +1194,3 @@ mvn checkstyle:check               # solo checkstyle
 - Checkstyle (`config/checkstyle.xml`) falla con advertencias: líneas de máximo 120 caracteres,
   Javadoc obligatorio, sin tabuladores ni imports con `*`.
 
-### Convención de idioma
-
-- **Español:** comentarios, Javadoc y este README.
-- **Inglés:** nombres de clases, métodos y variables, mensajes de log y mensajes de excepciones.
-
-Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md); al publicar una versión, añade ahí su entrada.

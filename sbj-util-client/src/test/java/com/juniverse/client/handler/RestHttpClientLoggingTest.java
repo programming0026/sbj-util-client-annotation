@@ -37,7 +37,7 @@ class RestHttpClientLoggingTest {
 
     private static final String LOGGER = "com.juniverse.client.http";
 
-    @RestHttpClient(name = "pagos", url = "${t.url}", logging = true,
+    @RestHttpClient(name = "payments", url = "${t.url}", logging = true,
             retry = @RetryConfig(maxRetries = 3, retryDelay = 1))
     interface LoggedClient {
         @GetMapping("/items")
@@ -47,7 +47,7 @@ class RestHttpClientLoggingTest {
         String down();
     }
 
-    @RestHttpClient(name = "silencioso", url = "${t.url}", retry = @RetryConfig(maxRetries = 1, retryDelay = 1))
+    @RestHttpClient(name = "quiet", url = "${t.url}", retry = @RetryConfig(maxRetries = 1, retryDelay = 1))
     interface QuietClient {
         @GetMapping("/items")
         String items(@RequestParam("token") String token);
@@ -124,7 +124,7 @@ class RestHttpClientLoggingTest {
     void usesOneLoggerPerClientNamedAfterTheClient() throws Exception {
         client(LoggedClient.class).items("x", "y");
 
-        assertThat(events().get(0).getLoggerName()).isEqualTo(RequestLoggingInterceptor.LOGGER_PREFIX + "pagos");
+        assertThat(events().get(0).getLoggerName()).isEqualTo(RequestLoggingInterceptor.LOGGER_PREFIX + "payments");
     }
 
     @Test

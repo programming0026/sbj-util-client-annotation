@@ -21,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
  * RestHttpClientCustomizer trace() {
  *     return new RestHttpClientCustomizer() {
  *         public void customize(String clientName, RestClient.Builder builder) {
- *             if (clientName.equals("PagosClient")) {
+ *             if (clientName.equals("PaymentsClient")) {
  *                 builder.defaultHeader("X-Origin", "mi-app");
  *             }
  *         }
