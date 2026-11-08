@@ -228,7 +228,11 @@ public class RestClientUtil {
 
         PoolingHttpClientConnectionManager connectionManager = connectionManagerBuilder.build();
 
+        // Los reintentos los gestiona Resilience4j (RetryConfig y ErrorHandler.shouldRetry). Con la estrategia
+        // por defecto de HttpClient, cada GET/PUT/DELETE se reintentaba además por su cuenta ante 503/429 y
+        // errores de E/S, esperando 1 s: se duplicaban las peticiones y se ignoraba maxRetries.
         return HttpClientBuilder.create()
+                .disableAutomaticRetries()
                 .setDefaultRequestConfig(requestConfig)
                 .setConnectionManager(connectionManager)
                 .build();

@@ -253,6 +253,10 @@ public interface PagosClient { ... }
   `@RetryConfig(retryNonIdempotent = true)` las reintenta igual que a `GET`, `PUT` o `DELETE`.
 - **Circuit breaker:** cuenta como falla lo que indique `ErrorHandler.shouldRecordAsFailure` (por defecto
   los 5xx), los timeouts y los errores de red; los 4xx no abren el circuito.
+- **Sin reintentos ocultos:** el cliente de Apache HttpClient se crea con sus reintentos automáticos
+  desactivados. Los únicos reintentos son los de `@RetryConfig`, así que `maxRetries` es exacto y siempre
+  decide `ErrorHandler.shouldRetry` (con la estrategia por defecto de HttpClient, cada GET con 503 se repetía
+  por su cuenta tras 1 s).
 - **Circuit breaker, rate limiter y time limiter:** desactivados por defecto (`enabled = false`).
 - **Timeout:** si un intento excede el time limiter, la petición se interrumpe y se lanza `ClientException`
   con un `TimeoutException` como causa (y se reintenta según `retry`). Las peticiones con time limiter
@@ -650,6 +654,13 @@ classDiagram
 **Al cerrar el contexto**
 
 - `RestHttpClientFactoryBean.destroy()` cierra el pool de conexiones de cada cliente.
+
+## Ejemplo
+
+El proyecto hermano [`sbj-util-client-example`](../sbj-util-client-example) es una aplicación Spring Boot que
+usa la librería para consumir [DummyJSON](https://dummyjson.com) (productos, autenticación e imágenes) con
+arquitectura hexagonal y principios SOLID. Muestra la autoconfiguración, los placeholders, la resiliencia, los
+interceptores y el manejo de errores en un caso completo, con pruebas contra un servidor falso local.
 
 ## Desarrollo
 

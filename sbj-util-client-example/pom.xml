@@ -12,33 +12,49 @@
 	<artifactId>sbj-util-client-example</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<name>sbj-util-client-example</name>
-	<description/>
-	<url/>
+	<description>Ejemplo de uso de sbj-util-client consumiendo la API de DummyJSON con arquitectura hexagonal.</description>
+	<url>https://github.com/programming0026/sbj-util-client-annotation</url>
 	<licenses>
-		<license/>
+		<license>
+			<name>MIT License</name>
+			<url>https://opensource.org/license/mit</url>
+		</license>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<id>programming0026</id>
+			<name>programming0026</name>
+			<email>programming0026@gmail.com</email>
+		</developer>
 	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection>scm:git:https://github.com/programming0026/sbj-util-client-annotation.git</connection>
+		<developerConnection>scm:git:git@github.com:programming0026/sbj-util-client-annotation.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/programming0026/sbj-util-client-annotation</url>
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<sbj-util-client.version>1.0.0</sbj-util-client.version>
+		<springdoc.version>3.2.0</springdoc.version>
 	</properties>
 	<dependencies>
+		<!-- API REST propia del ejemplo (adaptador de entrada). -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
-
+		<!-- Clientes REST declarativos hacia DummyJSON (adaptador de salida). -->
 		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
+			<groupId>com.juniverse.client</groupId>
+			<artifactId>sbj-util-client</artifactId>
+			<version>${sbj-util-client.version}</version>
+		</dependency>
+		<!-- Documentación OpenAPI (/v3/api-docs) y Swagger UI (/swagger-ui.html) de la API propia. -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -52,42 +68,6 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>default-compile</id>
-						<phase>compile</phase>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-								</path>
-							</annotationProcessorPaths>
-						</configuration>
-					</execution>
-					<execution>
-						<id>default-testCompile</id>
-						<phase>test-compile</phase>
-						<goals>
-							<goal>testCompile</goal>
-						</goals>
-						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-								</path>
-							</annotationProcessorPaths>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>

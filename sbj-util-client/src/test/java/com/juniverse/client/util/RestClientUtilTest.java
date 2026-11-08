@@ -7,14 +7,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
+import com.sun.net.httpserver.HttpServer;
+
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -88,6 +93,30 @@ class RestClientUtilTest {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () ->
                 assertThatThrownBy(() -> client.get().uri("/").retrieve().toBodilessEntity())
                         .isInstanceOf(ResourceAccessException.class));
+    }
+
+    @Test
+    void httpClientDoesNotRetryOnItsOwn() throws Exception {
+        AtomicInteger received = new AtomicInteger();
+        HttpServer server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            received.incrementAndGet();
+            exchange.sendResponseHeaders(503, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            RestTemplate template = util.configureRestTemplate(config(DefaultClient.class));
+            String url = "http://127.0.0.1:" + server.getAddress().getPort() + "/";
+
+            // Los reintentos son de Resilience4j: HttpClient no debe repetir por su cuenta un GET con 503.
+            assertTimeoutPreemptively(Duration.ofMillis(900), () ->
+                    assertThatThrownBy(() -> template.getForObject(url, String.class))
+                            .isInstanceOf(HttpServerErrorException.ServiceUnavailable.class));
+            assertThat(received).hasValue(1);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
