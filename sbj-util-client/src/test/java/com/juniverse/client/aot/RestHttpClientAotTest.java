@@ -154,6 +154,29 @@ class RestHttpClientAotTest {
         assertThat(RuntimeHintsPredicates.reflection().onType(ItemsFallback.class)).rejects(hints);
     }
 
+    /** Configurador JSON propio. */
+    public static class JsonConfig implements com.juniverse.client.config.JsonMapperConfigurer {
+        @Override
+        public void configure(tools.jackson.databind.json.JsonMapper.Builder builder) {
+            // sin cambios
+        }
+    }
+
+    /** Cliente con configurador JSON. */
+    @RestHttpClient(url = "http://localhost", jsonConfig = JsonConfig.class)
+    public interface JsonClient {
+        @GetMapping("/ping")
+        String ping();
+    }
+
+    @Test
+    void registersTheJsonConfigurerClassOnlyWhenDeclared() throws NoSuchMethodException {
+        assertThat(RuntimeHintsPredicates.reflection().onConstructorInvocation(JsonConfig.class.getDeclaredConstructor()))
+                .accepts(hintsFor(JsonClient.class));
+        assertThat(RuntimeHintsPredicates.reflection().onType(com.juniverse.client.config.JsonMapperConfigurer.class))
+                .rejects(hintsFor(PlainClient.class));
+    }
+
     /** Cliente mínimo: sin interceptores ni fallback. */
     @RestHttpClient(url = "http://localhost")
     public interface PlainClient {

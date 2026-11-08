@@ -1,6 +1,7 @@
 package com.juniverse.client.autoconfigure;
 
 
+import com.juniverse.client.config.JsonMapperConfigurer;
 import com.juniverse.client.enums.ClientType;
 import com.juniverse.client.exception.DefaultErrorHandler;
 import com.juniverse.client.exception.ErrorHandler;
@@ -89,6 +90,30 @@ public @interface RestHttpClient {
     SSLConfig ssl() default @SSLConfig;
 
     /**
+     * Si el cliente sigue las redirecciones del servidor (301, 302, 303, 307 y 308). Con {@code false} la
+     * respuesta 3xx se entrega tal cual: se puede leer con un retorno {@code ResponseEntity<T>} y su header
+     * {@code Location}.
+     *
+     * @return true para seguir las redirecciones
+     */
+    boolean followRedirects() default true;
+
+    /**
+     * Máximo de redirecciones seguidas en una misma petición; al superarlo la petición falla. Solo aplica si
+     * {@link #followRedirects()} es {@code true}.
+     *
+     * @return el máximo de redirecciones, al menos 1
+     */
+    int maxRedirects() default 50;
+
+    /**
+     * Proxy HTTP/HTTPS por el que salen las peticiones. Desactivado mientras su {@code host} esté vacío.
+     *
+     * @return la configuración del proxy
+     */
+    ProxyConfig proxy() default @ProxyConfig;
+
+    /**
      * Configuración del circuit breaker.
      *
      * @return la configuración del circuit breaker
@@ -133,6 +158,26 @@ public @interface RestHttpClient {
      * @return las clases de los interceptores
      */
     Class<? extends ClientHttpRequestInterceptor>[] interceptors() default {};
+
+    /**
+     * Registra cada petición HTTP (método, URL, estado y duración) en el logger
+     * {@code com.juniverse.client.http.<nombre del cliente>}, a nivel INFO, o WARN si falla. Nunca registra
+     * headers ni cuerpos, y de la query solo los nombres de los parámetros. Se aplica antes que los
+     * {@link #interceptors()}, así que la duración incluye lo que ellos hagan.
+     *
+     * @return true para activar el registro de peticiones
+     */
+    boolean logging() default false;
+
+    /**
+     * Configurador del JSON (Jackson 3) de este cliente, que parte del {@code JsonMapper} de la aplicación y
+     * cambia solo lo que declare (naming strategy, fechas, propiedades desconocidas...). La interfaz
+     * {@link JsonMapperConfigurer} indica que no hay configuración propia. Igual que el manejador de errores:
+     * si existe un bean de ese tipo se usa; si no, Spring crea la instancia con inyección de dependencias.
+     *
+     * @return la clase del configurador
+     */
+    Class<? extends JsonMapperConfigurer> jsonConfig() default JsonMapperConfigurer.class;
 
     /**
      * Clase que responde cuando el servicio no está disponible. Debe implementar la interfaz del cliente y

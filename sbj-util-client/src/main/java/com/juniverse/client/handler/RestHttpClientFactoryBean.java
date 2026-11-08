@@ -1,10 +1,13 @@
 package com.juniverse.client.handler;
 
 import com.juniverse.client.autoconfigure.RestHttpClient;
+import com.juniverse.client.config.JsonMapperConfigurer;
 import com.juniverse.client.config.RestHttpClientCustomizer;
+import org.springframework.http.converter.HttpMessageConverter;
 import com.juniverse.client.exception.ClientException;
 import com.juniverse.client.util.AnnotationPlaceholderResolver;
 import com.juniverse.client.util.RestClientUtil;
+import com.juniverse.client.util.RequestLoggingInterceptor;
 import com.juniverse.client.util.CircuitBreakerUtil;
 import com.juniverse.client.exception.ErrorHandler;
 import io.github.resilience4j.core.lang.NonNull;
@@ -121,11 +124,16 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
         ErrorHandler errorHandler = resolveComponent(annotation.errorHandler());
         validateFallback(annotation.fallback());
         Object fallback = annotation.fallback() == void.class ? null : resolveComponent(annotation.fallback());
+        JsonMapperConfigurer jsonConfigurer = annotation.jsonConfig() == JsonMapperConfigurer.class ? null
+                : resolveComponent(annotation.jsonConfig());
         RequestFactoryGuard guard = new RequestFactoryGuard(
                 clientName(annotation),
                 RequestFactoryOverridePolicy.from(applicationContext == null ? null
                         : applicationContext.getEnvironment().getProperty(RequestFactoryOverridePolicy.PROPERTY)));
         List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
+        if (annotation.logging()) {
+            interceptors.add(new RequestLoggingInterceptor(clientName(annotation)));
+        }
         for (Class<? extends ClientHttpRequestInterceptor> type : annotation.interceptors()) {
             interceptors.add(resolveComponent(type));
         }
@@ -133,8 +141,8 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
         RestHttpClientInvocationHandler handler;
         try {
             Object httpClient = switch (annotation.type()) {
-                case REST_CLIENT -> buildRestClient(annotation, factory, interceptors, guard);
-                case REST_TEMPLATE -> buildRestTemplate(annotation, factory, interceptors, guard);
+                case REST_CLIENT -> buildRestClient(annotation, factory, interceptors, guard, jsonConfigurer);
+                case REST_TEMPLATE -> buildRestTemplate(annotation, factory, interceptors, guard, jsonConfigurer);
             };
             handler = new RestHttpClientInvocationHandler(
                     httpClient,
@@ -232,15 +240,21 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
      * @param factory la request factory del cliente
      * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
      * @param guard vigila los reemplazos de la request factory
+     * @param jsonConfigurer el configurador JSON del cliente, o {@code null} si no declara uno
      * @return el RestClient
      */
     private RestClient buildRestClient(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory,
-                                       List<ClientHttpRequestInterceptor> interceptors, RequestFactoryGuard guard) {
+                                       List<ClientHttpRequestInterceptor> interceptors, RequestFactoryGuard guard,
+                                       JsonMapperConfigurer jsonConfigurer) {
         RestClient.Builder builder = restClientUtil.restClientBuilder(annotation, factory);
         AutowireCapableBeanFactory beanFactory = beanFactory();
         if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
             listableBeanFactory.getBeanProvider(RestClientCustomizer.class).orderedStream()
                     .forEach(customizer -> guard.customize(builder, customizer));
+            if (jsonConfigurer != null) {
+                HttpMessageConverter<?> json = ClientJson.converter(listableBeanFactory, jsonConfigurer);
+                builder.messageConverters(converters -> ClientJson.install(converters, json));
+            }
             String clientName = clientName(annotation);
             listableBeanFactory.getBeanProvider(RestHttpClientCustomizer.class).orderedStream()
                     .forEach(customizer -> guard.customizeBuilder(builder,
@@ -265,11 +279,13 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
      * @param factory la request factory del cliente
      * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
      * @param guard vigila los reemplazos de la request factory
+     * @param jsonConfigurer el configurador JSON del cliente, o {@code null} si no declara uno
      * @return el RestTemplate
      */
     private RestTemplate buildRestTemplate(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory,
                                            List<ClientHttpRequestInterceptor> interceptors,
-                                           RequestFactoryGuard guard) {
+                                           RequestFactoryGuard guard,
+                                           JsonMapperConfigurer jsonConfigurer) {
         AutowireCapableBeanFactory beanFactory = beanFactory();
         RestTemplateBuilder builder = beanFactory instanceof ListableBeanFactory listableBeanFactory
                 ? listableBeanFactory.getBeanProvider(RestTemplateBuilder.class).getIfAvailable()
@@ -278,6 +294,12 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
                 ? restClientUtil.configureRestTemplate(factory)
                 : builder.clientSettings(HttpClientSettings.defaults()).requestFactory(() -> factory).build();
         guard.guardTemplate(template, factory);
+        if (jsonConfigurer != null) {
+            List<HttpMessageConverter<?>> converters = new ArrayList<>(template.getMessageConverters());
+            ClientJson.install(converters, ClientJson.converter(
+                    beanFactory instanceof ListableBeanFactory listable ? listable : null, jsonConfigurer));
+            template.setMessageConverters(converters);
+        }
         if (beanFactory instanceof ListableBeanFactory listableBeanFactory) {
             String clientName = clientName(annotation);
             listableBeanFactory.getBeanProvider(RestHttpClientCustomizer.class).orderedStream()

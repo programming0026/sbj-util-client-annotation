@@ -3,10 +3,12 @@ package com.juniverse.client.aot;
 import com.juniverse.client.autoconfigure.RestHttpClient;
 import com.juniverse.client.autoconfigure.CircuitBreakerConfig;
 import com.juniverse.client.autoconfigure.MethodConfig;
+import com.juniverse.client.autoconfigure.ProxyConfig;
 import com.juniverse.client.autoconfigure.RateLimiterConfig;
 import com.juniverse.client.autoconfigure.RetryConfig;
 import com.juniverse.client.autoconfigure.SSLConfig;
 import com.juniverse.client.autoconfigure.TimeLimiterConfig;
+import com.juniverse.client.config.JsonMapperConfigurer;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
@@ -64,7 +66,8 @@ public final class RestHttpClientRuntimeHints {
         }
         // Las anotaciones anidadas de @RestHttpClient también se sintetizan al resolver los placeholders.
         annotations.addAll(List.of(RestHttpClient.class, SSLConfig.class, CircuitBreakerConfig.class,
-                RetryConfig.class, RateLimiterConfig.class, TimeLimiterConfig.class, MethodConfig.class));
+                RetryConfig.class, RateLimiterConfig.class, TimeLimiterConfig.class, MethodConfig.class,
+                ProxyConfig.class));
         annotations.forEach(type -> registerAnnotation(hints, type));
 
         RestHttpClient client = clientInterface.getAnnotation(RestHttpClient.class);
@@ -72,6 +75,9 @@ public final class RestHttpClientRuntimeHints {
             registerComponent(hints, client.errorHandler());
             for (Class<?> interceptor : client.interceptors()) {
                 registerComponent(hints, interceptor);
+            }
+            if (client.jsonConfig() != JsonMapperConfigurer.class) {
+                registerComponent(hints, client.jsonConfig());
             }
             if (client.fallback() != void.class) {
                 registerComponent(hints, client.fallback());

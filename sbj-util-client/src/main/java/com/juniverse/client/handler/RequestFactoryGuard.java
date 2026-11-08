@@ -145,10 +145,12 @@ final class RequestFactoryGuard {
             }
             return true;
         }
-        LOG.warn("Ignored the request factory {} set by {} for client {}: it would drop the connection pool, "
-                        + "timeouts and SSL of @RestHttpClient. Set {}=allow to accept it (currently '{}')",
-                replacementName, source, clientName, RequestFactoryOverridePolicy.PROPERTY,
-                policy.name().toLowerCase(Locale.ROOT));
+        if (LOG.isWarnEnabled()) {
+            LOG.warn("Ignored the request factory {} set by {} for client {}: it would drop the connection pool, "
+                            + "timeouts and SSL of @RestHttpClient. Set {}=allow to accept it (currently '{}')",
+                    replacementName, source, clientName, RequestFactoryOverridePolicy.PROPERTY,
+                    policy.name().toLowerCase(Locale.ROOT));
+        }
         return false;
     }
 

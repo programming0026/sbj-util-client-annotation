@@ -194,6 +194,13 @@ Reglas:
   requerido se lanza `ClientException`. Una `@PathVariable` sin valor siempre lanza error, y un
   `@RequestBody` `null` solo se permite con `required = false`.
 - **Codificación:** cada valor se codifica una sola vez en la URL (`a&b` → `a%26b`, `a b/c` → `a%20b%2Fc`).
+- **Formato de fechas y números:** con `@DateTimeFormat` o `@NumberFormat` en el parámetro (`@PathVariable`,
+  `@RequestParam`, `@RequestHeader`, `@CookieValue`; también en los elementos de listas y en los valores de un
+  `Map`) el valor se formatea con el `ConversionService` de Spring:
+  `@RequestParam("d") @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate d` envía `d=08%2F11%2F2026`, y
+  `@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)` o `@NumberFormat(pattern = "#,##0.00")` funcionan igual. Sin
+  esas anotaciones nada cambia: se usa `String.valueOf` (fechas ISO-8601, números sin separadores). El formato
+  depende del `Locale` por defecto de la JVM solo si el patrón lo usa (nombres de mes, separadores).
 - **Cookies:** todos los `@CookieValue` se unen en un único header `Cookie` (`session=abc; theme=dark`), en el
   orden de los parámetros y a continuación de las cookies que declare `headers = "Cookie=..."` en el mapping.
   Las listas y los `Map` aportan un par por valor/entrada. El valor se envía tal cual (sin codificar) y se
@@ -281,10 +288,14 @@ Todo se configura en `@RestHttpClient`:
 | `maxConnectionsPerRoute` | `20` | Conexiones por ruta. |
 | `connectionTimeToLive` | `-1` | Tiempo de vida de las conexiones (ms); `-1` sin límite. |
 | `ssl` | `@SSLConfig` | Keystore y truststore. |
+| `followRedirects`, `maxRedirects` | `boolean`, `int` | Si se siguen las redirecciones (`true`) y cuántas (50). |
+| `proxy` | `@ProxyConfig` | Proxy HTTP/HTTPS con autenticación y `nonProxyHosts`. |
 | `retry`, `circuitBreaker`, `rateLimiter`, `timeLimiter` | | Resiliencia (ver abajo). |
 | `errorHandler` | `DefaultErrorHandler` | Manejo de respuestas con error. |
 | `fallback` | `void.class` (ninguno) | Clase que responde cuando el servicio no está disponible (ver "Fallback"). |
 | `interceptors` | `{}` | Interceptores propios del cliente (ver "Interceptores"). |
+| `logging` | `false` | Registra cada petición (método, URL, estado, duración); ver "Registro de peticiones". |
+| `jsonConfig` | `JsonMapperConfigurer` | Personaliza el JSON (Jackson 3) del cliente; ver "JSON por cliente". |
 
 ## Placeholders de propiedades
 
@@ -411,6 +422,52 @@ public interface PagosClient { ... }
 Se ejecutan en el orden declarado y **después** de los interceptores globales de la aplicación (los de los
 `RestClientCustomizer` o del `RestTemplateBuilder`).
 
+### Registro de peticiones
+
+Para ver qué llama cada cliente no hace falta escribir un interceptor: `@RestHttpClient(logging = true)`.
+
+```
+INFO  com.juniverse.client.http.pagos : GET https://pagos.interna.com/cobros?desde&limite -> 200 (84 ms)
+WARN  com.juniverse.client.http.pagos : POST https://pagos.interna.com/cobros failed after 5012 ms: ...
+```
+
+- Una línea por **intento** (los reintentos se ven uno a uno): INFO con el estado y la duración, o WARN si la
+  petición falla antes de recibir respuesta.
+- **Nunca** registra headers ni cuerpos, y de la query solo los **nombres** de los parámetros (sus valores
+  pueden llevar tokens o datos personales). Las credenciales de la URL tampoco salen.
+- Cada cliente tiene su logger, `com.juniverse.client.http.<nombre del cliente>` (el `name()` o el nombre
+  simple de la interfaz), así que se puede subir o bajar por cliente (`logging.level.com.juniverse.client.http.pagos=WARN`).
+- Se aplica **antes** que los `interceptors` del cliente: la duración incluye lo que ellos hagan.
+
+## JSON por cliente
+
+Cada API tiene su estilo de JSON (`snake_case`, otro formato de fechas, campos desconocidos...). Con
+`jsonConfig` se personaliza **solo el JSON de ese cliente**, con Jackson 3:
+
+```java
+public class SnakeCaseJson implements JsonMapperConfigurer {
+    @Override
+    public void configure(JsonMapper.Builder builder) {
+        builder.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+               .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    }
+}
+
+@RestHttpClient(url = "${pagos.url}", jsonConfig = SnakeCaseJson.class)
+public interface PagosClient { ... }
+```
+
+- **Punto de partida:** el `JsonMapper` de la aplicación (con sus `spring.jackson.*`) si hay uno solo; si no, el
+  mapper por defecto de Spring. El configurador solo cambia lo que declare: el resto de clientes y el
+  `JsonMapper` de la aplicación no se tocan.
+- Afecta a la lectura de respuestas y a la escritura de `@RequestBody`, con `REST_CLIENT` y `REST_TEMPLATE`.
+- Igual que el `ErrorHandler`: si hay un bean del configurador se usa; si no, Spring crea la instancia con
+  inyección de dependencias.
+- Se aplica después de los `RestClientCustomizer` globales (que podrían traer sus propios conversores) y antes de
+  los `RestHttpClientCustomizer`, que tienen la última palabra.
+- Solo Jackson 3 (`tools.jackson`); para Jackson 2 u otro formato usa un `RestHttpClientCustomizer` con tus
+  propios conversores.
+
 ## Manejo de errores
 
 Los errores HTTP llegan a quien llama como `HttpClientErrorException` / `HttpServerErrorException` (no se
@@ -492,6 +549,33 @@ public class CatalogoFallback implements CatalogoClient {
 - `@SSLConfig(enabled = false)` desactiva la validación de certificados **solo** si alguno de los perfiles
   activos de Spring (incluidos los de `application.properties`, por ejemplo `spring.profiles.active=dev,kafka`)
   es `dev`, `local` o `development`; en cualquier otro caso falla al arrancar.
+
+## Redirecciones y proxy
+
+```java
+@RestHttpClient(url = "https://api.interna.com",
+        followRedirects = false,                      // por defecto true
+        maxRedirects = 10,                            // por defecto 50
+        proxy = @ProxyConfig(host = "${proxy.host:}", port = "${proxy.port:3128}",
+                             username = "${proxy.user:}", password = "${PROXY_PASSWORD:}",
+                             nonProxyHosts = {"localhost", "*.interno.com", "10.0.*"}))
+```
+
+- **Redirecciones:** por defecto se siguen (301, 302, 303, 307 y 308) hasta `maxRedirects`; al superarlo la
+  petición falla. Con `followRedirects = false` la respuesta 3xx se entrega tal cual: devuelve
+  `ResponseEntity<T>` para leer el status y el header `Location`. Una redirección circular (A → A) falla sin
+  llegar al máximo.
+- **Proxy:** se activa solo si `host` no está vacío, así que con placeholders (`${proxy.host:}`) se puede
+  dejar sin definir en los entornos que no lo usan. `port` es un texto (entre 1 y 65535) para admitir
+  placeholders; `scheme` es `http` (por defecto) o `https` y es el protocolo con el que se habla con el proxy, no
+  el del servicio de destino.
+- **Autenticación:** con `username` se usa autenticación básica contra el proxy (se envía al recibir el 407).
+  Usa un placeholder para la contraseña. Una `password` sin `username` falla al crear el cliente.
+- **`nonProxyHosts`:** destinos a los que se llega directamente. Cada patrón es un nombre exacto, o lleva `*`
+  al principio (`*.interno.com`) o al final (`10.0.*`); no distingue mayúsculas. Sin patrones, todo pasa por el
+  proxy, `localhost` incluido.
+- El proxy y las redirecciones valen para `REST_CLIENT` y `REST_TEMPLATE`, y también para las descargas con
+  `InputStream`. No se leen las propiedades de la JVM (`http.proxyHost`...): el proxy solo sale de la anotación.
 
 ## Integración con Spring Boot
 
@@ -706,6 +790,9 @@ classDiagram
         int maxConnectionsPerRoute
         long connectionTimeToLive
         SSLConfig ssl
+        boolean followRedirects
+        int maxRedirects
+        ProxyConfig proxy
         RetryConfig retry
         CircuitBreakerConfig circuitBreaker
         RateLimiterConfig rateLimiter
@@ -719,6 +806,15 @@ classDiagram
         long readTimeout
         int maxRetries
         long timeLimiterTimeout
+    }
+    class ProxyConfig {
+        <<annotation>>
+        host
+        port
+        scheme
+        username
+        password
+        nonProxyHosts
     }
     class SSLConfig {
         <<annotation>>
@@ -927,6 +1023,7 @@ classDiagram
     EnableRestHttpClients ..> RestHttpClientRegistrar : @Import
     EnableRestHttpClients ..> ClientConfig : @Import
     RestHttpClient *-- SSLConfig
+    RestHttpClient *-- ProxyConfig
     RestHttpClient *-- RetryConfig
     RestHttpClient *-- CircuitBreakerConfig
     RestHttpClient *-- RateLimiterConfig
@@ -1025,3 +1122,5 @@ mvn checkstyle:check               # solo checkstyle
 
 - **Español:** comentarios, Javadoc y este README.
 - **Inglés:** nombres de clases, métodos y variables, mensajes de log y mensajes de excepciones.
+
+Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md); al publicar una versión, añade ahí su entrada.

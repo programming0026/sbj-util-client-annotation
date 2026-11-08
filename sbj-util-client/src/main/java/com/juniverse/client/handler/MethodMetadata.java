@@ -5,6 +5,11 @@ import com.juniverse.client.exception.ClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.NumberFormat;
+import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.ResolvableType;
@@ -32,6 +37,7 @@ import org.springframework.web.util.UriTemplate;
 
 import java.io.File;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -645,8 +651,17 @@ final class MethodMetadata {
      * @param required si el valor es requerido
      * @param defaultValue el valor por defecto con placeholders resueltos, o null si no tiene
      * @param map si el parámetro está declarado como {@link Map}
+     * @param formats las anotaciones {@code @DateTimeFormat} / {@code @NumberFormat} del parámetro, que dan formato
+     *                a sus valores de texto; vacío si no tiene
      */
-    record ParameterBinding(Kind kind, String name, boolean required, String defaultValue, boolean map) {
+    record ParameterBinding(Kind kind, String name, boolean required, String defaultValue, boolean map,
+                            List<Annotation> formats) {
+
+        /** Da formato a los valores que llevan {@code @DateTimeFormat} o {@code @NumberFormat}. */
+        private static final ConversionService FORMATTING = new DefaultFormattingConversionService();
+
+        /** El tipo de destino de toda conversión. */
+        private static final TypeDescriptor TEXT = TypeDescriptor.valueOf(String.class);
 
         /** La anotación de Spring Web del parámetro. */
         enum Kind {
@@ -676,35 +691,36 @@ final class MethodMetadata {
          */
         static ParameterBinding of(Parameter parameter, Method method, UnaryOperator<String> resolver) {
             boolean map = Map.class.isAssignableFrom(parameter.getType());
+            List<Annotation> formats = formatsOf(parameter);
             PathVariable pathVariable = AnnotatedElementUtils.findMergedAnnotation(parameter, PathVariable.class);
             if (pathVariable != null) {
                 return new ParameterBinding(Kind.PATH_VARIABLE, nameOf(pathVariable.name(), parameter),
-                        pathVariable.required(), null, map);
+                        pathVariable.required(), null, map, formats);
             }
             RequestParam requestParam = AnnotatedElementUtils.findMergedAnnotation(parameter, RequestParam.class);
             if (requestParam != null) {
                 return new ParameterBinding(Kind.REQUEST_PARAM, nameOf(requestParam.name(), parameter),
-                        requestParam.required(), defaultOf(requestParam.defaultValue(), resolver), map);
+                        requestParam.required(), defaultOf(requestParam.defaultValue(), resolver), map, formats);
             }
             RequestHeader requestHeader = AnnotatedElementUtils.findMergedAnnotation(parameter, RequestHeader.class);
             if (requestHeader != null) {
                 return new ParameterBinding(Kind.REQUEST_HEADER, nameOf(requestHeader.name(), parameter),
-                        requestHeader.required(), defaultOf(requestHeader.defaultValue(), resolver), map);
+                        requestHeader.required(), defaultOf(requestHeader.defaultValue(), resolver), map, formats);
             }
             CookieValue cookieValue = AnnotatedElementUtils.findMergedAnnotation(parameter, CookieValue.class);
             if (cookieValue != null) {
                 return new ParameterBinding(Kind.COOKIE, nameOf(cookieValue.name(), parameter),
-                        cookieValue.required(), defaultOf(cookieValue.defaultValue(), resolver), map);
+                        cookieValue.required(), defaultOf(cookieValue.defaultValue(), resolver), map, formats);
             }
             RequestBody requestBody = AnnotatedElementUtils.findMergedAnnotation(parameter, RequestBody.class);
             if (requestBody != null) {
                 return new ParameterBinding(Kind.REQUEST_BODY, parameter.getName(), requestBody.required(), null,
-                        false);
+                        false, List.of());
             }
             RequestPart requestPart = AnnotatedElementUtils.findMergedAnnotation(parameter, RequestPart.class);
             if (requestPart != null) {
                 return new ParameterBinding(Kind.REQUEST_PART, nameOf(requestPart.name(), parameter),
-                        requestPart.required(), null, false);
+                        requestPart.required(), null, false, List.of());
             }
             throw new ClientException("Parameter '" + parameter.getName() + "' of method " + describe(method)
                     + " must be annotated with @PathVariable, @RequestParam, @RequestHeader, @CookieValue, "
@@ -912,6 +928,44 @@ final class MethodMetadata {
         }
 
         /**
+         * Reúne las anotaciones de formato del parámetro.
+         *
+         * @param parameter el parámetro
+         * @return {@code @DateTimeFormat} y {@code @NumberFormat} si las tiene
+         */
+        private static List<Annotation> formatsOf(Parameter parameter) {
+            List<Annotation> formats = new ArrayList<>();
+            for (Annotation annotation : parameter.getAnnotations()) {
+                if (annotation instanceof DateTimeFormat || annotation instanceof NumberFormat) {
+                    formats.add(annotation);
+                }
+            }
+            return List.copyOf(formats);
+        }
+
+        /**
+         * Convierte un valor en texto. Con {@code @DateTimeFormat} o {@code @NumberFormat} en el parámetro usa el
+         * {@code ConversionService} de Spring (patrón, ISO, estilo...); sin ellas, {@code String.valueOf}, que
+         * para fechas y números ya da el formato estándar (ISO-8601, sin separadores de miles).
+         *
+         * @param value el valor, no nulo
+         * @return el texto que se envía
+         */
+        private String text(Object value) {
+            if (!formats.isEmpty()) {
+                TypeDescriptor source = new TypeDescriptor(ResolvableType.forClass(value.getClass()), null,
+                        formats.toArray(new Annotation[0]));
+                if (FORMATTING.canConvert(source, TEXT)) {
+                    Object converted = FORMATTING.convert(value, source, TEXT);
+                    if (converted != null) {
+                        return converted.toString();
+                    }
+                }
+            }
+            return String.valueOf(value);
+        }
+
+        /**
          * Resuelve el valor por defecto de la anotación.
          *
          * @param defaultValue el valor declarado ({@link ValueConstants#DEFAULT_NONE} si no hay)
@@ -930,7 +984,7 @@ final class MethodMetadata {
          * @param arg el argumento
          * @return los valores
          */
-        private static List<String> toValues(Object arg) {
+        private List<String> toValues(Object arg) {
             if (arg == null) {
                 return List.of();
             }
@@ -942,7 +996,7 @@ final class MethodMetadata {
                     addIfNotNull(values, Array.get(arg, i));
                 }
             } else {
-                values.add(String.valueOf(arg));
+                values.add(text(arg));
             }
             return values;
         }
@@ -953,9 +1007,9 @@ final class MethodMetadata {
          * @param values la lista destino
          * @param value el valor
          */
-        private static void addIfNotNull(List<String> values, Object value) {
+        private void addIfNotNull(List<String> values, Object value) {
             if (value != null) {
-                values.add(String.valueOf(value));
+                values.add(text(value));
             }
         }
     }

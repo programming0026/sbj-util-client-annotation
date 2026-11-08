@@ -1,9 +1,13 @@
 package com.juniverse.client.util;
 
 import com.juniverse.client.autoconfigure.RestHttpClient;
+import com.juniverse.client.autoconfigure.ProxyConfig;
 import com.juniverse.client.autoconfigure.SSLConfig;
 import com.juniverse.client.exception.ClientException;
 import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -12,6 +16,7 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.pool.PoolConcurrencyPolicy;
 import org.apache.hc.core5.pool.PoolReusePolicy;
@@ -30,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -79,7 +85,7 @@ public class RestClientUtil {
      * Crea el contexto de la petición cuando el método tiene su propio {@code readTimeout}
      * ({@link MethodReadTimeout}); si no, devuelve null y se usa la configuración del cliente. Al ser un
      * {@code RequestConfig} propio, Spring lo respeta tal cual, así que repite el timeout de espera de una
-     * conexión del pool del cliente.
+     * conexión del pool del cliente y las redirecciones.
      *
      * @param config la configuración del cliente
      * @return el contexto con el timeout del método, o null
@@ -90,6 +96,8 @@ public class RestClientUtil {
             context.setRequestConfig(RequestConfig.custom()
                     .setConnectionRequestTimeout(Timeout.of(config.connectTimeout(), TimeUnit.MILLISECONDS))
                     .setResponseTimeout(Timeout.of(millis, TimeUnit.MILLISECONDS))
+                    .setRedirectsEnabled(config.followRedirects())
+                    .setMaxRedirects(config.maxRedirects())
                     .build());
             return context;
         }).findFirst().orElse(null);
@@ -201,6 +209,8 @@ public class RestClientUtil {
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectionRequestTimeout(Timeout.of(config.connectTimeout(), TimeUnit.MILLISECONDS))
                 .setResponseTimeout(Timeout.of(config.readTimeout(), TimeUnit.MILLISECONDS))
+                .setRedirectsEnabled(config.followRedirects())
+                .setMaxRedirects(config.maxRedirects())
                 .build();
 
 
@@ -267,10 +277,65 @@ public class RestClientUtil {
         // Los reintentos los gestiona Resilience4j (RetryConfig y ErrorHandler.shouldRetry). Con la estrategia
         // por defecto de HttpClient, cada GET/PUT/DELETE se reintentaba además por su cuenta ante 503/429 y
         // errores de E/S, esperando 1 s: se duplicaban las peticiones y se ignoraba maxRetries.
-        return HttpClientBuilder.create()
+        HttpClientBuilder builder = HttpClientBuilder.create()
                 .disableAutomaticRetries()
                 .setDefaultRequestConfig(requestConfig)
-                .setConnectionManager(connectionManager)
-                .build();
+                .setConnectionManager(connectionManager);
+        if (!config.followRedirects()) {
+            builder.disableRedirectHandling();
+        }
+        if (config.maxRedirects() < 1) {
+            throw new ClientException("maxRedirects must be at least 1, but is " + config.maxRedirects());
+        }
+        configureProxy(builder, config.proxy());
+        return builder.build();
+    }
+
+    /**
+     * Aplica el proxy al HttpClient si tiene host: la ruta por el proxy (salvo {@code nonProxyHosts}) y, si hay
+     * usuario, las credenciales para el proxy.
+     *
+     * @param builder el builder del HttpClient
+     * @param proxy la configuración del proxy
+     * @throws ClientException si el puerto, el protocolo o las credenciales no son válidos
+     */
+    private static void configureProxy(HttpClientBuilder builder, ProxyConfig proxy) {
+        if (proxy.host().isBlank()) {
+            return;
+        }
+        int port = parsePort(proxy.port());
+        if (!"http".equalsIgnoreCase(proxy.scheme()) && !"https".equalsIgnoreCase(proxy.scheme())) {
+            throw new ClientException("The proxy scheme must be http or https, but is '" + proxy.scheme() + "'");
+        }
+        if (proxy.username().isEmpty() && !proxy.password().isEmpty()) {
+            throw new ClientException("The proxy declares a password but no username");
+        }
+        HttpHost proxyHost = new HttpHost(proxy.scheme().toLowerCase(Locale.ROOT), proxy.host().trim(), port);
+        builder.setRoutePlanner(new NonProxyHostsRoutePlanner(proxyHost, proxy.nonProxyHosts()));
+        if (!proxy.username().isEmpty()) {
+            BasicCredentialsProvider credentials = new BasicCredentialsProvider();
+            credentials.setCredentials(new AuthScope(proxyHost),
+                    new UsernamePasswordCredentials(proxy.username(), proxy.password().toCharArray()));
+            builder.setDefaultCredentialsProvider(credentials);
+        }
+    }
+
+    /**
+     * Convierte el puerto del proxy.
+     *
+     * @param text el puerto como texto
+     * @return el puerto
+     * @throws ClientException si no es un número entre 1 y 65535
+     */
+    private static int parsePort(String text) {
+        try {
+            int port = Integer.parseInt(text.trim());
+            if (port >= 1 && port <= 65535) {
+                return port;
+            }
+        } catch (NumberFormatException e) {
+            // se informa abajo con el mismo mensaje
+        }
+        throw new ClientException("The proxy port must be a number between 1 and 65535, but is '" + text + "'");
     }
 }
