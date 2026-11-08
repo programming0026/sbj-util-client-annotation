@@ -1,0 +1,2 @@
+com.juniverse.client.boot.RestHttpClientAutoConfiguration
+com.juniverse.client.boot.RestHttpClientMetricsAutoConfiguration
