@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.juniverse.client</groupId>
     <artifactId>sbj-util-client</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>sbj-util-client</name>
     <description/>
     <url/>

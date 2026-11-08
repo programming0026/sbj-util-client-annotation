@@ -40,4 +40,16 @@ public @interface RetryConfig {
      * @return el multiplicador del backoff exponencial
      */
     double exponentialBackoffMultiplier() default 2.0;
+
+    /**
+     * Indica si las peticiones no idempotentes (POST y PATCH) se reintentan igual que las idempotentes.
+     *
+     * Por defecto (false) solo se reintentan cuando falla la conexión, es decir, cuando es seguro que la
+     * petición no llegó al servidor. Con true también se reintentan tras errores HTTP, timeouts o cortes de
+     * conexión, lo que puede duplicar la operación: úsalo solo si el servicio las trata de forma idempotente
+     * (por ejemplo, con una clave de idempotencia).
+     *
+     * @return true para reintentar POST y PATCH sin restricciones
+     */
+    boolean retryNonIdempotent() default false;
 }

@@ -16,6 +16,7 @@ import org.apache.hc.core5.pool.PoolConcurrencyPolicy;
 import org.apache.hc.core5.pool.PoolReusePolicy;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.hc.core5.util.TimeValue;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
@@ -27,6 +28,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,56 +48,75 @@ public class RestClientUtil {
         this.sslUtil = sslUtil;
     }
     /**
-     * Configura un RestClient con los parámetros especificados.
+     * Crea la request factory de Apache HttpClient 5 con su pool de conexiones.
+     *
+     * Quien la crea es responsable de cerrarla con {@link HttpComponentsClientHttpRequestFactory#destroy()}
+     * cuando ya no se use, para liberar el pool.
+     *
+     * @param config la configuración del cliente
+     * @return la request factory
+     * @throws ClientException si falla la configuración SSL
+     */
+    public HttpComponentsClientHttpRequestFactory createRequestFactory(RestHttpClient config) {
+        try {
+            HttpComponentsClientHttpRequestFactory factory =
+                    new HttpComponentsClientHttpRequestFactory(createHttpClient(config));
+
+            factory.setConnectionRequestTimeout(Duration.ofMillis(config.connectTimeout()));
+            factory.setReadTimeout(Duration.ofMillis(config.readTimeout()));
+            return factory;
+
+        } catch (IOException | KeyManagementException | KeyStoreException
+                 | NoSuchAlgorithmException | UnrecoverableKeyException
+                 | CertificateException e) {
+            throw new ClientException("Error configuring HTTP client", e);
+        }
+    }
+
+    /**
+     * Configura un RestClient sobre la request factory indicada.
+     *
+     * @param config la configuración del cliente
+     * @param requestFactory la request factory
+     * @return el RestClient
+     */
+    public RestClient configureRestClient(RestHttpClient config, ClientHttpRequestFactory requestFactory) {
+        return RestClient.builder()
+                .baseUrl(config.url())
+                .requestFactory(requestFactory)
+                .build();
+    }
+
+    /**
+     * Configura un RestTemplate sobre la request factory indicada.
+     *
+     * @param requestFactory la request factory
+     * @return el RestTemplate
+     */
+    public RestTemplate configureRestTemplate(ClientHttpRequestFactory requestFactory) {
+        return new RestTemplate(requestFactory);
+    }
+
+    /**
+     * Configura un RestClient con su propia request factory (que no se cierra automáticamente).
      *
      * @param config la configuración del cliente
      * @return el RestClient
      * @throws ClientException si falla la configuración SSL
      */
     public RestClient configureRestClient(RestHttpClient config) {
-        try {
-            HttpClient httpClient = createHttpClient(config);
-            HttpComponentsClientHttpRequestFactory factory =
-                    new HttpComponentsClientHttpRequestFactory(httpClient);
-
-            factory.setConnectionRequestTimeout((int) config.connectTimeout());
-            factory.setReadTimeout((int) config.readTimeout());
-
-            return RestClient.builder()
-                    .baseUrl(config.url())
-                    .requestFactory(factory)
-                    .build();
-
-        } catch (IOException | KeyManagementException | KeyStoreException
-                 | NoSuchAlgorithmException | UnrecoverableKeyException
-                 | CertificateException e) {
-            throw new ClientException("Error configuring RestClient", e);
-        }
+        return configureRestClient(config, createRequestFactory(config));
     }
 
     /**
-     * Configura un RestTemplate con los parámetros especificados.
+     * Configura un RestTemplate con su propia request factory (que no se cierra automáticamente).
      *
      * @param config la configuración del cliente
      * @return el RestTemplate
      * @throws ClientException si falla la configuración SSL
      */
     public RestTemplate configureRestTemplate(RestHttpClient config) {
-        try {
-            HttpClient httpClient = createHttpClient(config);
-            HttpComponentsClientHttpRequestFactory factory =
-                    new HttpComponentsClientHttpRequestFactory(httpClient);
-
-            factory.setConnectionRequestTimeout((int) config.connectTimeout());
-            factory.setReadTimeout((int) config.readTimeout());
-
-            return new RestTemplate(factory);
-
-        } catch (IOException | KeyManagementException | KeyStoreException
-                 | NoSuchAlgorithmException | UnrecoverableKeyException
-                 | CertificateException e) {
-            throw new ClientException("Error configuring RestTemplate", e);
-        }
+        return configureRestTemplate(createRequestFactory(config));
     }
 
 

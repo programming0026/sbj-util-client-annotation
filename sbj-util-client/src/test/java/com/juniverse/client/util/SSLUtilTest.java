@@ -4,6 +4,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.mock.env.MockEnvironment;
 
 import javax.net.ssl.SSLContext;
 import java.io.FileNotFoundException;
@@ -95,7 +96,7 @@ class SSLUtilTest {
 
         assertThatThrownBy(sslUtil::createInsecureSSLContext)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("unknown");
+                .hasMessageContaining("Active profiles: []");
     }
 
     @Test
@@ -105,6 +106,27 @@ class SSLUtilTest {
             System.setProperty(PROFILE_PROPERTY, profile);
             assertThat(sslUtil.createInsecureSSLContext()).isNotNull();
         }
+    }
+
+    @Test
+    void insecureContextAllowedWhenOneOfSeveralProfilesIsDevelopment() throws Exception {
+        assumeTrue(System.getenv("SPRING_PROFILES_ACTIVE") == null);
+        System.setProperty(PROFILE_PROPERTY, "kafka, dev");
+
+        assertThat(sslUtil.createInsecureSSLContext()).isNotNull();
+    }
+
+    @Test
+    void springEnvironmentProfilesAreUsed() throws Exception {
+        MockEnvironment local = new MockEnvironment();
+        local.setActiveProfiles("metrics", "local");
+        MockEnvironment prod = new MockEnvironment();
+        prod.setActiveProfiles("prod");
+
+        assertThat(new SSLUtil(local).createInsecureSSLContext()).isNotNull();
+        assertThatThrownBy(() -> new SSLUtil(prod).createInsecureSSLContext())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Active profiles: [prod]");
     }
 
 }

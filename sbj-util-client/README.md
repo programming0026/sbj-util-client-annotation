@@ -85,13 +85,40 @@ Se admiten `@GetMapping`, `@PostMapping`, `@PutMapping`, `@PatchMapping`, `@Dele
 
 | Atributo | Cómo se usa |
 |---|---|
-| `value` / `path` | Ruta relativa a `url()`. Se usa el primer valor. |
+| `value` / `path` | Ruta relativa a `url()` (se une con una sola `/`). Solo se admite una ruta. |
+| `method` | Método HTTP. Solo se admite uno. |
 | `headers` | Headers fijos con el formato de Spring `"Nombre=valor"`. Las condiciones sin valor (`"Nombre"`, `"!Nombre"`, `"Nombre!=valor"`) se ignoran con un warning. |
+| `params` | Query params fijos con el formato `"nombre=valor"` (las condiciones sin valor se ignoran con un warning). |
 | `produces` | Se envía como header `Accept`. |
 | `consumes` | El primer valor se envía como header `Content-Type`. |
 
-No se aplican el `@RequestMapping` a nivel de interfaz ni el atributo `params`. Un método sin anotación
-de mapping (o con `@RequestMapping` sin `method`) lanza `ClientException` al invocarlo.
+Un `@RequestMapping` en la **interfaz** aporta un prefijo de ruta y valores por defecto de `headers`,
+`params`, `produces`, `consumes` y `method`; los del método los complementan o reemplazan:
+
+```java
+@RestHttpClient(url = "${api.url}")
+@RequestMapping(path = "/v1", headers = "X-Client=inventario", params = "tenant=acme")
+public interface InventarioClient {
+
+    @GetMapping("/stock")          // GET {api.url}/v1/stock?tenant=acme con X-Client: inventario
+    Stock stock();
+}
+```
+
+Un método sin anotación de mapping, sin método HTTP o con más de una ruta o método lanza `ClientException`
+al invocarlo. Los métodos `default` de la interfaz se ejecutan normalmente, sin petición HTTP, y
+`equals`/`hashCode`/`toString` usan la identidad del proxy.
+
+### Tipos de retorno
+
+| Tipo de retorno | Resultado |
+|---|---|
+| `T` (incluidos genéricos como `List<User>`) | El cuerpo convertido a `T`, sin perder los genéricos. |
+| `ResponseEntity<T>` | La respuesta completa (estado, headers y cuerpo). |
+| `void` / `ResponseEntity<Void>` | No se lee el cuerpo. |
+
+Si el método devuelve un primitivo (`int`, `boolean`, ...) y la respuesta no tiene cuerpo, se lanza
+`ClientException`.
 
 ## Anotaciones de los parámetros
 
@@ -154,16 +181,40 @@ Todo se configura en `@RestHttpClient`:
 | `retry`, `circuitBreaker`, `rateLimiter`, `timeLimiter` | | Resiliencia (ver abajo). |
 | `errorHandler` | `DefaultErrorHandler` | Manejo de respuestas con error. |
 
-> Los valores de las anotaciones se leen tal cual: los placeholders `${...}` **no** se resuelven.
+## Placeholders de propiedades
+
+Los atributos de texto admiten placeholders `${...}` que se resuelven con el `Environment` de Spring
+(`application.properties`/`.yml`, variables de entorno, propiedades del sistema), con valor por defecto
+opcional `${clave:valor}`:
+
+```java
+@RestHttpClient(name = "${clientes.pagos.nombre:pagosClient}", url = "${clientes.pagos.url}",
+        ssl = @SSLConfig(keystorePath = "${clientes.pagos.keystore}", keystorePassword = "${KEYSTORE_PASSWORD}"))
+public interface PagosClient {
+
+    @GetMapping(path = "${clientes.pagos.version:/v1}/pagos", headers = "X-Api-Key=${clientes.pagos.api-key}")
+    List<Pago> list(@RequestParam(name = "size", defaultValue = "${clientes.pagos.page-size:20}") int size);
+}
+```
+
+- Se resuelven: todos los atributos de texto de `@RestHttpClient` y de sus anotaciones anidadas (`name`,
+  `url`, rutas y contraseñas de `@SSLConfig`), `basePackages` de `@EnableRestHttpClients`, y en los métodos
+  `path`, `headers`, `produces`, `consumes` y el `defaultValue` de `@RequestParam`/`@RequestHeader`.
+- Un placeholder sin valor ni valor por defecto hace fallar el arranque (como `@Value`).
+- Los atributos numéricos o booleanos (timeouts, `maxRetries`, `enabled`, etc.) no admiten placeholders
+  porque Java exige constantes de ese tipo en las anotaciones.
 
 ## Resiliencia
 
-Los decoradores se aplican en este orden: **Retry → CircuitBreaker → RateLimiter → TimeLimiter**.
+Los decoradores se aplican en el orden que recomienda Resilience4j:
+**Retry (el más externo) → CircuitBreaker → RateLimiter → TimeLimiter → petición**. Así cada intento pasa
+por el circuit breaker, consume un permiso del rate limiter y tiene su propio límite de tiempo.
 
 ```java
 @RestHttpClient(
         url = "https://api.ejemplo.com",
-        retry = @RetryConfig(maxRetries = 3, retryDelay = 500, exponentialBackoffMultiplier = 2.0),
+        retry = @RetryConfig(maxRetries = 3, retryDelay = 500, exponentialBackoffMultiplier = 2.0,
+                             retryNonIdempotent = false),
         circuitBreaker = @CircuitBreakerConfig(enabled = true, failureRateThreshold = 50),
         rateLimiter = @RateLimiterConfig(enabled = true, limitForPeriod = 100, limitRefreshPeriod = 1000),
         timeLimiter = @TimeLimiterConfig(enabled = true, timeout = 2000))
@@ -171,10 +222,21 @@ public interface PagosClient { ... }
 ```
 
 - **Retry:** siempre activo. `maxRetries` es el número total de intentos (incluido el primero). Los errores
-  HTTP se reintentan solo si `ErrorHandler.shouldRetry` lo permite; los demás errores (por ejemplo, de red)
-  siempre se reintentan.
+  HTTP se reintentan solo si `ErrorHandler.shouldRetry` lo permite; los timeouts y los errores de red
+  siempre. No se reintenta si el circuito está abierto (`CallNotPermittedException`), si el rate limiter
+  rechaza la llamada (`RequestNotPermitted`) ni ante otros `ClientException` (errores de configuración o de
+  uso).
+- **`POST` y `PATCH` (no idempotentes):** para no duplicar operaciones, solo se reintentan cuando falla la
+  conexión (conexión rechazada, timeout de conexión o pool sin conexiones libres), porque ahí la petición
+  nunca llegó al servidor. Tras un error HTTP (incluso 502/503/504), un timeout o un corte de conexión no se
+  reintentan. Si el servicio sí las trata de forma idempotente (por ejemplo, con una clave de idempotencia),
+  `@RetryConfig(retryNonIdempotent = true)` las reintenta igual que a `GET`, `PUT` o `DELETE`.
+- **Circuit breaker:** cuenta como falla lo que indique `ErrorHandler.shouldRecordAsFailure` (por defecto
+  los 5xx), los timeouts y los errores de red; los 4xx no abren el circuito.
 - **Circuit breaker, rate limiter y time limiter:** desactivados por defecto (`enabled = false`).
-- **Timeout:** si se excede el time limiter se lanza `ClientException` con un `TimeoutException` como causa.
+- **Timeout:** si un intento excede el time limiter, la petición se interrumpe y se lanza `ClientException`
+  con un `TimeoutException` como causa (y se reintenta según `retry`). Las peticiones con time limiter
+  corren en hilos virtuales, no en el `ForkJoinPool` común.
 
 ## Manejo de errores
 
@@ -184,12 +246,15 @@ requeridos faltantes y timeout.
 
 `DefaultErrorHandler`:
 
-- 4xx y 5xx → lanza `HttpClientErrorException` con el cuerpo de la respuesta.
+- 4xx → `HttpClientErrorException` y 5xx → `HttpServerErrorException` (la subclase específica, por ejemplo
+  `NotFound` o `ServiceUnavailable`), con el cuerpo en el mensaje y conservando headers y cuerpo de la
+  respuesta.
 - Reintenta 502, 503 y 504.
 - Cuenta los 5xx como falla del circuit breaker.
 
-Para cambiarlo, implementa `ErrorHandler` (con constructor sin argumentos; se instancia por reflexión, no es
-un bean de Spring) y declárala en `errorHandler`:
+Para cambiarlo, implementa `ErrorHandler` y declárala en `errorHandler`. Si existe un bean de ese tipo se
+usa ese; si no, Spring crea la instancia con inyección de dependencias (puede recibir beans por
+constructor):
 
 ```java
 public class MiErrorHandler implements ErrorHandler {
@@ -215,9 +280,17 @@ public class MiErrorHandler implements ErrorHandler {
 - Las rutas admiten `classpath:` o una ruta del sistema de archivos.
 - `.p12` / `.pfx` se leen como PKCS12; cualquier otra extensión como JKS.
 - Sin keystore ni truststore se usa el contexto SSL por defecto de la JVM.
-- `@SSLConfig(enabled = false)` desactiva la validación de certificados **solo** si el perfil activo
-  (`SPRING_PROFILES_ACTIVE` o la propiedad del sistema `spring.profiles.active`) es `dev`, `local` o
-  `development`; en cualquier otro caso falla al arrancar.
+- `@SSLConfig(enabled = false)` desactiva la validación de certificados **solo** si alguno de los perfiles
+  activos de Spring (incluidos los de `application.properties`, por ejemplo `spring.profiles.active=dev,kafka`)
+  es `dev`, `local` o `development`; en cualquier otro caso falla al arrancar.
+
+## Ciclo de vida
+
+- Cada cliente tiene su propio pool de conexiones, que se cierra al cerrar el contexto de Spring.
+- El tipo del bean se conoce sin instanciarlo, así que la inyección por tipo funciona sin inicializar los
+  clientes antes de tiempo.
+- Si dos `@EnableRestHttpClients` escanean el mismo paquete, cada cliente se registra una sola vez. Si dos
+  clientes distintos acaban con el mismo nombre de bean, el arranque falla pidiendo un `name` único.
 
 ## Desarrollo
 

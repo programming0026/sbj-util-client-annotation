@@ -38,7 +38,7 @@ public @interface SSLConfig {
     /**
      * Contraseña del keystore.
      *
-     * IMPORTANTE: los placeholders {@code ${...}} no se resuelven; nunca subas contraseñas al
+     * Admite placeholders, por ejemplo {@code "${KEYSTORE_PASSWORD}"}; nunca subas contraseñas al
      * control de versiones.
      *
      * @return la contraseña del keystore
@@ -57,7 +57,7 @@ public @interface SSLConfig {
     /**
      * Contraseña del truststore.
      *
-     * IMPORTANTE: los placeholders {@code ${...}} no se resuelven; nunca subas contraseñas al
+     * Admite placeholders, por ejemplo {@code "${TRUSTSTORE_PASSWORD}"}; nunca subas contraseñas al
      * control de versiones.
      *
      * @return la contraseña del truststore

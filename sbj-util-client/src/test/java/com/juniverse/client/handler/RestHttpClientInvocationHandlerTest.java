@@ -437,7 +437,7 @@ class RestHttpClientInvocationHandlerTest {
 
         RetryingClient client = proxy(RetryingClient.class, template, new DefaultErrorHandler());
 
-        assertThatThrownBy(client::flaky).isInstanceOf(HttpClientErrorException.class);
+        assertThatThrownBy(client::flaky).isInstanceOf(HttpServerErrorException.InternalServerError.class);
         server.verify();
     }
 
@@ -450,9 +450,8 @@ class RestHttpClientInvocationHandlerTest {
         RetryingClient client = proxy(RetryingClient.class, template, new DefaultErrorHandler());
 
         assertThatThrownBy(client::flaky)
-                .isInstanceOf(HttpClientErrorException.class)
-                .satisfies(ex -> assertThat(((HttpClientErrorException) ex).getStatusCode().value())
-                        .isEqualTo(502));
+                .isInstanceOf(HttpServerErrorException.BadGateway.class)
+                .hasMessageStartingWith("Server error:");
         server.verify();
     }
 
@@ -528,12 +527,15 @@ class RestHttpClientInvocationHandlerTest {
     }
 
     @Test
-    void objectMethodsAreInvokedOnHandler() throws Throwable {
-        RestHttpClientInvocationHandler handler = handler(UserClient.class, new RestTemplate(),
-                new DefaultErrorHandler());
+    void objectMethodsUseProxyIdentity() {
+        UserClient client = proxy(UserClient.class, new RestTemplate(), new DefaultErrorHandler());
+        UserClient other = proxy(UserClient.class, new RestTemplate(), new DefaultErrorHandler());
 
-        Object result = handler.invoke(null, Object.class.getMethod("toString"), null);
-
-        assertThat(result).isEqualTo(handler.toString());
+        assertThat(client.equals(client)).isTrue();
+        assertThat(client.equals(other)).isFalse();
+        assertThat(client.equals(null)).isFalse();
+        assertThat(client.hashCode()).isEqualTo(System.identityHashCode(client));
+        assertThat(client.toString())
+                .isEqualTo("RestHttpClient proxy for " + UserClient.class.getName() + " [" + BASE + "]");
     }
 }

@@ -9,17 +9,22 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ValueConstants;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -27,6 +32,8 @@ import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,19 +41,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Atiende cada llamada al proxy de un cliente {@link RestHttpClient}.
  *
- * Lee las anotaciones de Spring Web del método y de sus parámetros, arma la petición, la ejecuta con
- * RestClient o RestTemplate y la envuelve con los decoradores de Resilience4j en este orden:
- * Retry (siempre) → CircuitBreaker → RateLimiter → TimeLimiter (el más externo).
+ * Lee las anotaciones de Spring Web de la interfaz, del método y de sus parámetros, arma la petición, la
+ * ejecuta con RestClient o RestTemplate y la envuelve con los decoradores de Resilience4j en el orden que
+ * recomienda Resilience4j: Retry (el más externo) → CircuitBreaker → RateLimiter → TimeLimiter → petición.
+ * Así cada intento pasa por el circuit breaker, consume un permiso del rate limiter y tiene su propio
+ * límite de tiempo.
  */
 public class RestHttpClientInvocationHandler implements InvocationHandler {
     /** El logger. */
@@ -54,6 +64,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
 
     /** Prefijo de las variables de plantilla URI que se generan para los valores de query params. */
     private static final String QUERY_PARAM_VARIABLE_PREFIX = "__queryParam";
+
+    /**
+     * Ejecutor de las peticiones con time limiter: un hilo virtual por petición, para no bloquear el
+     * {@code ForkJoinPool} común y para poder interrumpir la petición cuando vence el tiempo.
+     */
+    private static final ExecutorService TIME_LIMITER_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     /** El cliente HTTP: un RestClient o un RestTemplate. */
     private final Object httpClient;
@@ -64,11 +80,20 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     /** El manejador de errores. */
     private final ErrorHandler errorHandler;
 
+    /** La interfaz del cliente. */
+    private final Class<?> clientInterface;
+
+    /** El {@code @RequestMapping} declarado en la interfaz, o null si no tiene. */
+    private final RequestMapping typeMapping;
+
     /** El circuit breaker, o null si está deshabilitado. */
     private final CircuitBreaker circuitBreaker;
 
-    /** El retry (siempre presente). */
+    /** El retry de las peticiones idempotentes (siempre presente). */
     private final Retry retry;
+
+    /** El retry de las peticiones no idempotentes (POST, PATCH), más restrictivo (siempre presente). */
+    private final Retry nonIdempotentRetry;
 
     /** El rate limiter, o null si está deshabilitado. */
     private final RateLimiter rateLimiter;
@@ -76,9 +101,11 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     /** El time limiter, o null si está deshabilitado. */
     private final TimeLimiter timeLimiter;
 
+    /** Resuelve placeholders {@code ${...}} en los atributos de mapping y de parámetros. */
+    private final UnaryOperator<String> valueResolver;
+
     /**
-     * Crea el handler y las instancias de Resilience4j del cliente. Las instancias se nombran con
-     * {@code name()} de la anotación o, si está vacío, con el nombre simple de la interfaz.
+     * Crea el handler sin resolución de placeholders en los mappings.
      *
      * @param httpClient el cliente HTTP (RestClient o RestTemplate)
      * @param clientConfig la configuración del cliente
@@ -91,27 +118,47 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
                                            ErrorHandler errorHandler,
                                            Class<?> clientInterface,
                                            CircuitBreakerUtil resilience4jConfig) {
+        this(httpClient, clientConfig, errorHandler, clientInterface, resilience4jConfig, UnaryOperator.identity());
+    }
+
+    /**
+     * Crea el handler y las instancias de Resilience4j del cliente. Las instancias se nombran con
+     * {@code name()} de la anotación o, si está vacío, con el nombre simple de la interfaz.
+     *
+     * @param httpClient el cliente HTTP (RestClient o RestTemplate)
+     * @param clientConfig la configuración del cliente (con sus placeholders ya resueltos)
+     * @param errorHandler el manejador de errores
+     * @param clientInterface la interfaz del cliente
+     * @param resilience4jConfig la fábrica de instancias de Resilience4j
+     * @param valueResolver resuelve placeholders en los atributos de mapping y de parámetros
+     */
+    public RestHttpClientInvocationHandler(Object httpClient,
+                                           RestHttpClient clientConfig,
+                                           ErrorHandler errorHandler,
+                                           Class<?> clientInterface,
+                                           CircuitBreakerUtil resilience4jConfig,
+                                           UnaryOperator<String> valueResolver) {
         this.httpClient = httpClient;
         this.clientConfig = clientConfig;
         this.errorHandler = errorHandler;
+        this.clientInterface = clientInterface;
+        this.valueResolver = valueResolver;
+        this.typeMapping = AnnotatedElementUtils.findMergedAnnotation(clientInterface, RequestMapping.class);
 
         String clientName = clientConfig.name().isEmpty()
-        		? clientInterface.getSimpleName()
-        		: clientConfig.name();
+                ? clientInterface.getSimpleName()
+                : clientConfig.name();
 
-
-        this.retry = resilience4jConfig.createRetry(clientName, clientConfig, errorHandler);
-
+        this.retry = resilience4jConfig.createRetry(clientName, clientConfig, errorHandler, true);
+        this.nonIdempotentRetry = resilience4jConfig.createRetry(clientName, clientConfig, errorHandler, false);
 
         this.circuitBreaker = clientConfig.circuitBreaker().enabled()
-                ? resilience4jConfig.createCircuitBreaker(clientName, clientConfig)
+                ? resilience4jConfig.createCircuitBreaker(clientName, clientConfig, errorHandler)
                 : null;
-
 
         this.rateLimiter = clientConfig.rateLimiter().enabled()
                 ? resilience4jConfig.createRateLimiter(clientName, clientConfig)
                 : null;
-
 
         this.timeLimiter = clientConfig.timeLimiter().enabled()
                 ? resilience4jConfig.createTimeLimiter(clientName, clientConfig)
@@ -119,19 +166,23 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Atiende una llamada al proxy. Los métodos de {@link Object} (toString, equals, hashCode) se
-     * ejecutan sobre este handler.
+     * Atiende una llamada al proxy. {@code equals}, {@code hashCode} y {@code toString} se resuelven
+     * sobre el proxy; los métodos {@code default} de la interfaz se ejecutan tal cual; el resto se
+     * convierte en una petición HTTP.
      *
      * @param proxy el proxy
      * @param method el método invocado
      * @param args los argumentos
-     * @return el cuerpo de la respuesta, convertido al tipo de retorno del método
+     * @return el resultado según el tipo de retorno del método
      * @throws Throwable la excepción de la petición
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (method.getDeclaringClass() == Object.class) {
-            return method.invoke(this, args);
+            return invokeObjectMethod(proxy, method, args);
+        }
+        if (method.isDefault()) {
+            return InvocationHandler.invokeDefault(proxy, method, args);
         }
 
         RequestMetadata metadata = extractMetadata(method, args);
@@ -140,58 +191,100 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
+     * Implementa los métodos de {@link Object} con identidad de proxy: un proxy solo es igual a sí mismo.
+     *
+     * @param proxy el proxy
+     * @param method el método de Object
+     * @param args los argumentos
+     * @return el resultado
+     * @throws Exception si falla la invocación
+     */
+    private Object invokeObjectMethod(Object proxy, Method method, Object[] args) throws Exception {
+        switch (method.getName()) {
+            case "equals":
+                return proxy == args[0];
+            case "hashCode":
+                return System.identityHashCode(proxy);
+            case "toString":
+                return "RestHttpClient proxy for " + clientInterface.getName() + " [" + clientConfig.url() + "]";
+            default:
+                return method.invoke(this, args);
+        }
+    }
+
+    /**
      * Ejecuta la petición envuelta con los decoradores de Resilience4j habilitados.
      *
      * @param metadata los datos de la petición
      * @param method el método invocado
-     * @return el cuerpo de la respuesta
+     * @return el resultado según el tipo de retorno del método
      * @throws Exception la excepción de la petición
-     * @throws ClientException si se excede el tiempo del time limiter
      */
     private Object executeWithResilience(RequestMetadata metadata, Method method) throws Exception {
-
-        Supplier<Object> decoratedSupplier = () -> executeRequest(metadata, method);
-
-
-        decoratedSupplier = Retry.decorateSupplier(retry, decoratedSupplier);
-
-
-        if (circuitBreaker != null) {
-            decoratedSupplier = CircuitBreaker.decorateSupplier(circuitBreaker, decoratedSupplier);
-        }
-
-
-        if (rateLimiter != null) {
-            decoratedSupplier = RateLimiter.decorateSupplier(rateLimiter, decoratedSupplier);
-        }
-
+        Callable<Object> call = () -> executeRequest(metadata, method);
 
         if (timeLimiter != null) {
-            CompletableFuture<Object> future = CompletableFuture.supplyAsync(decoratedSupplier);
-            Callable<Object> timeLimitedCallable = TimeLimiter.decorateFutureSupplier(
-                    timeLimiter,
-                    () -> future
-            );
-            try {
-                return timeLimitedCallable.call();
-            } catch (TimeoutException e) {
-                throw new ClientException("Request timed out after "
-                        + clientConfig.timeLimiter().timeout() + " ms", e);
-            }
+            call = withTimeLimit(call);
         }
+        if (rateLimiter != null) {
+            call = RateLimiter.decorateCallable(rateLimiter, call);
+        }
+        if (circuitBreaker != null) {
+            call = CircuitBreaker.decorateCallable(circuitBreaker, call);
+        }
+        call = Retry.decorateCallable(isIdempotent(metadata.httpMethod) ? retry : nonIdempotentRetry, call);
 
-        return decoratedSupplier.get();
+        return call.call();
     }
 
     /**
-     * Ejecuta la petición con el cliente HTTP configurado. Ante un error HTTP, primero consulta al
+     * Indica si el método HTTP es idempotente según RFC 9110 (repetirlo no cambia el resultado).
+     *
+     * @param httpMethod el método HTTP
+     * @return true para GET, HEAD, OPTIONS, TRACE, PUT y DELETE
+     */
+    static boolean isIdempotent(HttpMethod httpMethod) {
+        return HttpMethod.GET.equals(httpMethod)
+                || HttpMethod.HEAD.equals(httpMethod)
+                || HttpMethod.OPTIONS.equals(httpMethod)
+                || HttpMethod.TRACE.equals(httpMethod)
+                || HttpMethod.PUT.equals(httpMethod)
+                || HttpMethod.DELETE.equals(httpMethod);
+    }
+
+    /**
+     * Aplica el time limiter a un intento. La petición corre en un hilo virtual que se interrumpe al vencer
+     * el tiempo; el {@link TimeoutException} (checked) se envuelve en {@link ClientException} para que el
+     * proxy no lo convierta en {@code UndeclaredThrowableException}.
+     *
+     * @param attempt el intento a limitar
+     * @return el intento con límite de tiempo
+     */
+    private Callable<Object> withTimeLimit(Callable<Object> attempt) {
+        Callable<Object> limited = TimeLimiter.decorateFutureSupplier(timeLimiter,
+                () -> TIME_LIMITER_EXECUTOR.submit(attempt));
+        return () -> {
+            try {
+                return limited.call();
+            } catch (TimeoutException e) {
+                throw new ClientException("Request timed out after "
+                        + clientConfig.timeLimiter().timeout() + " ms", e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new ClientException("Request interrupted", e);
+            }
+        };
+    }
+
+    /**
+     * Ejecuta la petición con el cliente HTTP configurado. Ante un error HTTP siempre consulta al
      * {@link ErrorHandler}; si no lanza su propia excepción, se propaga la original.
      *
      * @param metadata los datos de la petición
      * @param method el método invocado
-     * @return el cuerpo de la respuesta
+     * @return el resultado según el tipo de retorno del método
      */
-    private Object executeRequest(RequestMetadata metadata, Method method)  {
+    private Object executeRequest(RequestMetadata metadata, Method method) {
         try {
             if (httpClient instanceof RestClient) {
                 return executeWithRestClient(metadata, method);
@@ -201,11 +294,7 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
                 throw new ClientException("Unsupported HTTP client type: "
                         + httpClient.getClass().getName());
             }
-        } catch (org.springframework.web.client.HttpStatusCodeException e) {
-
-            if (circuitBreaker != null && errorHandler.shouldRecordAsFailure(e.getStatusCode())) {
-                throw e;
-            }
+        } catch (HttpStatusCodeException e) {
             errorHandler.handleError(e.getStatusCode(), e.getResponseBodyAsString(), e);
             throw e;
         }
@@ -216,14 +305,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      *
      * @param metadata los datos de la petición
      * @param method el método invocado
-     * @return el cuerpo de la respuesta
+     * @return el resultado según el tipo de retorno del método
      */
     private Object executeWithRestClient(RequestMetadata metadata, Method method) {
         RestClient client = (RestClient) httpClient;
 
-        RestClient.RequestBodyUriSpec request = client.method(metadata.httpMethod);
-
-        RestClient.RequestBodySpec bodySpec = request.uri(buildUri(metadata));
+        RestClient.RequestBodySpec bodySpec = client.method(metadata.httpMethod).uri(metadata.uri);
 
         bodySpec.headers(headers -> headers.addAll(metadata.headers));
 
@@ -231,10 +318,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
             bodySpec.body(metadata.body);
         }
 
-        ResponseEntity<?> response = bodySpec.retrieve()
-                .toEntity(method.getReturnType());
+        RestClient.ResponseSpec responseSpec = bodySpec.retrieve();
+        Type bodyType = responseBodyType(method);
+        ResponseEntity<?> response = isVoid(bodyType)
+                ? responseSpec.toBodilessEntity()
+                : responseSpec.toEntity(ParameterizedTypeReference.forType(bodyType));
 
-        return response.getBody();
+        return toReturnValue(response, method);
     }
 
     /**
@@ -242,30 +332,77 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      *
      * @param metadata los datos de la petición
      * @param method el método invocado
-     * @return el cuerpo de la respuesta
+     * @return el resultado según el tipo de retorno del método
      */
     private Object executeWithRestTemplate(RequestMetadata metadata, Method method) {
         RestTemplate template = (RestTemplate) httpClient;
 
-        URI uri = buildUri(metadata);
-
         HttpHeaders headers = new HttpHeaders();
         headers.addAll(metadata.headers);
+        HttpEntity<?> entity = new HttpEntity<>(metadata.body, headers);
 
-        org.springframework.http.HttpEntity<?> entity =
-                new org.springframework.http.HttpEntity<>(metadata.body, headers);
+        Type bodyType = responseBodyType(method);
+        ResponseEntity<?> response = isVoid(bodyType)
+                ? template.exchange(metadata.uri, metadata.httpMethod, entity, Void.class)
+                : template.exchange(metadata.uri, metadata.httpMethod, entity,
+                        ParameterizedTypeReference.forType(bodyType));
 
-        ResponseEntity<?> response = template.exchange(
-                uri,
-                convertToSpringHttpMethod(metadata.httpMethod),
-                entity,
-                method.getReturnType()
-        );
-
-        return response.getBody();
+        return toReturnValue(response, method);
     }
 
+    /**
+     * Obtiene el tipo del cuerpo de la respuesta a partir del tipo de retorno genérico del método, para no
+     * perder los genéricos (por ejemplo {@code List<User>}). Para {@code ResponseEntity<T>} es {@code T}.
+     *
+     * @param method el método invocado
+     * @return el tipo del cuerpo
+     */
+    private static Type responseBodyType(Method method) {
+        ResolvableType returnType = ResolvableType.forMethodReturnType(method);
+        if (ResponseEntity.class.isAssignableFrom(returnType.toClass())) {
+            ResolvableType bodyType = returnType.as(ResponseEntity.class).getGeneric(0);
+            if (bodyType.resolve() == null || bodyType.getType() instanceof WildcardType) {
+                return Object.class;
+            }
+            return bodyType.getType();
+        }
+        return method.getGenericReturnType();
+    }
 
+    /**
+     * Indica si el tipo no tiene cuerpo ({@code void} o {@code Void}).
+     *
+     * @param type el tipo
+     * @return true si no se espera cuerpo
+     */
+    private static boolean isVoid(Type type) {
+        return type == void.class || type == Void.class;
+    }
+
+    /**
+     * Convierte la respuesta al valor que devuelve el método: la propia {@link ResponseEntity}, el cuerpo,
+     * o null para {@code void}.
+     *
+     * @param response la respuesta
+     * @param method el método invocado
+     * @return el valor de retorno
+     * @throws ClientException si el método devuelve un primitivo y la respuesta no tiene cuerpo
+     */
+    private static Object toReturnValue(ResponseEntity<?> response, Method method) {
+        Class<?> returnType = method.getReturnType();
+        if (ResponseEntity.class.isAssignableFrom(returnType)) {
+            return response;
+        }
+        if (returnType == void.class) {
+            return null;
+        }
+        Object body = response.getBody();
+        if (body == null && returnType.isPrimitive()) {
+            throw new ClientException("Empty response body for method " + describe(method)
+                    + " returning primitive " + returnType.getName());
+        }
+        return body;
+    }
 
     /**
      * Construye la URI de la petición ya codificada.
@@ -275,59 +412,147 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * a codificarlo.
      *
      * @param metadata los datos de la petición
+     * @param method el método invocado
      * @return la URI codificada
+     * @throws ClientException si falta una variable de la ruta o la URL no es válida
      */
-    private URI buildUri(RequestMetadata metadata) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(clientConfig.url() + metadata.path);
-        Map<String, Object> uriVariables = new HashMap<>(metadata.pathVariables);
+    private URI buildUri(RequestMetadata metadata, Method method) {
+        try {
+            UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(
+                    joinPath(clientConfig.url(), metadata.path));
+            Map<String, Object> uriVariables = new HashMap<>(metadata.pathVariables);
 
-        int index = 0;
-        for (Map.Entry<String, List<String>> entry : metadata.queryParams.entrySet()) {
-            for (String value : entry.getValue()) {
-                String variable = QUERY_PARAM_VARIABLE_PREFIX + index++;
-                builder.queryParam(entry.getKey(), "{" + variable + "}");
-                uriVariables.put(variable, value);
+            int index = 0;
+            for (Map.Entry<String, List<String>> entry : metadata.queryParams.entrySet()) {
+                for (String value : entry.getValue()) {
+                    String variable = QUERY_PARAM_VARIABLE_PREFIX + index++;
+                    builder.queryParam(entry.getKey(), "{" + variable + "}");
+                    uriVariables.put(variable, value);
+                }
             }
-        }
 
-        return builder.encode().buildAndExpand(uriVariables).toUri();
+            return builder.encode().buildAndExpand(uriVariables).toUri();
+        } catch (IllegalArgumentException e) {
+            throw new ClientException("Cannot build request URI for " + describe(method) + ": " + e.getMessage(), e);
+        }
     }
 
     /**
-     * Extrae los datos de la petición a partir de las anotaciones del método y de sus argumentos.
-     * Del mapping se usan el primer {@code path} y el primer {@code method}; {@code produces} se envía
-     * como {@code Accept} y el primer {@code consumes} como {@code Content-Type}.
+     * Une dos tramos de ruta con exactamente una barra entre ellos.
+     *
+     * @param base el tramo base (por ejemplo la URL del cliente)
+     * @param path el tramo a agregar
+     * @return la ruta unida
+     */
+    static String joinPath(String base, String path) {
+        if (path.isEmpty()) {
+            return base;
+        }
+        if (base.isEmpty()) {
+            return path;
+        }
+        boolean baseSlash = base.endsWith("/");
+        boolean pathSlash = path.startsWith("/");
+        if (baseSlash && pathSlash) {
+            return base + path.substring(1);
+        }
+        if (!baseSlash && !pathSlash) {
+            return base + "/" + path;
+        }
+        return base + path;
+    }
+
+    /**
+     * Extrae los datos de la petición a partir de las anotaciones de la interfaz, del método y de sus
+     * argumentos.
+     *
+     * El {@code @RequestMapping} de la interfaz aporta un prefijo de ruta y valores por defecto de
+     * {@code headers}, {@code params}, {@code produces}, {@code consumes} y {@code method}; los del método
+     * los complementan o reemplazan. {@code produces} se envía como {@code Accept} y el primer
+     * {@code consumes} como {@code Content-Type}; {@code params} con formato {@code nombre=valor} se envía
+     * como query params.
      *
      * @param method el método invocado
      * @param args los argumentos
      * @return los datos de la petición
-     * @throws ClientException si el método no tiene una anotación de mapping con método HTTP
+     * @throws ClientException si el método no tiene un mapping válido o falta un valor requerido
      */
     private RequestMetadata extractMetadata(Method method, Object[] args) {
         RequestMetadata metadata = new RequestMetadata();
 
         RequestMapping mapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
-        if (mapping == null || mapping.method().length == 0) {
-            throw new ClientException("Method " + method.getDeclaringClass().getSimpleName() + "."
-                    + method.getName() + " must be annotated with @GetMapping, @PostMapping, @PutMapping, "
+        if (mapping == null) {
+            throw new ClientException("Method " + describe(method)
+                    + " must be annotated with @GetMapping, @PostMapping, @PutMapping, "
                     + "@PatchMapping, @DeleteMapping or @RequestMapping(method = ...)");
         }
-        metadata.httpMethod = mapping.method()[0].asHttpMethod();
-        metadata.path = mapping.path().length > 0 ? mapping.path()[0] : "";
-        if (mapping.produces().length > 0) {
-            metadata.headers.set(HttpHeaders.ACCEPT, String.join(", ", mapping.produces()));
+        metadata.httpMethod = resolveHttpMethod(mapping, method);
+        metadata.path = joinPath(singlePath(typeMapping, method), singlePath(mapping, method));
+
+        for (RequestMapping source : new RequestMapping[]{typeMapping, mapping}) {
+            if (source == null) {
+                continue;
+            }
+            if (source.produces().length > 0) {
+                metadata.headers.set(HttpHeaders.ACCEPT, String.join(", ", resolveAll(source.produces())));
+            }
+            if (source.consumes().length > 0) {
+                metadata.headers.set(HttpHeaders.CONTENT_TYPE, valueResolver.apply(source.consumes()[0]));
+            }
+            extractNameValuePairs(resolveAll(source.headers()), "headers").forEach(metadata.headers::set);
+            extractNameValuePairs(resolveAll(source.params()), "params")
+                    .forEach((name, value) -> metadata.queryParams.put(name, new ArrayList<>(List.of(value))));
         }
-        if (mapping.consumes().length > 0) {
-            metadata.headers.set(HttpHeaders.CONTENT_TYPE, mapping.consumes()[0]);
-        }
-        extractHeaders(mapping.headers()).forEach(metadata.headers::set);
 
         Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {
             bindParameter(metadata, method, parameters[i], args[i]);
         }
 
+        metadata.uri = buildUri(metadata, method);
         return metadata;
+    }
+
+    /**
+     * Obtiene el único método HTTP: el del método o, si no declara ninguno, el de la interfaz.
+     *
+     * @param mapping el mapping del método
+     * @param method el método invocado
+     * @return el método HTTP
+     * @throws ClientException si no hay método HTTP o hay más de uno
+     */
+    private HttpMethod resolveHttpMethod(RequestMapping mapping, Method method) {
+        RequestMethod[] methods = mapping.method();
+        if (methods.length == 0 && typeMapping != null) {
+            methods = typeMapping.method();
+        }
+        if (methods.length == 0) {
+            throw new ClientException("Method " + describe(method)
+                    + " must be annotated with @GetMapping, @PostMapping, @PutMapping, "
+                    + "@PatchMapping, @DeleteMapping or @RequestMapping(method = ...)");
+        }
+        if (methods.length > 1) {
+            throw new ClientException("Method " + describe(method) + " declares more than one HTTP method");
+        }
+        return methods[0].asHttpMethod();
+    }
+
+    /**
+     * Obtiene la única ruta de un mapping, con sus placeholders resueltos.
+     *
+     * @param mapping el mapping (puede ser null)
+     * @param method el método invocado, para el mensaje de error
+     * @return la ruta, o vacío si no declara ninguna
+     * @throws ClientException si declara más de una ruta
+     */
+    private String singlePath(RequestMapping mapping, Method method) {
+        if (mapping == null || mapping.path().length == 0) {
+            return "";
+        }
+        if (mapping.path().length > 1) {
+            throw new ClientException("Method " + describe(method) + " declares more than one path");
+        }
+        return valueResolver.apply(mapping.path()[0]);
     }
 
     /**
@@ -458,6 +683,8 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * hay, el valor por defecto de la anotación; si tampoco hay y es opcional, una lista vacía. Un
      * argumento {@code null} y una lista o arreglo vacío se consideran faltantes.
      *
+     * El valor por defecto admite placeholders {@code ${...}}.
+     *
      * @param arg el argumento
      * @param defaultValue el valor por defecto de la anotación ({@link ValueConstants#DEFAULT_NONE} si no hay)
      * @param required si el valor es requerido
@@ -467,19 +694,33 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * @return los valores a enviar; vacío para omitirlos
      * @throws ClientException si el valor es requerido y falta
      */
-    private static List<String> resolveValues(Object arg, String defaultValue, boolean required, String kind,
-                                              String name, Method method) {
+    private List<String> resolveValues(Object arg, String defaultValue, boolean required, String kind,
+                                       String name, Method method) {
         List<String> values = toValues(arg);
         if (!values.isEmpty()) {
             return values;
         }
         if (!ValueConstants.DEFAULT_NONE.equals(defaultValue)) {
-            return List.of(defaultValue);
+            return List.of(valueResolver.apply(defaultValue));
         }
         if (required) {
             throw missingValue(kind, name, method);
         }
         return List.of();
+    }
+
+    /**
+     * Resuelve los placeholders de cada valor.
+     *
+     * @param values los valores originales
+     * @return los valores resueltos
+     */
+    private String[] resolveAll(String[] values) {
+        String[] resolved = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            resolved[i] = valueResolver.apply(values[i]);
+        }
+        return resolved;
     }
 
     /**
@@ -528,40 +769,40 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      * @return la excepción
      */
     private static ClientException missingValue(String kind, String name, Method method) {
-        return new ClientException("Required " + kind + " '" + name + "' is null or empty in "
-                + method.getDeclaringClass().getSimpleName() + "." + method.getName());
+        return new ClientException("Required " + kind + " '" + name + "' is null or empty in " + describe(method));
     }
 
     /**
-     * Extrae los headers del atributo {@code headers} del mapping.
+     * Describe un método como {@code Interfaz.metodo} para los mensajes de error.
      *
-     * Usa el formato de Spring {@code "Nombre=valor"}. Las expresiones sin valor (por ejemplo
-     * {@code "Nombre"} o {@code "!Nombre"}) son condiciones del lado del servidor y se ignoran.
-     *
-     * @param headerArray las expresiones de headers
-     * @return los headers por nombre
+     * @param method el método
+     * @return la descripción
      */
-    private Map<String, String> extractHeaders(String[] headerArray) {
-        Map<String, String> headers = new HashMap<>();
-        for (String header : headerArray) {
-            String[] parts = header.split("=", 2);
+    private static String describe(Method method) {
+        return method.getDeclaringClass().getSimpleName() + "." + method.getName();
+    }
+
+    /**
+     * Extrae pares {@code nombre=valor} de los atributos {@code headers} o {@code params} de un mapping.
+     *
+     * Las expresiones sin valor (por ejemplo {@code "Nombre"}, {@code "!Nombre"} o {@code "Nombre!=valor"})
+     * son condiciones del lado del servidor y se ignoran con un warning.
+     *
+     * @param expressions las expresiones
+     * @param attribute el nombre del atributo, para el log
+     * @return los pares por nombre, en orden de declaración
+     */
+    private static Map<String, String> extractNameValuePairs(String[] expressions, String attribute) {
+        Map<String, String> pairs = new LinkedHashMap<>();
+        for (String expression : expressions) {
+            String[] parts = expression.split("=", 2);
             if (parts.length == 2 && !parts[0].isBlank() && !parts[0].trim().endsWith("!")) {
-                headers.put(parts[0].trim(), parts[1].trim());
+                pairs.put(parts[0].trim(), parts[1].trim());
             } else {
-                LOG.warn("Ignoring header expression without a value (expected 'Name=value'): {}", header);
+                LOG.warn("Ignoring {} expression without a value (expected 'Name=value'): {}", attribute, expression);
             }
         }
-        return headers;
-    }
-
-    /**
-     * Convierte el método HTTP al {@link HttpMethod} de Spring.
-     *
-     * @param method el método HTTP
-     * @return el método HTTP de Spring
-     */
-    private HttpMethod convertToSpringHttpMethod(HttpMethod method) {
-        return HttpMethod.valueOf(method.name());
+        return pairs;
     }
 
     /**
@@ -569,11 +810,14 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
      */
     private static class RequestMetadata {
 
-        /** La ruta relativa a la URL base. */
+        /** La ruta relativa a la URL base (prefijo de la interfaz + ruta del método). */
         private String path;
 
         /** El método HTTP. */
         private HttpMethod httpMethod;
+
+        /** La URI final, ya codificada. */
+        private URI uri;
 
         /** Las path variables (si hay varios valores, ya vienen unidos con comas). */
         private final Map<String, Object> pathVariables = new HashMap<>();

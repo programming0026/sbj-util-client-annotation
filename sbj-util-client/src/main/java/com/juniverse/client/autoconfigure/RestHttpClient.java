@@ -116,8 +116,8 @@ public @interface RestHttpClient {
     TimeLimiterConfig timeLimiter() default @TimeLimiterConfig;
 
     /**
-     * Manejador de errores para respuestas HTTP con error. Debe tener un constructor sin argumentos;
-     * se instancia por reflexión (no es un bean de Spring).
+     * Manejador de errores para respuestas HTTP con error. Si existe un bean de ese tipo se usa; si no,
+     * Spring crea la instancia con inyección de dependencias (puede recibir beans por constructor).
      *
      * @return la clase del manejador de errores
      */

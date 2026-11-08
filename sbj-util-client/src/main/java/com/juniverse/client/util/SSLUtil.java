@@ -17,14 +17,40 @@ import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.StandardEnvironment;
 /**
  * Crea contextos SSL a partir de un keystore y/o truststore, o un contexto inseguro solo para desarrollo.
  */
 public class SSLUtil {
     /** El logger. */
     private static final Logger LOG = LoggerFactory.getLogger(SSLUtil.class);
+
+    /** Proveedor del entorno del que se leen los perfiles activos. */
+    private final Supplier<Environment> environment;
+
+    /**
+     * Crea la utilidad sin contexto de Spring: los perfiles se leen en cada llamada de
+     * {@code spring.profiles.active} (propiedad del sistema) o {@code SPRING_PROFILES_ACTIVE} (variable de
+     * entorno).
+     */
+    public SSLUtil() {
+        this.environment = StandardEnvironment::new;
+    }
+
+    /**
+     * Crea la utilidad usando los perfiles activos del {@link Environment} de Spring (incluye los definidos
+     * en {@code application.properties}).
+     *
+     * @param environment el entorno de Spring
+     */
+    public SSLUtil(Environment environment) {
+        this.environment = () -> environment;
+    }
 
     /**
      * Crea el contexto SSL. Las rutas admiten el prefijo {@code classpath:}; el tipo de almacén se deduce
@@ -70,8 +96,8 @@ public class SSLUtil {
      *
      * ADVERTENCIA: desactiva toda validación de certificados SSL/TLS y NUNCA debe usarse en producción;
      * deja la aplicación expuesta a ataques Man-in-the-Middle (MITM).
-     * Solo se permite en entornos de desarrollo: SPRING_PROFILES_ACTIVE (variable de entorno) o
-     * spring.profiles.active (propiedad del sistema) debe ser dev, local o development.
+     * Solo se permite en entornos de desarrollo: alguno de los perfiles activos debe ser dev, local o
+     * development (sin distinguir mayúsculas; se admiten varios perfiles, por ejemplo {@code dev,kafka}).
      *
      * @return el contexto SSL
      * @throws NoSuchAlgorithmException si el algoritmo TLS no está disponible
@@ -81,17 +107,18 @@ public class SSLUtil {
     public SSLContext createInsecureSSLContext()
             throws NoSuchAlgorithmException, KeyManagementException {
 
-        if (!isDevelopmentEnvironment()) {
+        String[] activeProfiles = environment.get().getActiveProfiles();
+        if (!isDevelopmentEnvironment(activeProfiles)) {
             throw new IllegalStateException(
                     """
                 Insecure SSL is only allowed in development environments.
-                Current profile: %s
-                Set SPRING_PROFILES_ACTIVE=dev or local to enable insecure SSL.
-                """.formatted(getCurrentProfile())
+                Active profiles: %s
+                Activate the dev, local or development profile to enable insecure SSL.
+                """.formatted(Arrays.toString(activeProfiles))
             );
         }
 
-        LOG.warn("Environment: {}", getCurrentProfile());
+        LOG.warn("Insecure SSL enabled, active profiles: {}", Arrays.toString(activeProfiles));
         SSLContext sslContext = SSLContext.getInstance("TLS");
 
         TrustManager[] trustAllCerts = new TrustManager[]{
@@ -116,29 +143,17 @@ public class SSLUtil {
     }
 
     /**
-     * Indica si el entorno actual es de desarrollo.
+     * Indica si alguno de los perfiles activos es de desarrollo.
      *
-     * @return true si el perfil es dev, local o development
+     * @param activeProfiles los perfiles activos
+     * @return true si alguno es dev, local o development
      */
-    private static boolean isDevelopmentEnvironment() {
-        String profile = getCurrentProfile();
-        return "dev".equalsIgnoreCase(profile)
-                || "local".equalsIgnoreCase(profile)
-                || "development".equalsIgnoreCase(profile);
-    }
-
-    /**
-     * Obtiene el perfil de Spring activo, leído de la variable de entorno o de la propiedad del sistema
-     * (no del {@code Environment} de Spring).
-     *
-     * @return el perfil actual o "unknown"
-     */
-    private static String getCurrentProfile() {
-        String profile = System.getenv("SPRING_PROFILES_ACTIVE");
-        if (profile == null || profile.isEmpty()) {
-            profile = System.getProperty("spring.profiles.active");
-        }
-        return profile != null ? profile : "unknown";
+    private static boolean isDevelopmentEnvironment(String[] activeProfiles) {
+        return Arrays.stream(activeProfiles)
+                .map(String::trim)
+                .anyMatch(profile -> "dev".equalsIgnoreCase(profile)
+                        || "local".equalsIgnoreCase(profile)
+                        || "development".equalsIgnoreCase(profile));
     }
 
     /**

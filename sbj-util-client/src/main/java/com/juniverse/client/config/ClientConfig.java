@@ -5,6 +5,7 @@ import com.juniverse.client.util.RestClientUtil;
 import com.juniverse.client.util.SSLUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 /**
  * Beans compartidos por todos los clientes. Se importa mediante {@code @EnableRestHttpClients}.
@@ -13,8 +14,7 @@ import org.springframework.context.annotation.Configuration;
 public class ClientConfig {
 
     /**
-     * Fábrica de instancias de Resilience4j. {@code RestHttpClientRegistrar} la referencia por el nombre
-     * {@code resilience4jConfiguration}, así que no se debe renombrar.
+     * Fábrica de instancias de Resilience4j. Los factory beans de los clientes la reciben por tipo.
      *
      * @return la utilidad de Resilience4j
      */
@@ -26,20 +26,22 @@ public class ClientConfig {
     /**
      * Construye los RestClient/RestTemplate de cada cliente.
      *
+     * @param sslUtil la utilidad SSL
      * @return la utilidad de clientes HTTP
      */
     @Bean
-    public RestClientUtil httpClientConfigurer() {
-        return new RestClientUtil(sslUtil());
+    public RestClientUtil httpClientConfigurer(SSLUtil sslUtil) {
+        return new RestClientUtil(sslUtil);
     }
 
     /**
-     * Crea los contextos SSL.
+     * Crea los contextos SSL; los perfiles activos se leen del {@link Environment} de Spring.
      *
+     * @param environment el entorno de Spring
      * @return la utilidad SSL
      */
     @Bean
-    public SSLUtil sslUtil() {
-        return new SSLUtil();
+    public SSLUtil sslUtil(Environment environment) {
+        return new SSLUtil(environment);
     }
 }

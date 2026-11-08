@@ -12,6 +12,7 @@ import com.juniverse.client.util.SSLUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotationMetadata;
 
@@ -45,14 +46,60 @@ class RestHttpClientRegistrarTest {
         }
     }
 
+    @Configuration
+    @EnableRestHttpClients(basePackages = "com.juniverse.client.handler.scan")
+    static class OverlappingConfig {
+    }
+
+    @Configuration
+    static class RenamedResilienceConfig {
+
+        @Bean
+        CircuitBreakerUtil customResilience() {
+            return new CircuitBreakerUtil();
+        }
+    }
+
     @Test
-    void wrapsRegistrationErrors() {
+    void duplicateBeanNamesAreRejectedEvenWhenOverridingIsAllowed() {
         DefaultListableBeanFactory registry = new DefaultListableBeanFactory();
-        registry.setAllowBeanDefinitionOverriding(false);
+        registry.setAllowBeanDefinitionOverriding(true);
         AnnotationMetadata metadata = AnnotationMetadata.introspect(DuplicateClients.Config.class);
 
         assertThatThrownBy(() -> new RestHttpClientRegistrar().registerBeanDefinitions(metadata, registry))
                 .isInstanceOf(ClientException.class)
-                .hasMessageContaining("Error registering client");
+                .hasMessageStartingWith("Duplicate bean name 'dup' for client")
+                .hasMessageContaining("@RestHttpClient(name = ...)");
+    }
+
+    @Test
+    void overlappingScansRegisterEachClientOnce() {
+        try (var context = new AnnotationConfigApplicationContext(ExplicitPackagesConfig.class,
+                OverlappingConfig.class)) {
+            assertThat(context.getBeanNamesForType(ScannedClients.NamedClient.class)).containsExactly("namedClient");
+        }
+    }
+
+    @Test
+    void clientTypeIsKnownWithoutInstantiatingTheFactoryBean() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.register(ExplicitPackagesConfig.class);
+            context.refresh();
+
+            assertThat(context.getBeanFactory().getBeanNamesForType(ScannedClients.NamedClient.class, true, false))
+                    .containsExactly("namedClient");
+        }
+    }
+
+    @Test
+    void dependenciesAreResolvedByTypeNotByBeanName() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.register(ExplicitPackagesConfig.class, RenamedResilienceConfig.class);
+            // Quita el bean con el nombre que antes era obligatorio: debe usarse el otro por tipo.
+            context.registerBean("resilience4jConfiguration", String.class, () -> "not a CircuitBreakerUtil");
+            context.refresh();
+
+            assertThat(context.getBean(ScannedClients.NamedClient.class)).isNotNull();
+        }
     }
 }

@@ -142,13 +142,13 @@ class RestClientUtilTest {
     void configureRestClientWrapsSslErrors() {
         assertThatThrownBy(() -> util.configureRestClient(config(BrokenClient.class)))
                 .isInstanceOf(ClientException.class)
-                .hasMessageContaining("RestClient");
+                .hasMessageContaining("Error configuring HTTP client");
     }
 
     @Test
     void configureRestTemplateWrapsSslErrors() {
         assertThatThrownBy(() -> util.configureRestTemplate(config(BrokenClient.class)))
                 .isInstanceOf(ClientException.class)
-                .hasMessageContaining("RestTemplate");
+                .hasMessageContaining("Error configuring HTTP client");
     }
 }
