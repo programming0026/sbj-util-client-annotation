@@ -120,8 +120,9 @@ la aplicación no arranca y el `ClientException` dice qué método y qué parám
 
 - una `url` vacía o que no sea absoluta `http(s)://host` (después de resolver placeholders);
 - un método sin anotación de mapping, sin método HTTP o con más de una ruta o método HTTP;
-- un parámetro sin `@PathVariable`, `@RequestParam`, `@RequestHeader` ni `@RequestBody`;
-- más de un `@RequestBody`;
+- un parámetro sin `@PathVariable`, `@RequestParam`, `@RequestHeader`, `@RequestBody` ni `@RequestPart`;
+- más de un `@RequestBody`, o un `@RequestBody` junto a un `@RequestPart`;
+- un `@RequestPart` en un método cuyo `consumes` no es `multipart/form-data`;
 - una variable de la ruta (`{id}`) sin su `@PathVariable`, o un `@PathVariable` que no aparece en la ruta
   (salvo con `@PathVariable Map`, que aporta las variables al llamar).
 
@@ -147,6 +148,7 @@ Si el método devuelve un primitivo (`int`, `boolean`, ...) y la respuesta no ti
 | `@RequestParam` | Query param. |
 | `@RequestHeader` | Header; reemplaza al del mismo nombre declarado en `headers` del mapping. |
 | `@RequestBody` | Cuerpo de la petición. |
+| `@RequestPart` | Una parte de una petición `multipart/form-data` (archivos, ver "Archivos y multipart"). |
 
 - **Nombre:** se usa `name`/`value`; si no se indica, el nombre del parámetro en Java (requiere compilar
   con `-parameters`, que ya activa `spring-boot-starter-parent`).
@@ -182,6 +184,45 @@ String byPath(@PathVariable Map<String, Object> variables);
 
 Las entradas con clave `null`, valor `null` o lista vacía se saltan. Solo un mapa `null` cuenta como
 faltante; un mapa vacío no envía nada.
+
+### Archivos y multipart
+
+Para subir archivos o enviar formularios `multipart/form-data`, cada parte es un parámetro `@RequestPart`.
+No hace falta declarar `consumes`: la librería fija `Content-Type: multipart/form-data` (y Spring agrega el
+`boundary`). Si lo declaras, debe ser `multipart/form-data`.
+
+```java
+@RestHttpClient(url = "${archivos.url}")
+public interface ArchivosClient {
+
+    @PostMapping("/documentos")
+    DocumentoResponse subir(@RequestPart("archivo") MultipartFile archivo,
+                            @RequestPart("descripcion") String descripcion,
+                            @RequestPart("metadatos") Metadatos metadatos);   // se envía como parte JSON
+
+    @PostMapping("/lote")
+    void subirVarios(@RequestPart("archivos") List<MultipartFile> archivos);  // una parte por archivo
+}
+```
+
+| Tipo del parámetro | Cómo se envía |
+|---|---|
+| `MultipartFile` | Archivo, con su nombre original y su tipo de contenido. |
+| `File`, `Path` | Archivo, con el nombre del archivo en disco. |
+| `Resource` (por ejemplo `ByteArrayResource`, `FileSystemResource`) | Archivo; el nombre y el tipo salen de `getFilename()`. |
+| `byte[]` | Parte binaria (`application/octet-stream`) sin nombre de archivo; usa un `Resource` si el servidor lo exige. |
+| `String`, números, `boolean`, enums | Parte de texto. |
+| Cualquier otro objeto (clases, records) | Parte `application/json`. |
+| `List`, `Set` o arreglo de lo anterior | Una parte por elemento, todas con el mismo nombre. |
+
+- Una parte `null` o una lista vacía se omite si `required = false`; si es requerida, lanza `ClientException`.
+- Se pueden combinar con `@RequestParam`, `@RequestHeader` y `@PathVariable`, pero **no** con `@RequestBody`.
+- `MultipartFile` viene de `spring-web` (no hace falta un servidor servlet). `FilePart` es de Spring WebFlux
+  (reactivo) y no se admite: la librería es imperativa. Para reenviar un archivo recibido por WebFlux,
+  conviértelo antes a `Resource` o `byte[]`.
+- Alternativa manual: `@RequestBody MultiValueMap<String, Object>` con `consumes = MULTIPART_FORM_DATA_VALUE`.
+- Un `POST` no se reintenta tras un error HTTP o un timeout (ver "Resiliencia"), así que un archivo no se sube
+  dos veces por accidente.
 
 ## Configuración del cliente
 
@@ -529,6 +570,7 @@ classDiagram
         HttpHeaders headers
         Map queryParams
         Map pathVariables
+        MultiValueMap parts
         Object body
     }
 

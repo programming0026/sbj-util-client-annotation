@@ -4,27 +4,37 @@ import com.juniverse.client.exception.ClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ValueConstants;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriTemplate;
 
+import java.io.File;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -150,6 +160,9 @@ final class MethodMetadata {
             bindings.add(ParameterBinding.of(parameter, method, resolver));
         }
         validateBindings(bindings, path, method);
+        if (bindings.stream().anyMatch(b -> b.kind() == ParameterBinding.Kind.REQUEST_PART)) {
+            applyMultipartContentType(headers, method);
+        }
 
         return new MethodMetadata(method, httpMethod, path, headers, params, List.copyOf(bindings));
     }
@@ -166,6 +179,10 @@ final class MethodMetadata {
      */
     private static void validateBindings(List<ParameterBinding> bindings, String path, Method method) {
         long bodies = bindings.stream().filter(b -> b.kind() == ParameterBinding.Kind.REQUEST_BODY).count();
+        boolean hasParts = bindings.stream().anyMatch(b -> b.kind() == ParameterBinding.Kind.REQUEST_PART);
+        if (hasParts && bodies > 0) {
+            throw new ClientException("Method " + describe(method) + " cannot combine @RequestBody with @RequestPart");
+        }
         if (bodies > 1) {
             throw new ClientException("Method " + describe(method) + " declares more than one @RequestBody");
         }
@@ -206,7 +223,36 @@ final class MethodMetadata {
         for (int i = 0; i < bindings.size(); i++) {
             bindings.get(i).bind(request, args[i], description);
         }
+        if (!request.parts.isEmpty()) {
+            request.body = request.parts;
+        }
         return request;
+    }
+
+    /**
+     * Fija {@code Content-Type: multipart/form-data} para un método con {@code @RequestPart}. Si el mapping ya
+     * declara un {@code consumes} que no es multipart, el método está mal declarado.
+     *
+     * @param headers los headers fijos del método
+     * @param method el método
+     * @throws ClientException si el {@code consumes} declarado no es {@code multipart/form-data}
+     */
+    private static void applyMultipartContentType(HttpHeaders headers, Method method) {
+        String declared = headers.getFirst(HttpHeaders.CONTENT_TYPE);
+        if (declared != null) {
+            boolean multipart;
+            try {
+                multipart = MediaType.parseMediaType(declared).isCompatibleWith(MediaType.MULTIPART_FORM_DATA);
+            } catch (IllegalArgumentException e) {
+                multipart = false;
+            }
+            if (!multipart) {
+                throw new ClientException("Method " + describe(method) + " has @RequestPart parameters, so it must "
+                        + "consume multipart/form-data, but declares '" + declared + "'");
+            }
+            return;
+        }
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
     }
 
     /**
@@ -446,7 +492,9 @@ final class MethodMetadata {
             /** {@code @RequestHeader}. */
             REQUEST_HEADER,
             /** {@code @RequestBody}. */
-            REQUEST_BODY
+            REQUEST_BODY,
+            /** {@code @RequestPart}: una parte de una petición {@code multipart/form-data}. */
+            REQUEST_PART
         }
 
         /**
@@ -481,8 +529,14 @@ final class MethodMetadata {
                 return new ParameterBinding(Kind.REQUEST_BODY, parameter.getName(), requestBody.required(), null,
                         false);
             }
+            RequestPart requestPart = AnnotatedElementUtils.findMergedAnnotation(parameter, RequestPart.class);
+            if (requestPart != null) {
+                return new ParameterBinding(Kind.REQUEST_PART, nameOf(requestPart.name(), parameter),
+                        requestPart.required(), null, false);
+            }
             throw new ClientException("Parameter '" + parameter.getName() + "' of method " + describe(method)
-                    + " must be annotated with @PathVariable, @RequestParam, @RequestHeader or @RequestBody");
+                    + " must be annotated with @PathVariable, @RequestParam, @RequestHeader, @RequestBody or "
+                    + "@RequestPart");
         }
 
         /**
@@ -517,9 +571,98 @@ final class MethodMetadata {
                     }
                     request.addPathVariable(name, values);
                 }
+                case REQUEST_PART -> bindPart(request, arg, description);
                 case REQUEST_PARAM -> bindValues(arg, "request parameter", description, request::addQueryParam);
                 default -> bindValues(arg, "request header", description, request::setHeader);
             }
+        }
+
+        /**
+         * Enlaza una parte de una petición multipart. Una lista o arreglo (salvo {@code byte[]}) aporta una
+         * parte por elemento con el mismo nombre; un valor {@code null} o una lista vacía se omite si la parte
+         * es opcional y es un error si es requerida.
+         *
+         * @param request la petición
+         * @param arg el argumento
+         * @param description el método, para el mensaje de error
+         * @throws ClientException si falta una parte requerida
+         */
+        private void bindPart(Request request, Object arg, String description) {
+            List<Object> values = partValues(arg);
+            if (values.isEmpty()) {
+                if (required) {
+                    throw missingValue("request part", description);
+                }
+                return;
+            }
+            values.forEach(value -> request.addPart(name, value));
+        }
+
+        /**
+         * Convierte un argumento en las partes que aporta: una por elemento si es un {@link Iterable} o un
+         * arreglo (un {@link Path} y un {@code byte[]} cuentan como un único valor), omitiendo los {@code null}.
+         *
+         * @param arg el argumento
+         * @return las partes, ya convertidas con {@link #toPart(Object)}
+         */
+        private static List<Object> partValues(Object arg) {
+            List<Object> parts = new ArrayList<>();
+            if (arg == null) {
+                return parts;
+            }
+            if (!(arg instanceof Path) && arg instanceof Iterable<?> iterable) {
+                iterable.forEach(element -> addPart(parts, element));
+            } else if (arg.getClass().isArray() && !(arg instanceof byte[])) {
+                for (int i = 0; i < Array.getLength(arg); i++) {
+                    addPart(parts, Array.get(arg, i));
+                }
+            } else {
+                addPart(parts, arg);
+            }
+            return parts;
+        }
+
+        private static void addPart(List<Object> parts, Object value) {
+            if (value != null) {
+                parts.add(toPart(value));
+            }
+        }
+
+        /**
+         * Prepara el valor de una parte para el conversor multipart de Spring:
+         * <ul>
+         *   <li>{@link MultipartFile}: se envía como archivo, con su nombre y su tipo de contenido.</li>
+         *   <li>{@link File} y {@link Path}: se envían como archivo con el nombre del archivo.</li>
+         *   <li>{@link Resource} y {@code byte[]}: tal cual (un {@code Resource} aporta su nombre de archivo).</li>
+         *   <li>Textos, números, booleanos y enums: como texto.</li>
+         *   <li>Cualquier otro objeto: como una parte {@code application/json}.</li>
+         * </ul>
+         *
+         * @param value el valor
+         * @return el valor listo para enviar
+         */
+        private static Object toPart(Object value) {
+            if (value instanceof MultipartFile file) {
+                HttpHeaders partHeaders = new HttpHeaders();
+                if (file.getContentType() != null && !file.getContentType().isBlank()) {
+                    partHeaders.setContentType(MediaType.parseMediaType(file.getContentType()));
+                }
+                return new HttpEntity<>(file.getResource(), partHeaders);
+            }
+            if (value instanceof File file) {
+                return new FileSystemResource(file);
+            }
+            if (value instanceof Path path) {
+                return new FileSystemResource(path);
+            }
+            if (value instanceof Resource || value instanceof byte[] || value instanceof HttpEntity<?>
+                    || value instanceof CharSequence || value instanceof Number || value instanceof Boolean
+                    || value instanceof Character || value instanceof Enum<?>) {
+                return value;
+            }
+            HttpHeaders jsonHeaders = new HttpHeaders();
+            jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+            return new HttpEntity<>(value, jsonHeaders);
         }
 
         /**
@@ -658,7 +801,10 @@ final class MethodMetadata {
         /** Las path variables (si hay varios valores, ya vienen unidos con comas). */
         private final Map<String, Object> pathVariables = new HashMap<>();
 
-        /** El cuerpo de la petición. */
+        /** Las partes de una petición multipart, en el orden en que se declaran. */
+        private final MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+
+        /** El cuerpo de la petición (con partes, el mapa de partes). */
         private Object body;
 
         /**
@@ -688,6 +834,16 @@ final class MethodMetadata {
          */
         Object body() {
             return body;
+        }
+
+        /**
+         * Agrega una parte multipart.
+         *
+         * @param name el nombre de la parte
+         * @param value el valor ya convertido
+         */
+        private void addPart(String name, Object value) {
+            parts.add(name, value);
         }
 
         /**
