@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 
 /**
  * Atiende cada llamada al proxy de un cliente {@link RestHttpClient}.
- *
  * Al crearse valida la URL base y analiza todos los métodos de la interfaz ({@link MethodMetadata}); un
  * método mal declarado hace fallar la creación del cliente. En cada llamada solo enlaza los argumentos,
  * ejecuta la petición con RestClient o RestTemplate y la envuelve con los decoradores de Resilience4j en el
@@ -591,7 +590,6 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     /**
      * Ejecuta la petición y devuelve la respuesta abierta, con el cuerpo como {@link InputStream} que se lee
      * progresivamente. La respuesta (y su conexión del pool) se libera al cerrar el flujo.
-     *
      * Reintentos, circuit breaker, rate limiter y límite de tiempo actúan hasta que llegan los headers de la
      * respuesta; la lectura del cuerpo queda en manos de quien recibe el flujo (cada lectura tiene el
      * {@code readTimeout} del cliente). Un 4xx/5xx se lanza como excepción, igual que sin streaming, y la

@@ -20,7 +20,6 @@ import java.util.function.Consumer;
 /**
  * Vigila que los customizers no quiten por accidente la request factory de un cliente (la que lleva su pool
  * de conexiones, timeouts y SSL), según la {@link RequestFactoryOverridePolicy}.
- *
  * Cada vez que un customizer reemplaza la request factory, la librería sabe cuál fue y lo registra en el log.
  */
 final class RequestFactoryGuard {
@@ -156,7 +155,7 @@ final class RequestFactoryGuard {
     }
 
     /**
-     * Crea un builder que delega en el real pero consulta a la política cuando se llama a
+     * Crea un builder que delega en el real, pero consulta a la política cuando se llama a
      * {@code requestFactory(...)}. Las llamadas encadenadas y {@code apply(...)} siguen pasando por el
      * builder vigilado.
      *
@@ -170,7 +169,6 @@ final class RequestFactoryGuard {
             if (method.getDeclaringClass() == Object.class) {
                 return method.invoke(delegate, args);
             }
-            // Incluye requestFactory(null): Spring lo acepta y restablece la request factory por defecto.
             if ("requestFactory".equals(method.getName()) && args != null && args.length == 1
                     && !accept(source, (ClientHttpRequestFactory) args[0])) {
                 return proxy;

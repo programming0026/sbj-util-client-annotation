@@ -61,7 +61,6 @@ import java.util.stream.BaseStream;
 /**
  * Lo que se sabe de un método de un cliente sin conocer sus argumentos: método HTTP, ruta, headers y params
  * fijos, cómo se enlaza cada parámetro y cómo se lee la respuesta.
- *
  * Se calcula una sola vez por método al crear el proxy (las anotaciones no se vuelven a leer en cada
  * llamada) y en ese momento se valida: un método mal declarado hace fallar la creación del cliente, es decir,
  * el arranque de la aplicación, en vez de la primera llamada.
@@ -136,7 +135,6 @@ final class MethodMetadata {
 
     /**
      * Analiza y valida un método del cliente.
-     *
      * El {@code @RequestMapping} de la interfaz aporta un prefijo de ruta y valores por defecto de
      * {@code headers}, {@code params}, {@code produces}, {@code consumes} y {@code method}; los del método
      * los complementan o reemplazan. {@code produces} se envía como {@code Accept}, el primer
@@ -260,7 +258,7 @@ final class MethodMetadata {
     }
 
     /**
-     * Valida los parámetros contra la ruta: un solo {@code @RequestBody}, cada {@code @PathVariable} con
+     * Válida los parámetros contra la ruta: un solo {@code @RequestBody}, cada {@code @PathVariable} con
      * nombre debe existir en la ruta y cada variable de la ruta debe tener su {@code @PathVariable} (salvo
      * que haya un {@code @PathVariable Map}, que las aporta en tiempo de ejecución).
      *
@@ -308,7 +306,7 @@ final class MethodMetadata {
      *
      * @param args los argumentos (null si el método no tiene parámetros)
      * @return la petición
-     * @throws ClientException si falta un valor requerido
+     * @throws ClientException sí falta un valor requerido
      */
     Request bind(Object[] args) {
         Request request = new Request(staticHeaders, staticParams);
@@ -349,7 +347,6 @@ final class MethodMetadata {
 
     /**
      * Construye la URI de la petición ya codificada.
-     *
      * Las path variables y los valores de los query params se expanden como variables de plantilla URI,
      * así cada valor se codifica exactamente una vez (incluidos caracteres reservados como '/', '&amp;'
      * o '='). El resultado es un {@link URI}, que RestClient y RestTemplate envían tal cual sin volver
@@ -622,7 +619,6 @@ final class MethodMetadata {
 
     /**
      * Extrae pares {@code nombre=valor} de los atributos {@code headers} o {@code params} de un mapping.
-     *
      * Las expresiones sin valor (por ejemplo {@code "Nombre"}, {@code "!Nombre"} o {@code "Nombre!=valor"})
      * son condiciones del lado del servidor y se ignoran con un warning.
      *
@@ -729,16 +725,15 @@ final class MethodMetadata {
 
         /**
          * Enlaza el argumento a la petición.
-         *
          * Con listas, arreglos y {@code Map}: un query param repetido por valor, un header con varios valores
          * y las path variables unidas con coma. Un argumento {@code null} o vacío usa el valor por defecto,
          * se omite si es opcional o, si es requerido, lanza error ({@code @PathVariable} siempre lo es). Para
-         * un {@code Map} solo cuenta como faltante el {@code null}.
+         * un {@code Map} solo cuenta como faltante él {@code null}.
          *
          * @param request la petición
          * @param arg el argumento
          * @param description el método, para el mensaje de error
-         * @throws ClientException si falta un valor requerido
+         * @throws ClientException sí falta un valor requerido
          */
         void bind(Request request, Object arg, String description) {
             switch (kind) {
@@ -774,7 +769,7 @@ final class MethodMetadata {
          * @param request la petición
          * @param arg el argumento
          * @param description el método, para el mensaje de error
-         * @throws ClientException si falta una parte requerida
+         * @throws ClientException sí falta una parte requerida
          */
         private void bindPart(Request request, Object arg, String description) {
             List<Object> values = partValues(arg);
@@ -789,7 +784,7 @@ final class MethodMetadata {
 
         /**
          * Convierte un argumento en las partes que aporta: una por elemento si es un {@link Iterable} o un
-         * arreglo (un {@link Path} y un {@code byte[]} cuentan como un único valor), omitiendo los {@code null}.
+         * arreglo (un {@link Path} y un {@code byte[]} cuentan como un único valor), omite los {@code null}.
          *
          * @param arg el argumento
          * @return las partes, ya convertidas con {@link #toPart(Object)}

@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 /**
  * Registra método, URL, estado y duración de cada petición HTTP de un cliente ({@code logging = true}).
- *
  * Nunca registra headers ni cuerpos, y de la query solo muestra los nombres de los parámetros (sus valores
  * pueden llevar tokens o datos personales). Usa un logger por cliente, {@value #LOGGER_PREFIX}{@code <cliente>},
  * para poder subir o bajar su nivel desde la configuración de logging. Se registra una línea por intento, así que
@@ -95,7 +94,7 @@ public final class RequestLoggingInterceptor implements ClientHttpRequestInterce
     /**
      * Devuelve los nombres de los parámetros de una query, sin sus valores, unidos con {@code &}.
      *
-     * @param query la query sin el {@code ?}, o {@code null}
+     * @param query la query sin él {@code ?}, o {@code null}
      * @return los nombres, o un texto vacío si no hay
      */
     private static String queryNames(String query) {

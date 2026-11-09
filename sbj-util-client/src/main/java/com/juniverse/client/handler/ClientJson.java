@@ -14,7 +14,7 @@ import java.util.List;
 final class ClientJson {
 
     /**
-     * Clase de utilidades: no se instancia.
+     * Instancia.
      */
     private ClientJson() {
     }
@@ -30,8 +30,6 @@ final class ClientJson {
     static JacksonJsonHttpMessageConverter converter(ListableBeanFactory beanFactory,
                                                      JsonMapperConfigurer configurer) {
         JsonMapper base = beanFactory == null ? null : beanFactory.getBeanProvider(JsonMapper.class).getIfUnique();
-        // Sin JsonMapper de la aplicación, la base es el mapper por defecto de Spring (el de un cliente sin
-        // jsonConfig), que tolera propiedades desconocidas, y no el de Jackson a secas.
         JsonMapper.Builder builder = base == null
                 ? new JacksonJsonHttpMessageConverter().getMapper().rebuild() : base.rebuild();
         configurer.configure(builder);

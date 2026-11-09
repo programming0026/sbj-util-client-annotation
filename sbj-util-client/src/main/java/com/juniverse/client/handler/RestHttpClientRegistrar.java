@@ -34,7 +34,6 @@ import java.util.Set;
 
 /**
  * Registra un bean por cada interfaz anotada con {@link RestHttpClient}.
- *
  * Se activa con {@link EnableRestHttpClients}: busca en los paquetes base las interfaces de nivel
  * superior o anidadas estáticas y registra para cada una un {@link RestHttpClientFactoryBean}.
  */
@@ -88,7 +87,6 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
      * {@code RestClientUtil} del constructor del factory bean son los beans de {@link ClientConfig},
      * referenciados por sus nombres con prefijo ({@link ClientConfig#CIRCUIT_BREAKER_UTIL_BEAN} y
      * {@link ClientConfig#REST_CLIENT_UTIL_BEAN}).
-     *
      * Si un cliente ya está registrado con el mismo nombre (por ejemplo, porque dos
      * {@code @EnableRestHttpClients} escanean el mismo paquete), se omite; si el nombre lo usa otro bean,
      * se lanza un error en vez de sobrescribirlo.

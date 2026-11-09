@@ -29,7 +29,6 @@ import org.springframework.web.client.HttpStatusCodeException;
 /**
  * Crea las instancias de Resilience4j (circuit breaker, retry, rate limiter y time limiter) de cada
  * cliente a partir de su anotación {@link RestHttpClient}.
- *
  * Las instancias se guardan en registros por nombre: pedir dos veces el mismo nombre devuelve la misma
  * instancia.
  */
@@ -98,9 +97,8 @@ public class CircuitBreakerUtil {
 
     /**
      * Crea (u obtiene) el circuit breaker del cliente, con ventana deslizante por número de llamadas.
-     *
      * Qué cuenta como falla: los errores HTTP según {@link ErrorHandler#shouldRecordAsFailure}; los
-     * timeouts del time limiter y los errores de E/S siempre; los demás {@link ClientException} (errores
+     * timeouts del timelimiter y los errores de E/S siempre; los demás {@link ClientException} (errores
      * de configuración o de uso) nunca, porque no indican que el servicio esté fallando.
      *
      * @param name el nombre del cliente
@@ -134,7 +132,7 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Indica si la excepción es el timeout del time limiter ({@link ClientException} con un
+     * Indica si la excepción es el timeout del timelimiter ({@link ClientException} con un
      * {@link TimeoutException} como causa).
      *
      * @param throwable la excepción
@@ -159,13 +157,11 @@ public class CircuitBreakerUtil {
 
     /**
      * Crea (u obtiene) el retry del cliente con backoff exponencial.
-     *
      * Peticiones idempotentes (GET, HEAD, OPTIONS, TRACE, PUT, DELETE): los errores HTTP se reintentan solo
      * si {@link ErrorHandler#shouldRetry} lo permite; los timeouts y los errores de E/S siempre. Nunca se
      * reintenta cuando el circuito está abierto ({@link CallNotPermittedException}), cuando el rate limiter
      * rechaza la llamada ({@link RequestNotPermitted}) ni ante otros {@link ClientException} (errores de
      * configuración o de uso).
-     *
      * Peticiones no idempotentes (POST, PATCH): además de lo anterior, solo se reintentan las fallas de
      * conexión (ver {@link #isConnectionFailure(Throwable)}), porque en ellas la petición nunca llegó al
      * servidor; reintentar tras un error HTTP, un timeout de lectura o un corte de conexión podría
@@ -184,7 +180,7 @@ public class CircuitBreakerUtil {
     /**
      * Igual que {@link #createRetry(String, RestHttpClient, ErrorHandler, boolean)} pero con un total de
      * intentos propio, para los métodos con {@code @MethodConfig(maxRetries = ...)}; el resto de la configuración
-     * de reintentos se toma del cliente. El {@code name} debe ser distinto al del retry del cliente.
+     * de reintentos se toma del cliente. Él {@code name} debe ser distinto al del retry del cliente.
      *
      * @param name el nombre de la instancia
      * @param config la configuración del cliente
@@ -266,11 +262,11 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Crea (u obtiene) el time limiter del cliente; al vencer el tiempo cancela la tarea en curso.
+     * Crea (u obtiene) él time limiter del cliente; al vencer el tiempo cancela la tarea en curso.
      *
      * @param name el nombre del cliente
      * @param config la configuración del cliente
-     * @return el time limiter
+     * @return él time limiter
      */
     public TimeLimiter createTimeLimiter(String name, RestHttpClient config) {
         return createTimeLimiter(name, config.timeLimiter().timeout());
@@ -278,12 +274,12 @@ public class CircuitBreakerUtil {
 
     /**
      * Crea (u obtiene) un time limiter con un tiempo propio, para los métodos con
-     * {@code @MethodConfig(timeLimiterTimeout = ...)}. El {@code name} debe ser distinto al del time limiter del
+     * {@code @MethodConfig(timeLimiterTimeout = ...)}. Él {@code name} debe ser distinto al del timelimiter del
      * cliente.
      *
      * @param name el nombre de la instancia
      * @param timeoutMillis el tiempo máximo de cada intento, en milisegundos
-     * @return el time limiter
+     * @return él time limiter
      */
     public TimeLimiter createTimeLimiter(String name, long timeoutMillis) {
         TimeLimiterConfig timeLimiterConfig = TimeLimiterConfig.custom()

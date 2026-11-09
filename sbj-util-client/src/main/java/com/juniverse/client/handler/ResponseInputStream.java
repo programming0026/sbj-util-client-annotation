@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Cuerpo de una respuesta que se lee progresivamente (el retorno {@code InputStream} de un cliente).
- *
  * La respuesta sigue abierta, y su conexión del pool ocupada, hasta que se llama a {@link #close()}: quien
  * recibe el flujo es responsable de cerrarlo (con {@code try-with-resources}). Al cerrarlo se libera la
  * conexión; si no se leyó el cuerpo, HttpClient descarta el resto para poder reutilizarla.
@@ -55,7 +54,7 @@ public final class ResponseInputStream extends FilterInputStream {
     /**
      * Cierra el cuerpo y la respuesta, liberando la conexión del pool.
      *
-     * @throws IOException si falla el cierre del cuerpo
+     * @throws IOException sí falla el cierre del cuerpo
      */
     @Override
     public void close() throws IOException {

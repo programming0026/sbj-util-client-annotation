@@ -10,7 +10,6 @@ import java.util.function.UnaryOperator;
 
 /**
  * Resuelve placeholders en los atributos de texto de una anotación.
- *
  * Las anotaciones son inmutables, así que se crea una copia sintetizada en la que cada atributo
  * {@code String} o {@code String[]} (también dentro de anotaciones anidadas) pasa por el resolvedor.
  * Los demás atributos se conservan tal cual.
@@ -18,7 +17,7 @@ import java.util.function.UnaryOperator;
 public final class AnnotationPlaceholderResolver {
 
     /**
-     * Clase de utilidades: no se instancia.
+     * Instancia.
      */
     private AnnotationPlaceholderResolver() {
     }

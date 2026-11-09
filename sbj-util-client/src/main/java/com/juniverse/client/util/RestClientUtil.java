@@ -39,7 +39,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Construye el {@link RestClient} o {@link RestTemplate} de cada cliente sobre Apache HttpClient 5,
+ * Construye él {@link RestClient} o {@link RestTemplate} de cada cliente sobre Apache HttpClient 5,
  * con timeouts, SSL y pool de conexiones tomados de su anotación {@link RestHttpClient}.
  */
 public class RestClientUtil {
@@ -56,7 +56,6 @@ public class RestClientUtil {
     }
     /**
      * Crea la request factory de Apache HttpClient 5 con su pool de conexiones.
-     *
      * Quien la crea es responsable de cerrarla con {@link HttpComponentsClientHttpRequestFactory#destroy()}
      * cuando ya no se use, para liberar el pool.
      *
@@ -182,12 +181,10 @@ public class RestClientUtil {
 
    /**
      * Crea un HttpClient con configuración de timeouts, SSL y pool de conexiones.
-     *
      * El pool se configura con los atributos de la anotación:
      * - maxConnections: conexiones totales del pool (por defecto 100)
      * - maxConnectionsPerRoute: conexiones por ruta (por defecto 20)
      * - connectionTimeToLive: tiempo de vida de las conexiones en ms (por defecto -1, sin límite)
-     *
      * Si SSL está habilitado sin keystore ni truststore se usa el contexto SSL por defecto de la JVM.
      * IMPORTANTE: las contraseñas se toman tal cual de la anotación.
      *
@@ -198,14 +195,12 @@ public class RestClientUtil {
      * @throws CertificateException si un certificado no se puede cargar
      * @throws KeyStoreException si el keystore no es válido
      * @throws IOException si el keystore o truststore no se puede leer
-     * @throws KeyManagementException si falla la inicialización del contexto SSL
+     * @throws KeyManagementException sí falla la inicialización del contexto SSL
      */
     private HttpClient createHttpClient(RestHttpClient config)
             throws NoSuchAlgorithmException, UnrecoverableKeyException, CertificateException,
             KeyStoreException, IOException, KeyManagementException {
 
-        // connectionRequestTimeout: espera máxima para obtener una conexión del pool.
-        // responseTimeout: espera máxima de la respuesta.
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectionRequestTimeout(Timeout.of(config.connectTimeout(), TimeUnit.MILLISECONDS))
                 .setResponseTimeout(Timeout.of(config.readTimeout(), TimeUnit.MILLISECONDS))
@@ -263,8 +258,6 @@ public class RestClientUtil {
                         .setMaxConnPerRoute(config.maxConnectionsPerRoute());
 
 
-        // En HttpClient 5 el timeout de conexión TCP se define aquí; sin él se usa el valor por
-        // defecto de HttpClient (3 minutos).
         ConnectionConfig.Builder connConfig = ConnectionConfig.custom()
                 .setConnectTimeout(Timeout.of(config.connectTimeout(), TimeUnit.MILLISECONDS));
         if (config.connectionTimeToLive() > 0) {
@@ -274,9 +267,6 @@ public class RestClientUtil {
 
         PoolingHttpClientConnectionManager connectionManager = connectionManagerBuilder.build();
 
-        // Los reintentos los gestiona Resilience4j (RetryConfig y ErrorHandler.shouldRetry). Con la estrategia
-        // por defecto de HttpClient, cada GET/PUT/DELETE se reintentaba además por su cuenta ante 503/429 y
-        // errores de E/S, esperando 1 s: se duplicaban las peticiones y se ignoraba maxRetries.
         HttpClientBuilder builder = HttpClientBuilder.create()
                 .disableAutomaticRetries()
                 .setDefaultRequestConfig(requestConfig)

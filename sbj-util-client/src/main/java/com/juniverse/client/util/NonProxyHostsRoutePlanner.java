@@ -7,6 +7,7 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 /**
  * Envía por un proxy salvo los destinos de {@code nonProxyHosts}, a los que se llega directamente.
@@ -24,7 +25,7 @@ class NonProxyHostsRoutePlanner extends DefaultProxyRoutePlanner {
      */
     NonProxyHostsRoutePlanner(HttpHost proxy, String[] nonProxyHosts) {
         super(proxy);
-        this.nonProxyHosts = List.of(nonProxyHosts).stream()
+        this.nonProxyHosts = Stream.of(nonProxyHosts)
                 .map(pattern -> pattern.trim().toLowerCase(Locale.ROOT))
                 .filter(pattern -> !pattern.isEmpty())
                 .toList();

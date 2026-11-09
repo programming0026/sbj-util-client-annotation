@@ -41,8 +41,7 @@ import org.springframework.web.client.RestTemplate;
 
 /**
  * Crea el proxy de una interfaz {@link RestHttpClient}.
- *
- * Construye el RestClient o RestTemplate según {@code type()}, obtiene el {@link ErrorHandler} y devuelve
+ * Construye el RestClient o RestTemplate según {@code type()}, obtiene él {@link ErrorHandler} y devuelve
  * un proxy dinámico respaldado por {@link RestHttpClientInvocationHandler}. El proxy se crea una sola vez y
  * al arrancar el contexto ({@link #isEagerInit()}), aunque nadie lo inyecte, para que un cliente mal
  * declarado haga fallar el arranque; al cerrarse el contexto se libera el pool de conexiones.
@@ -231,7 +230,6 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
      * {@code RestClient.Builder} de Spring Boot (message converters con el Jackson de la aplicación,
      * observabilidad, interceptores), sin pedir ese bean: Boot lo crea con su propia request factory y su
      * pool, que quedarían sin cerrar.
-     *
      * Como los customizers van después, un test puede reemplazar la request factory por un
      * {@code MockRestServiceServer}; el {@code guard} impide que lo haga por accidente un customizer pensado
      * para otros clientes (ver {@link RequestFactoryOverridePolicy}).
@@ -270,7 +268,6 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
      * {@link RestTemplateBuilder} (Spring Boot), lo usa para heredar sus message converters, interceptores
      * y customizers; sus {@code clientSettings} globales se descartan para no pisar los timeouts y el SSL
      * propios del cliente.
-     *
      * Los customizers del builder se aplican después de la request factory del cliente (así un test puede
      * reemplazarla por un {@code MockRestServiceServer}); el {@code guard} revisa el resultado y restaura la
      * del cliente si el reemplazo no es aceptable. Después se aplican los {@link RestHttpClientCustomizer}.

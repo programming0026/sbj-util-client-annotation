@@ -5,7 +5,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,9 +15,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.function.Supplier;
+import org.apache.hc.client5.http.ssl.TrustAllStrategy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -67,7 +67,7 @@ public class SSLUtil {
      * @throws java.security.cert.CertificateException si un certificado no se puede cargar
      * @throws java.security.KeyStoreException si el almacén no es válido
      * @throws java.io.IOException si el archivo no se puede leer
-     * @throws java.security.KeyManagementException si falla la inicialización del contexto
+     * @throws java.security.KeyManagementException sí falla la inicialización del contexto
      */
     public SSLContext createSSLContext(String keystorePath, String keystorePassword,
             String truststorePath, String truststorePassword)
@@ -93,7 +93,6 @@ public class SSLUtil {
 
     /**
      * Crea un contexto SSL inseguro.
-     *
      * ADVERTENCIA: desactiva toda validación de certificados SSL/TLS y NUNCA debe usarse en producción;
      * deja la aplicación expuesta a ataques Man-in-the-Middle (MITM).
      * Solo se permite en entornos de desarrollo: alguno de los perfiles activos debe ser dev, local o
@@ -101,11 +100,11 @@ public class SSLUtil {
      *
      * @return el contexto SSL
      * @throws NoSuchAlgorithmException si el algoritmo TLS no está disponible
-     * @throws java.security.KeyManagementException si falla la inicialización del contexto
+     * @throws java.security.KeyManagementException sí falla la inicialización del contexto
      * @throws IllegalStateException si no es un entorno de desarrollo
      */
     public SSLContext createInsecureSSLContext()
-            throws NoSuchAlgorithmException, KeyManagementException {
+			throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
 
         String[] activeProfiles = environment.get().getActiveProfiles();
         if (!isDevelopmentEnvironment(activeProfiles)) {
@@ -121,37 +120,14 @@ public class SSLUtil {
         if (LOG.isWarnEnabled()) {
             LOG.warn("Insecure SSL enabled, active profiles: {}", Arrays.toString(activeProfiles));
         }
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        TrustManager[] trustAllCerts = new TrustManager[1];
-        trustAllCerts[0] = new TrustAllManager();
-        sslContext.init(null, trustAllCerts, new SecureRandom());
-        return sslContext;
+
+        return SSLContextBuilder.create()
+                .setProtocol("TLS")
+                .setSecureRandom(new SecureRandom())
+                .loadTrustMaterial(TrustAllStrategy.INSTANCE)
+                .build();
     }
 
-    /**
-     * Administrador de confianza que no valida ningún certificado.
-     *
-     * Es el comportamiento pedido por {@code @SSLConfig(enabled = false)} y es un riesgo aceptado y acotado:
-     * {@link #createInsecureSSLContext()} lo crea solo si algún perfil activo es dev, local o development y, si no,
-     * falla al arrancar; además avisa con un WARN cada vez. Nunca se usa por defecto.
-     */
-    private static class TrustAllManager implements X509TrustManager {
-
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType) { // NOSONAR solo dev
-            LOG.debug("Insecure SSL: Skipping client certificate validation");
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType) { // NOSONAR solo dev
-            LOG.debug("Insecure SSL: Skipping server certificate validation");
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    }
     /**
      * Indica si alguno de los perfiles activos es de desarrollo.
      *
@@ -218,7 +194,7 @@ public class SSLUtil {
      * Deduce el tipo de almacén por la extensión del archivo.
      *
      * @param path la ruta
-     * @return PKCS12 para .p12/.pfx; JKS en cualquier otro caso
+     * @return PKCS12 para '.p12/.pfx' JKS en cualquier otro caso
      */
     private static String getKeystoreType(String path) {
         if (path.endsWith(".p12") || path.endsWith(".pfx")) {
