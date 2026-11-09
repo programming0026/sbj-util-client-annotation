@@ -1,6 +1,6 @@
 package io.github.programming0026.juniverse.client.handler;
 
-import io.github.programming0026.juniverse.client.ClientPackages;
+import io.github.programming0026.juniverse.client.util.Constants;
 import io.github.programming0026.juniverse.client.autoconfigure.EnableRestHttpClients;
 import io.github.programming0026.juniverse.client.config.ClientConfig;
 import io.github.programming0026.juniverse.client.exception.ClientException;
@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RestHttpClientRegistrarTest {
 
     @Configuration
-    @EnableRestHttpClients(basePackages = ClientPackages.BASE + ".handler.scan")
+    @EnableRestHttpClients(basePackages = Constants.BASE + ".handler.scan")
     static class ExplicitPackagesConfig {
     }
 
@@ -50,7 +50,7 @@ class RestHttpClientRegistrarTest {
     }
 
     @Configuration
-    @EnableRestHttpClients(basePackages = ClientPackages.BASE + ".handler.scan")
+    @EnableRestHttpClients(basePackages = Constants.BASE + ".handler.scan")
     static class OverlappingConfig {
     }
 

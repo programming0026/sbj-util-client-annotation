@@ -1,6 +1,6 @@
 package io.github.programming0026.juniverse.client.aot;
 
-import io.github.programming0026.juniverse.client.ClientPackages;
+import io.github.programming0026.juniverse.client.util.Constants;
 import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 import io.github.programming0026.juniverse.client.autoconfigure.CircuitBreakerConfig;
 import io.github.programming0026.juniverse.client.autoconfigure.MethodConfig;
@@ -107,7 +107,7 @@ public final class RestHttpClientRuntimeHints {
     private static void registerAnnotation(RuntimeHints hints, Class<? extends Annotation> type) {
         hints.reflection().registerType(type, MemberCategory.INVOKE_PUBLIC_METHODS);
         // La copia sintetizada de las anotaciones de la librería es un proxy JDK de la anotación.
-        if (type.getPackageName().startsWith(ClientPackages.BASE + ".")) {
+        if (type.getPackageName().startsWith(Constants.BASE + ".")) {
             hints.proxies().registerJdkProxy(type);
         }
     }

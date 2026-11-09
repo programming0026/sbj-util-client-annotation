@@ -1,6 +1,6 @@
 package io.github.programming0026.juniverse.client.boot;
 
-import io.github.programming0026.juniverse.client.ClientPackages;
+import io.github.programming0026.juniverse.client.util.Constants;
 import io.github.programming0026.juniverse.client.handler.placeholder.PlaceholderClients;
 import io.github.programming0026.juniverse.client.handler.scan.ScannedClients;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -25,7 +25,7 @@ class RestHttpClientAutoConfigurationTest {
     /** Simula una aplicación cuyo {@code @SpringBootApplication} está en el paquete de los clientes de prueba. */
     private final ApplicationContextRunner bootApplication = runner.withInitializer(context ->
             AutoConfigurationPackages.register((BeanDefinitionRegistry) context.getBeanFactory(),
-                    ClientPackages.BASE + ".handler.scan"));
+                    Constants.BASE + ".handler.scan"));
 
     @Test
     void registersClientsFromApplicationPackagesWithoutEnableAnnotation() {
@@ -40,7 +40,7 @@ class RestHttpClientAutoConfigurationTest {
     void enableAnnotationTakesPrecedenceOverAutoScan() {
         bootApplication
                 .withUserConfiguration(PlaceholderClients.Config.class)
-                .withPropertyValues("test.clients-package=" + ClientPackages.BASE + ".handler.placeholder",
+                .withPropertyValues("test.clients-package=" + Constants.BASE + ".handler.placeholder",
                         "test.client-name=items", "test.base-url=http://localhost", "test.prefix=/v1",
                         "test.api-key=k", "test.default-page=1")
                 .run(context -> {

@@ -1,6 +1,5 @@
 package io.github.programming0026.juniverse.client.util;
 
-import io.github.programming0026.juniverse.client.ClientPackages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpRequest;
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 public final class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
 
     /** Prefijo del nombre del logger de cada cliente. */
-    public static final String LOGGER_PREFIX = ClientPackages.BASE + ".http.";
+    public static final String LOGGER_PREFIX = Constants.BASE + ".http.";
 
     /** El logger del cliente. */
     private final Logger log;

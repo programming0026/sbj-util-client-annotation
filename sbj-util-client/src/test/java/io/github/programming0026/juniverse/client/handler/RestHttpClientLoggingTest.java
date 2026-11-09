@@ -1,6 +1,6 @@
 package io.github.programming0026.juniverse.client.handler;
 
-import io.github.programming0026.juniverse.client.ClientPackages;
+import io.github.programming0026.juniverse.client.util.Constants;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** {@code logging = true}: una línea por petición, sin headers, cuerpos ni valores de la query. */
 class RestHttpClientLoggingTest {
 
-    private static final String LOGGER = ClientPackages.BASE + ".http";
+    private static final String LOGGER = Constants.BASE + ".http";
 
     @RestHttpClient(name = "payments", url = "${t.url}", logging = true,
             retry = @RetryConfig(maxRetries = 3, retryDelay = 1))

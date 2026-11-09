@@ -1,6 +1,6 @@
 package io.github.programming0026.juniverse.client.handler.duplicate;
 
-import io.github.programming0026.juniverse.client.ClientPackages;
+import io.github.programming0026.juniverse.client.util.Constants;
 import io.github.programming0026.juniverse.client.autoconfigure.EnableRestHttpClients;
 import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 
@@ -11,7 +11,7 @@ public final class DuplicateClients {
     }
 
     /** Configuración que escanea este paquete de forma explícita. */
-    @EnableRestHttpClients(basePackages = ClientPackages.BASE + ".handler.duplicate")
+    @EnableRestHttpClients(basePackages = Constants.BASE + ".handler.duplicate")
     public static class Config {
     }
 

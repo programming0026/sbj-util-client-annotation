@@ -99,7 +99,7 @@ class RestHttpClientAotTest {
     }
 
     @Test
-    void registersTheMethodsOfTheClientInterface() throws NoSuchMethodException {
+    void registersTheMethodsOfTheClientInterface() {
         RuntimeHints hints = hintsFor(ItemsClient.class);
         for (Method method : ItemsClient.class.getMethods()) {
             assertThat(RuntimeHintsPredicates.reflection().onMethodInvocation(method)).accepts(hints);

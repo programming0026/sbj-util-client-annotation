@@ -1,6 +1,6 @@
 package io.github.programming0026.juniverse.client.handler;
 
-import io.github.programming0026.juniverse.client.ClientPackages;
+import io.github.programming0026.juniverse.client.util.Constants;
 import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 import io.github.programming0026.juniverse.client.autoconfigure.SSLConfig;
 import io.github.programming0026.juniverse.client.exception.ClientException;
@@ -70,7 +70,7 @@ class RestHttpClientPlaceholderTest {
     @Test
     void resolvesPlaceholdersFromEnvironmentEndToEnd() {
         Map<String, Object> properties = new HashMap<>();
-        properties.put("test.clients-package", ClientPackages.BASE + ".handler.placeholder");
+        properties.put("test.clients-package", Constants.BASE + ".handler.placeholder");
         properties.put("test.client-name", "itemsFromConfig");
         properties.put("test.base-url", "http://127.0.0.1:" + server.getAddress().getPort() + "/api");
         properties.put("test.prefix", "/v2");
@@ -120,7 +120,7 @@ class RestHttpClientPlaceholderTest {
     void unresolvableBeanNameFailsRegistration() {
         try (var context = new AnnotationConfigApplicationContext()) {
             context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("test", Map.of(
-                    "test.clients-package", ClientPackages.BASE + ".handler.placeholder")));
+                    "test.clients-package", Constants.BASE + ".handler.placeholder")));
             context.register(PlaceholderClients.Config.class);
 
             assertThatThrownBy(context::refresh)
