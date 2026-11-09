@@ -161,7 +161,7 @@ public @interface RestHttpClient {
 
     /**
      * Registra cada petición HTTP (método, URL, estado y duración) en el logger
-     * {@code <paquete de la librería>.http.<nombre del cliente>} (ver {@code ClientPackages.BASE}), a nivel INFO,
+     * {@code <paquete de la librería>.http.<nombre del cliente>} (ver {@code Constants.BASE}), a nivel INFO,
      * o WARN si falla. Nunca registra headers ni cuerpos, y de la query solo los nombres de los parámetros. Se
      * aplica antes que los {@link #interceptors()}, así que la duración incluye lo que ellos hagan.
      *

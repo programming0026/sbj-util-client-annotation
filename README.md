@@ -19,7 +19,7 @@ Este repositorio contiene dos proyectos Maven independientes:
 
 | Proyecto | Qué es | Documentación |
 |---|---|---|
-| [`sbj-util-client`](sbj-util-client) | La **librería** (`io.github.programming0026.juniverse:juniverse-client-annotation`, versión 2.0.0). | [README](sbj-util-client/README.md) |
+| [`sbj-util-client`](sbj-util-client) | La **librería** (`io.github.programming0026.juniverse.client:juniverse-client-annotation`, versión 2.0.0). | [README](sbj-util-client/README.md) |
 | [`sbj-util-client-example`](sbj-util-client-example) | Una **aplicación de ejemplo** que consume [DummyJSON](https://dummyjson.com) (productos, autenticación e imágenes) con arquitectura hexagonal y principios SOLID. | [README](sbj-util-client-example/README.md) |
 
 ```mermaid
@@ -90,7 +90,7 @@ Para usar la librería en tu propio proyecto, tras instalarla agrégala como dep
 
 ```xml
 <dependency>
-    <groupId>io.github.programming0026.juniverse</groupId>
+    <groupId>io.github.programming0026.juniverse.client</groupId>
     <artifactId>juniverse-client-annotation</artifactId>
     <version>2.0.0</version>
 </dependency>

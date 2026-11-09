@@ -46,7 +46,7 @@
 		</dependency>
 		<!-- Clientes REST declarativos hacia DummyJSON (adaptador de salida). -->
 		<dependency>
-			<groupId>io.github.programming0026.juniverse</groupId>
+			<groupId>io.github.programming0026.juniverse.client</groupId>
 			<artifactId>juniverse-client-annotation</artifactId>
 			<version>${sbj-util-client.version}</version>
 		</dependency>
