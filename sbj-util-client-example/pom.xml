@@ -46,8 +46,8 @@
 		</dependency>
 		<!-- Clientes REST declarativos hacia DummyJSON (adaptador de salida). -->
 		<dependency>
-			<groupId>com.juniverse.client</groupId>
-			<artifactId>sbj-util-client</artifactId>
+			<groupId>io.github.programming0026.juniverse</groupId>
+			<artifactId>juniverse-client-annotation</artifactId>
 			<version>${sbj-util-client.version}</version>
 		</dependency>
 		<!-- Documentación OpenAPI (/v3/api-docs) y Swagger UI (/swagger-ui.html) de la API propia. -->

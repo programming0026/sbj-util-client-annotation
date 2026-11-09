@@ -1,9 +1,9 @@
 package com.juniverse.client.example.infrastructure.adapter.out.dummyjson.api;
 
-import com.juniverse.client.autoconfigure.CircuitBreakerConfig;
-import com.juniverse.client.autoconfigure.RestHttpClient;
-import com.juniverse.client.autoconfigure.RetryConfig;
-import com.juniverse.client.autoconfigure.TimeLimiterConfig;
+import io.github.programming0026.juniverse.client.autoconfigure.CircuitBreakerConfig;
+import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
+import io.github.programming0026.juniverse.client.autoconfigure.RetryConfig;
+import io.github.programming0026.juniverse.client.autoconfigure.TimeLimiterConfig;
 import com.juniverse.client.example.infrastructure.adapter.out.dummyjson.LoggingInterceptor;
 import com.juniverse.client.example.infrastructure.adapter.out.dummyjson.dto.CategoryDto;
 import com.juniverse.client.example.infrastructure.adapter.out.dummyjson.dto.ProductDto;

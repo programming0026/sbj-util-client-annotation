@@ -24,19 +24,19 @@ class HexagonalArchitectureTest {
     @Test
     void domainDependsOnNothingOutsideItself() {
         assertNoImports("domain", List.of("org.springframework", "com.fasterxml", "tools.jackson", "jakarta", "io.swagger", "org.springdoc",
-                "com.juniverse.client.autoconfigure", BASE + ".application", BASE + ".infrastructure"));
+                "io.github.programming0026.juniverse.client.autoconfigure", BASE + ".application", BASE + ".infrastructure"));
     }
 
     @Test
     void applicationDependsOnlyOnTheDomain() {
         assertNoImports("application", List.of("org.springframework", "com.fasterxml", "tools.jackson",
-                "jakarta", "io.swagger", "org.springdoc", "com.juniverse.client.autoconfigure", BASE + ".infrastructure"));
+                "jakarta", "io.swagger", "org.springdoc", "io.github.programming0026.juniverse.client.autoconfigure", BASE + ".infrastructure"));
     }
 
     @Test
     void inboundAdaptersDoNotKnowOutboundAdapters() {
         assertNoImports("infrastructure/adapter/in", List.of(BASE + ".infrastructure.adapter.out",
-                "com.juniverse.client.autoconfigure"));
+                "io.github.programming0026.juniverse.client.autoconfigure"));
     }
 
     @Test

@@ -7,7 +7,7 @@ clientes declarativos, y está organizada con **arquitectura hexagonal** y princ
 ## Requisitos
 
 - Java 21 y Maven 3.9+
-- La librería instalada en el repositorio local de Maven (el ejemplo depende de `sbj-util-client:2.0.0`):
+- La librería instalada en el repositorio local de Maven (el ejemplo depende de `juniverse-client-annotation:2.0.0`):
 
 ```bash
 cd ../sbj-util-client

@@ -1,6 +1,6 @@
 # sbj-util-client
 
-Librería para declarar **clientes REST como interfaces** en Spring Boot, con patrones de resiliencia de
+Librería para declarar **clientes REST como interfaces** en Spring Boot 4, con patrones de resiliencia de
 Resilience4j (retry, circuit breaker, rate limiter y time limiter) integrados.
 
 Los métodos se describen con las mismas anotaciones de Spring Web que se usan en los controladores
@@ -10,7 +10,8 @@ con `RestClient` o `RestTemplate` sobre Apache HttpClient 5.
 ## Requisitos
 
 - Java 21
-- Spring Boot 4.1
+- **Spring Boot 4.x**: la librería usa las APIs de Spring Framework 7 y Jackson 3, así que
+  **no sirve para aplicaciones con Spring Boot 3.x o anterior**.
 - Maven 3.9+
 
 ## Instalación
@@ -25,8 +26,8 @@ Y agrégala como dependencia:
 
 ```xml
 <dependency>
-    <groupId>com.juniverse.client</groupId>
-    <artifactId>sbj-util-client</artifactId>
+    <groupId>io.github.programming0026.juniverse</groupId>
+    <artifactId>juniverse-client-annotation</artifactId>
     <version>2.0.0</version>
 </dependency>
 ```
@@ -427,16 +428,16 @@ Se ejecutan en el orden declarado y **después** de los interceptores globales d
 Para ver qué llama cada cliente no hace falta escribir un interceptor: `@RestHttpClient(logging = true)`.
 
 ```
-INFO  com.juniverse.client.http.payments : GET https://payments.internal.com/charges?from&limit -> 200 (84 ms)
-WARN  com.juniverse.client.http.payments : POST https://payments.internal.com/charges failed after 5012 ms: ...
+INFO  io.github.programming0026.juniverse.client.http.payments : GET https://payments.internal.com/charges?from&limit -> 200 (84 ms)
+WARN  io.github.programming0026.juniverse.client.http.payments : POST https://payments.internal.com/charges failed after 5012 ms: ...
 ```
 
 - Una línea por **intento** (los reintentos se ven uno a uno): INFO con el estado y la duración, o WARN si la
   petición falla antes de recibir respuesta.
 - **Nunca** registra headers ni cuerpos, y de la query solo los **nombres** de los parámetros (sus valores
   pueden llevar tokens o datos personales). Las credenciales de la URL tampoco salen.
-- Cada cliente tiene su logger, `com.juniverse.client.http.<nombre del cliente>` (el `name()` o el nombre
-  simple de la interfaz), así que se puede subir o bajar por cliente (`logging.level.com.juniverse.client.http.payments=WARN`).
+- Cada cliente tiene su logger, `io.github.programming0026.juniverse.client.http.<nombre del cliente>` (el `name()` o el nombre
+  simple de la interfaz), así que se puede subir o bajar por cliente (`logging.level.io.github.programming0026.juniverse.client.http.payments=WARN`).
 - Se aplica **antes** que los `interceptors` del cliente: la duración incluye lo que ellos hagan.
 
 ## JSON por cliente

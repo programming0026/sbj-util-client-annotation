@@ -1,2 +1,2 @@
-com.juniverse.client.boot.RestHttpClientAutoConfiguration
-com.juniverse.client.boot.RestHttpClientMetricsAutoConfiguration
+io.github.programming0026.juniverse.client.boot.RestHttpClientAutoConfiguration
+io.github.programming0026.juniverse.client.boot.RestHttpClientMetricsAutoConfiguration

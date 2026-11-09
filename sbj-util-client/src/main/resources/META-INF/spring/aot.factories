@@ -1,1 +1,1 @@
-org.springframework.beans.factory.aot.BeanFactoryInitializationAotProcessor=com.juniverse.client.aot.RestHttpClientAotProcessor
+org.springframework.beans.factory.aot.BeanFactoryInitializationAotProcessor=io.github.programming0026.juniverse.client.aot.RestHttpClientAotProcessor

@@ -1,6 +1,6 @@
 # sbj-util-client-annotation
 
-Clientes REST **declarativos** para Spring Boot, con resiliencia integrada, y una aplicación de ejemplo que los
+Clientes REST **declarativos** para Spring Boot 4, con resiliencia integrada, y una aplicación de ejemplo que los
 usa. Declaras una interfaz con las anotaciones de Spring Web que ya conoces y la librería genera el cliente:
 
 ```java
@@ -19,7 +19,7 @@ Este repositorio contiene dos proyectos Maven independientes:
 
 | Proyecto | Qué es | Documentación |
 |---|---|---|
-| [`sbj-util-client`](sbj-util-client) | La **librería** (`com.juniverse.client:sbj-util-client`, versión 2.0.0). | [README](sbj-util-client/README.md) |
+| [`sbj-util-client`](sbj-util-client) | La **librería** (`io.github.programming0026.juniverse:juniverse-client-annotation`, versión 2.0.0). | [README](sbj-util-client/README.md) |
 | [`sbj-util-client-example`](sbj-util-client-example) | Una **aplicación de ejemplo** que consume [DummyJSON](https://dummyjson.com) (productos, autenticación e imágenes) con arquitectura hexagonal y principios SOLID. | [README](sbj-util-client-example/README.md) |
 
 ```mermaid
@@ -90,8 +90,8 @@ Para usar la librería en tu propio proyecto, tras instalarla agrégala como dep
 
 ```xml
 <dependency>
-    <groupId>com.juniverse.client</groupId>
-    <artifactId>sbj-util-client</artifactId>
+    <groupId>io.github.programming0026.juniverse</groupId>
+    <artifactId>juniverse-client-annotation</artifactId>
     <version>2.0.0</version>
 </dependency>
 ```
@@ -123,7 +123,6 @@ sbj-util-client-annotation/
 ├── LICENSE                      Licencia MIT
 ├── sbj-util-client/             La librería
 │   ├── README.md                Documentación completa y diagrama de clases
-│   ├── MEJORAS.md               Mejoras pendientes, para revisar y priorizar
 │   ├── config/checkstyle.xml    Reglas de estilo
 │   └── src/                     Código y pruebas
 └── sbj-util-client-example/     La aplicación de ejemplo
