@@ -130,13 +130,6 @@ sbj-util-client-annotation/
     └── src/                     Código y pruebas
 ```
 
-## Convenciones
-
-- **Español**: comentarios, Javadoc y documentación (READMEs).
-- **Inglés**: nombres de clases, métodos y variables, mensajes de log y mensajes de excepción.
-- **Logging**: siempre un `Logger` de SLF4J; nunca `System.out`, `System.err` ni `printStackTrace()`. Una prueba
-  automática (`CodingRulesTest`) lo vigila en ambos proyectos.
-
 ## Licencia
 
 [MIT](LICENSE).
