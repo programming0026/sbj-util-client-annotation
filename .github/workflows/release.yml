@@ -1,0 +1,47 @@
+name: Release
+
+# Publica la librería en Maven Central al subir un tag con formato v<versión> (por ejemplo, v2.0.0).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # setup-java escribe settings.xml con las credenciales del servidor "central" e importa la clave GPG.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      # El tag debe coincidir con la versión del pom (v2.0.0 <-> 2.0.0); si no, se aborta antes de publicar.
+      - name: Check tag matches pom version
+        working-directory: sbj-util-client
+        run: |
+          POM_VERSION=$(mvn -B -ntp -q help:evaluate -Dexpression=project.version -DforceStdout)
+          if [ "v${POM_VERSION}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match pom version ${POM_VERSION}"
+            exit 1
+          fi
+
+      # deploy con el perfil release: tests, JaCoCo, checkstyle, jars de fuentes y Javadoc, firma GPG y subida.
+      - name: Deploy
+        working-directory: sbj-util-client
+        run: mvn -B -ntp -Prelease deploy
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

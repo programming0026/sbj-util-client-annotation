@@ -12,7 +12,7 @@
 	<artifactId>sbj-util-client-example</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<name>sbj-util-client-example</name>
-	<description>Ejemplo de uso de sbj-util-client consumiendo la API de DummyJSON con arquitectura hexagonal.</description>
+	<description>Example of using sbj-util-client to consume the DummyJSON API, following a hexagonal architecture</description>
 	<url>https://github.com/programming0026/sbj-util-client-annotation</url>
 	<licenses>
 		<license>
@@ -39,18 +39,15 @@
 		<springdoc.version>3.2.0</springdoc.version>
 	</properties>
 	<dependencies>
-		<!-- API REST propia del ejemplo (adaptador de entrada). -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
-		<!-- Clientes REST declarativos hacia DummyJSON (adaptador de salida). -->
 		<dependency>
-			<groupId>io.github.programming0026.juniverse.client</groupId>
-			<artifactId>juniverse-client-annotation</artifactId>
+			<groupId>io.github.programming0026</groupId>
+			<artifactId>sbj-util-client-annotation</artifactId>
 			<version>${sbj-util-client.version}</version>
 		</dependency>
-		<!-- Documentación OpenAPI (/v3/api-docs) y Swagger UI (/swagger-ui.html) de la API propia. -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>

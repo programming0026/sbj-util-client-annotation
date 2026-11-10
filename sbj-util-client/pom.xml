@@ -8,11 +8,12 @@
         <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>io.github.programming0026.juniverse.client</groupId>
-    <artifactId>juniverse-client-annotation</artifactId>
+    <groupId>io.github.programming0026</groupId>
+    <artifactId>sbj-util-client-annotation</artifactId>
     <version>2.0.0</version>
     <name>sbj-util-client</name>
     <description>Declarative REST clients for Spring Boot with built-in Resilience4j resilience (circuit breaker, retry, rate limiter and time limiter).</description>
+    <packaging>jar</packaging>
     <url>https://github.com/programming0026/sbj-util-client-annotation</url>
     <licenses>
         <license>
@@ -25,19 +26,24 @@
         <developer>
             <id>programming0026</id>
             <name>programming0026</name>
-            <email>programming0026@gmail.com</email>
             <url>https://github.com/programming0026</url>
         </developer>
     </developers>
     <scm>
         <connection>scm:git:https://github.com/programming0026/sbj-util-client-annotation.git</connection>
         <developerConnection>scm:git:git@github.com:programming0026/sbj-util-client-annotation.git</developerConnection>
-        <tag>HEAD</tag>
         <url>https://github.com/programming0026/sbj-util-client-annotation</url>
     </scm>
     <properties>
         <java.version>21</java.version>
         <resilience4j.version>2.3.0</resilience4j.version>
+        <central.autoPublish>false</central.autoPublish>
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+        <sonar.language>java</sonar.language>
+        <sonar.coverage.jacoco.xmlReportPaths>${basedir}/target/jacoco-report/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.sources>src/main</sonar.sources>
+        <sonar.tests>src/test</sonar.tests>
     </properties>
     <dependencies>
         <dependency>
@@ -207,4 +213,43 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.8</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.12.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>${central.autoPublish}</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
