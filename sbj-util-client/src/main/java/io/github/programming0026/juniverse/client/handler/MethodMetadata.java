@@ -64,6 +64,8 @@ import java.util.stream.BaseStream;
  * Se calcula una sola vez por método al crear el proxy (las anotaciones no se vuelven a leer en cada
  * llamada) y en ese momento se valida: un método mal declarado hace fallar la creación del cliente, es decir,
  * el arranque de la aplicación, en vez de la primera llamada.
+ *
+ * @author Java Universe
  */
 final class MethodMetadata {
 

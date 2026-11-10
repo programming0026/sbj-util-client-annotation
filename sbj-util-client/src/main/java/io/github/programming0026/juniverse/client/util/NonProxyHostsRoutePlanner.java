@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 
 /**
  * Envía por un proxy salvo los destinos de {@code nonProxyHosts}, a los que se llega directamente.
+ *
+ * @author Java Universe
  */
 class NonProxyHostsRoutePlanner extends DefaultProxyRoutePlanner {
 

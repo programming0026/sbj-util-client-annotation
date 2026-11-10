@@ -14,6 +14,8 @@ import java.util.List;
 /**
  * Procesador AOT: durante la compilación (Spring AOT / imagen nativa) busca los clientes registrados y
  * declara sus hints de proxy y reflexión. Se registra en {@code META-INF/spring/aot.factories}.
+ *
+ * @author Java Universe
  */
 public class RestHttpClientAotProcessor implements BeanFactoryInitializationAotProcessor {
 

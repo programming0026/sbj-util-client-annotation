@@ -18,6 +18,8 @@ import java.lang.annotation.Target;
  * }</pre>
  *
  * Los valores se validan al crear el cliente.
+ *
+ * @author Java Universe
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

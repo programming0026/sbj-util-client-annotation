@@ -28,6 +28,8 @@ import org.springframework.web.client.RestTemplate;
  *     };
  * }
  * }</pre>
+ *
+ * @author Java Universe
  */
 public interface RestHttpClientCustomizer {
 

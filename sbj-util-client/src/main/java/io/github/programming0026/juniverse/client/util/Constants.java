@@ -4,6 +4,8 @@ package io.github.programming0026.juniverse.client.util;
  * El paquete raíz de la librería, escrito como texto en un único lugar.
  * Los dos archivos de {@code META-INF/spring} (autoconfiguración y AOT) no admiten constantes y llevan el
  * nombre completo de sus clases; la misma prueba comprueba que siguen apuntando a clases que existen.
+ *
+ * @author Java Universe
  */
 public final class Constants {
 

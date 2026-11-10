@@ -36,6 +36,8 @@ import java.util.Set;
  * Registra un bean por cada interfaz anotada con {@link RestHttpClient}.
  * Se activa con {@link EnableRestHttpClients}: busca en los paquetes base las interfaces de nivel
  * superior o anidadas estáticas y registra para cada una un {@link RestHttpClientFactoryBean}.
+ *
+ * @author Java Universe
  */
 public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware,
         ResourceLoaderAware {

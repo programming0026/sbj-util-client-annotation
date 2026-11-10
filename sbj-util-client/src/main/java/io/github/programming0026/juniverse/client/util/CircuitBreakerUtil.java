@@ -31,6 +31,8 @@ import org.springframework.web.client.HttpStatusCodeException;
  * cliente a partir de su anotación {@link RestHttpClient}.
  * Las instancias se guardan en registros por nombre: pedir dos veces el mismo nombre devuelve la misma
  * instancia.
+ *
+ * @author Java Universe
  */
 public class CircuitBreakerUtil {
 

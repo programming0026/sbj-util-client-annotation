@@ -17,6 +17,8 @@ import java.util.List;
  *
  * Lo usa {@link RestHttpClientAutoConfiguration} cuando la aplicación no declara
  * {@code @EnableRestHttpClients}.
+ *
+ * @author Java Universe
  */
 class AutoConfigurationPackagesRegistrar extends RestHttpClientRegistrar {
 

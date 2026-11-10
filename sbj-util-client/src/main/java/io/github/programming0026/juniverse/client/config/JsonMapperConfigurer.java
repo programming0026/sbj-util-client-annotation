@@ -19,6 +19,8 @@ import tools.jackson.databind.json.JsonMapper;
  *     }
  * }
  * }</pre>
+ *
+ * @author Java Universe
  */
 @FunctionalInterface
 public interface JsonMapperConfigurer {

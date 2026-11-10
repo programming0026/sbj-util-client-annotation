@@ -10,6 +10,8 @@ import java.lang.annotation.ElementType;
  * Configuración del patrón Rate Limiter de Resilience4j.
  *
  * Limita el número de peticiones permitidas en un periodo de tiempo.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

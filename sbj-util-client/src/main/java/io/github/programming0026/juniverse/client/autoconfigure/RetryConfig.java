@@ -11,6 +11,8 @@ import java.lang.annotation.ElementType;
  *
  * Reintenta automáticamente las peticiones fallidas con espera configurable y backoff exponencial.
  * Siempre está activo; qué errores se reintentan lo decide {@code ErrorHandler.shouldRetry}.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

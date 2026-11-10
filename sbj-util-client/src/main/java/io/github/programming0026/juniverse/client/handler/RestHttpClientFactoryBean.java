@@ -47,6 +47,7 @@ import org.springframework.web.client.RestTemplate;
  * declarado haga fallar el arranque; al cerrarse el contexto se libera el pool de conexiones.
  *
  * @param <T> el tipo de la interfaz del cliente
+ * @author Java Universe
  */
 public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, ApplicationContextAware, DisposableBean {
 

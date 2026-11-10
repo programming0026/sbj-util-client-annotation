@@ -21,6 +21,8 @@ import java.util.function.Consumer;
  * Vigila que los customizers no quiten por accidente la request factory de un cliente (la que lleva su pool
  * de conexiones, timeouts y SSL), según la {@link RequestFactoryOverridePolicy}.
  * Cada vez que un customizer reemplaza la request factory, la librería sabe cuál fue y lo registra en el log.
+ *
+ * @author Java Universe
  */
 final class RequestFactoryGuard {
 

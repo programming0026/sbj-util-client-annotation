@@ -14,6 +14,8 @@ import org.springframework.core.env.Environment;
  * Los nombres de los beans llevan el prefijo {@code restHttpClient} para no chocar con beans de la
  * aplicación (por ejemplo, un {@code sslUtil} propio). {@code RestHttpClientRegistrar} los referencia por
  * estas constantes, así que un bean de la aplicación del mismo tipo tampoco interfiere.
+ *
+ * @author Java Universe
  */
 @Configuration(proxyBeanMethods = false)
 public class ClientConfig {

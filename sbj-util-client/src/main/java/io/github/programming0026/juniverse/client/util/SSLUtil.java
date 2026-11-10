@@ -25,6 +25,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
 /**
  * Crea contextos SSL a partir de un keystore y/o truststore, o un contexto inseguro solo para desarrollo.
+ *
+ * @author Java Universe
  */
 public class SSLUtil {
     /** El logger. */

@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
  * Lanza {@link HttpClientErrorException} para respuestas 4xx y {@link HttpServerErrorException} para
  * 5xx (la subclase específica, por ejemplo {@code NotFound} o {@code ServiceUnavailable}), reintenta
  * 502/503/504 y cuenta los 5xx como falla para el circuit breaker.
+ *
+ * @author Java Universe
  */
 public class DefaultErrorHandler implements ErrorHandler {
 

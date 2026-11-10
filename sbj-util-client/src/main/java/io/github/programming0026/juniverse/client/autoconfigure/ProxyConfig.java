@@ -12,6 +12,8 @@ import java.lang.annotation.Target;
  * El proxy está desactivado mientras {@link #host()} esté vacío. Todos los textos admiten placeholders, por
  * ejemplo {@code @ProxyConfig(host = "${proxy.host:}", port = 3128)}: con la propiedad sin definir no hay
  * proxy.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

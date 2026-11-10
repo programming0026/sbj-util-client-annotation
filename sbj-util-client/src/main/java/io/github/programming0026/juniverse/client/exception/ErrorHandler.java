@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatusCode;
 /**
  * Define cómo se tratan las respuestas HTTP con error. Si existe un bean de Spring del tipo declarado se
  * usa ese; si no, Spring crea la instancia con inyección de dependencias.
+ *
+ * @author Java Universe
  */
 public interface ErrorHandler {
 

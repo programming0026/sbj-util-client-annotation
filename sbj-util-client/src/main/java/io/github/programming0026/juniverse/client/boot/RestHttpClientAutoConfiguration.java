@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Import;
  *
  * No se activa si la aplicación declara {@code @EnableRestHttpClients} (entonces mandan sus
  * {@code basePackages}) ni con {@code rest-http-client.auto-scan.enabled=false}.
+ *
+ * @author Java Universe
  */
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "rest-http-client.auto-scan", name = "enabled", havingValue = "true",

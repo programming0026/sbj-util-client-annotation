@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
  * pueden llevar tokens o datos personales). Usa un logger por cliente, {@value #LOGGER_PREFIX}{@code <cliente>},
  * para poder subir o bajar su nivel desde la configuración de logging. Se registra una línea por intento, así que
  * los reintentos se ven uno a uno.
+ *
+ * @author Java Universe
  */
 public final class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
 

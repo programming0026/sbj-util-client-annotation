@@ -51,6 +51,8 @@ import java.util.stream.Collectors;
  * orden que recomienda Resilience4j: Retry (el más externo) → CircuitBreaker → RateLimiter → TimeLimiter →
  * petición. Así cada intento pasa por el circuit breaker, consume un permiso del rate limiter y tiene su
  * propio límite de tiempo.
+ *
+ * @author Java Universe
  */
 public class RestHttpClientInvocationHandler implements InvocationHandler {
 

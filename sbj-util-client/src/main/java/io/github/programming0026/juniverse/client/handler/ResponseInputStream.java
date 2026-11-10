@@ -12,6 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * La respuesta sigue abierta, y su conexión del pool ocupada, hasta que se llama a {@link #close()}: quien
  * recibe el flujo es responsable de cerrarlo (con {@code try-with-resources}). Al cerrarlo se libera la
  * conexión; si no se leyó el cuerpo, HttpClient descarta el resto para poder reutilizarla.
+ *
+ * @author Java Universe
  */
 public final class ResponseInputStream extends FilterInputStream {
 

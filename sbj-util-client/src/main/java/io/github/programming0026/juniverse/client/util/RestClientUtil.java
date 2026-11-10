@@ -41,6 +41,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Construye él {@link RestClient} o {@link RestTemplate} de cada cliente sobre Apache HttpClient 5,
  * con timeouts, SSL y pool de conexiones tomados de su anotación {@link RestHttpClient}.
+ *
+ * @author Java Universe
  */
 public class RestClientUtil {
     /** Utilidad para crear los contextos SSL. */

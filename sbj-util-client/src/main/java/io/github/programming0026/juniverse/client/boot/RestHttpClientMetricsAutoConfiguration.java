@@ -20,6 +20,8 @@ import org.springframework.context.annotation.Bean;
  * Se activa solo si {@code micrometer-core} y {@code resilience4j-micrometer} están en el classpath y existen
  * clientes. Expone un {@link MeterBinder}, que Spring Boot aplica a sus {@code MeterRegistry}; los clientes
  * creados después del enlace también se publican.
+ *
+ * @author Java Universe
  */
 @AutoConfiguration(after = RestHttpClientAutoConfiguration.class)
 @ConditionalOnClass(name = {"io.micrometer.core.instrument.binder.MeterBinder",

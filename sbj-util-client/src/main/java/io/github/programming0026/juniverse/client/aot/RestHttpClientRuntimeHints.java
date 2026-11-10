@@ -32,6 +32,8 @@ import java.util.Set;
  * parámetros y anotaciones, crea copias sintetizadas de las anotaciones (para resolver los placeholders),
  * instancia el manejador de errores, los interceptores y el fallback, y Jackson enlaza los tipos de retorno y
  * de cuerpo. En una imagen nativa nada de eso existe si no se declara antes.
+ *
+ * @author Java Universe
  */
 public final class RestHttpClientRuntimeHints {
 

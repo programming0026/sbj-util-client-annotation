@@ -16,6 +16,8 @@ import java.util.Locale;
  * (por ejemplo, uno global que fija timeouts) también podría reemplazarla por accidente y dejar al cliente
  * sin su configuración. Esta política decide qué reemplazos se aceptan. Se configura con la propiedad
  * {@value #PROPERTY}.
+ *
+ * @author Java Universe
  */
 public enum RequestFactoryOverridePolicy {
 

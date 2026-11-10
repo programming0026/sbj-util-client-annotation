@@ -11,6 +11,8 @@ import java.lang.annotation.ElementType;
  *
  * Fija un tiempo máximo de ejecución para las peticiones. Si se excede, la llamada lanza
  * {@code ClientException} con un {@code TimeoutException} como causa.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

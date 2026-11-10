@@ -10,6 +10,8 @@ import java.lang.annotation.ElementType;
  * Configuración de SSL/TLS.
  *
  * Define el keystore y el truststore para conexiones HTTPS seguras.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

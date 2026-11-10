@@ -15,6 +15,8 @@ import java.lang.annotation.ElementType;
  *
  * Se coloca en una clase de configuración; busca las interfaces anotadas con {@link RestHttpClient}
  * y registra un bean (proxy) por cada una.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

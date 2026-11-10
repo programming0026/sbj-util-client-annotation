@@ -5,6 +5,8 @@ import java.io.Serial;
 /**
  * Excepción de la librería: errores de configuración, de registro, valores requeridos faltantes o
  * tiempo de espera agotado. Los errores HTTP no se envuelven en esta excepción.
+ *
+ * @author Java Universe
  */
 public class ClientException extends RuntimeException {
     /**

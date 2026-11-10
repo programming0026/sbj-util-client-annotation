@@ -10,6 +10,8 @@ import java.util.List;
 
 /**
  * Crea el conversor JSON (Jackson 3) propio de un cliente a partir de su {@link JsonMapperConfigurer}.
+ *
+ * @author Java Universe
  */
 final class ClientJson {
 

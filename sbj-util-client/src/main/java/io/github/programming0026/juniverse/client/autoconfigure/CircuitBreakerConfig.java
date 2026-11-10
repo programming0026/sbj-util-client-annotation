@@ -10,6 +10,8 @@ import java.lang.annotation.ElementType;
  * Configuración del patrón Circuit Breaker de Resilience4j.
  *
  * El circuit breaker evita fallas en cascada dejando de enviar peticiones a un servicio que está fallando.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

@@ -13,6 +13,8 @@ import java.util.function.UnaryOperator;
  * Las anotaciones son inmutables, así que se crea una copia sintetizada en la que cada atributo
  * {@code String} o {@code String[]} (también dentro de anotaciones anidadas) pasa por el resolvedor.
  * Los demás atributos se conservan tal cual.
+ *
+ * @author Java Universe
  */
 public final class AnnotationPlaceholderResolver {
 

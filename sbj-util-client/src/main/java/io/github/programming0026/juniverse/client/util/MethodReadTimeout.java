@@ -8,6 +8,8 @@ import java.util.OptionalLong;
  * la petición se crea en el mismo hilo que la inició.
  *
  * Es de uso interno de la librería: el handler lo fija justo antes de hacer la petición y lo limpia al terminar.
+ *
+ * @author Java Universe
  */
 public final class MethodReadTimeout {
 

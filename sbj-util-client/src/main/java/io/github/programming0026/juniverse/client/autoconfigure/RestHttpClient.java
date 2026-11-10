@@ -17,6 +17,8 @@ import java.lang.annotation.ElementType;
  *
  * Se coloca en una interfaz cuyos métodos usan las anotaciones de Spring Web ({@code @GetMapping},
  * {@code @PathVariable}, etc.). Incluye circuit breaker, retry, rate limiting y time limiting.
+ *
+ * @author Java Universe
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

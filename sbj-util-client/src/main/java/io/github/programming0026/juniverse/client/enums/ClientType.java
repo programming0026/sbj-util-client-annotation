@@ -2,6 +2,8 @@ package io.github.programming0026.juniverse.client.enums;
 
 /**
  * Implementación HTTP que usa un cliente.
+ *
+ * @author Java Universe
  */
 public enum ClientType {
 
