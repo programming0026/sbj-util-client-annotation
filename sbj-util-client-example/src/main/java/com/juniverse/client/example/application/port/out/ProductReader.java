@@ -14,6 +14,8 @@ import java.util.Optional;
  *
  * Está separado de {@link ProductWriter} (segregación de interfaces): quien solo consulta no depende de
  * operaciones de escritura.
+ *
+ * @author Java Universe
  */
 public interface ProductReader {
 

@@ -45,6 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
  * Descargas con retorno {@code InputStream}: el cuerpo se lee progresivamente, la conexión se libera al cerrar el
  * flujo y los errores siguen siendo excepciones. El pool es de una sola conexión a propósito: cualquier fuga de
  * conexión haría fallar la siguiente llamada.
+ *
+ * @author Java Universe
  */
 class RestHttpClientStreamingTest {
 

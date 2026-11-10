@@ -25,6 +25,8 @@ import java.util.List;
  * Basta declarar la interfaz: la librería genera el cliente, resuelve {@code ${dummyjson.base-url}} desde
  * {@code application.properties} y aplica reintentos, circuit breaker y límite de tiempo. Los GET se
  * reintentan ante fallas transitorias; el POST de crear solo ante fallas de conexión (no es idempotente).
+ *
+ * @author Java Universe
  */
 @RestHttpClient(
         name = "dummyJsonProducts",

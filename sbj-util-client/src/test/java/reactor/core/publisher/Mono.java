@@ -5,6 +5,7 @@ package reactor.core.publisher;
  * clase sin depender de Reactor (que no está en el classpath).
  *
  * @param <T> el tipo del valor
+ * @author Java Universe
  */
 public class Mono<T> {
 }

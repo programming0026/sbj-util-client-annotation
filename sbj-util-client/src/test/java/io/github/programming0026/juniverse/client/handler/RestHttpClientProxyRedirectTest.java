@@ -31,7 +31,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Redirecciones y proxy, contra servidores HTTP locales (uno hace de proxy y registra lo que recibe). */
+/**
+ * Redirecciones y proxy, contra servidores HTTP locales (uno hace de proxy y registra lo que recibe).
+ *
+ * @author Java Universe
+ */
 class RestHttpClientProxyRedirectTest {
 
     // ---- Redirecciones ----

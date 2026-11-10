@@ -21,6 +21,7 @@ import java.util.List;
  * @param sku código de inventario
  * @param thumbnail miniatura
  * @param images imágenes
+ * @author Java Universe
  */
 public record ProductResponse(long id, String title, String description, String category, BigDecimal price,
                               double discountPercentage, double rating, int stock, List<String> tags,

@@ -4,7 +4,11 @@ import com.juniverse.client.example.domain.exception.InvalidCredentialsException
 import com.juniverse.client.example.domain.model.AuthSession;
 import com.juniverse.client.example.domain.model.Credentials;
 
-/** Caso de uso: iniciar sesión. */
+/**
+ * Caso de uso: iniciar sesión.
+ *
+ * @author Java Universe
+ */
 public interface LoginUseCase {
 
     /**

@@ -38,7 +38,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** Reintentos según la idempotencia del método HTTP. */
+/**
+ * Reintentos según la idempotencia del método HTTP.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientIdempotencyTest {
 
     private static final String BASE = "http://localhost/api";

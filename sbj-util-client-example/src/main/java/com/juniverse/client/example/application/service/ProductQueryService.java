@@ -19,6 +19,8 @@ import java.util.Objects;
  * Depende solo del puerto {@link ProductReader} (inversión de dependencias): no sabe si los datos vienen
  * de una API REST, una base de datos o un archivo. Es una clase sin anotaciones de Spring; se registra
  * como bean en la configuración de la infraestructura.
+ *
+ * @author Java Universe
  */
 public class ProductQueryService implements ListProductsUseCase, GetProductUseCase, ListCategoriesUseCase {
 

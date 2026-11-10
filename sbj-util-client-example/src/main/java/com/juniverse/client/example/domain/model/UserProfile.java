@@ -10,6 +10,7 @@ package com.juniverse.client.example.domain.model;
  * @param lastName apellido
  * @param gender género, o null
  * @param image URL de la imagen de perfil, o null
+ * @author Java Universe
  */
 public record UserProfile(long id, String username, String email, String firstName, String lastName, String gender,
                           String image) {

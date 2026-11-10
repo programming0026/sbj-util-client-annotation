@@ -31,6 +31,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 /**
  * {@code @DateTimeFormat} y {@code @NumberFormat} dan formato a los parámetros; sin ellas el texto es el de
  * siempre ({@code String.valueOf}).
+ *
+ * @author Java Universe
  */
 class RestHttpClientParameterFormatTest {
 

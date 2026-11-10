@@ -4,7 +4,11 @@ import com.juniverse.client.example.domain.exception.ExternalServiceException;
 import com.juniverse.client.example.domain.model.GeneratedImage;
 import com.juniverse.client.example.domain.model.ImageSpec;
 
-/** Puerto de salida: el servicio que genera imágenes de marcador de posición. */
+/**
+ * Puerto de salida: el servicio que genera imágenes de marcador de posición.
+ *
+ * @author Java Universe
+ */
 public interface ImageGenerator {
 
     /**

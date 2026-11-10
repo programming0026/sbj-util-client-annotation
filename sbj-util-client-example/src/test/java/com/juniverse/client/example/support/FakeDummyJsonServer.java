@@ -17,6 +17,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * Servidor HTTP local que hace de DummyJSON en los tests: responde lo que se le configure y guarda las
  * peticiones recibidas, para comprobar qué envían realmente los clientes de la librería.
+ *
+ * @author Java Universe
  */
 public final class FakeDummyJsonServer {
 

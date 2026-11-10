@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * @author Java Universe
+ */
 class AnnotationPlaceholderResolverTest {
 
     @RestHttpClient(name = "[name]", url = "[url]/v1", type = ClientType.REST_TEMPLATE, connectTimeout = 123,

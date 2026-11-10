@@ -5,6 +5,7 @@ package com.juniverse.client.example.domain.model;
  *
  * @param content los bytes de la imagen
  * @param contentType el tipo de contenido, por ejemplo {@code image/png}
+ * @author Java Universe
  */
 public record GeneratedImage(byte[] content, String contentType) {
 

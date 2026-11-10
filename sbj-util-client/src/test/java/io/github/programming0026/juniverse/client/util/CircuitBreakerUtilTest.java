@@ -25,6 +25,9 @@ import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * @author Java Universe
+ */
 class CircuitBreakerUtilTest {
 
     @RestHttpClient(

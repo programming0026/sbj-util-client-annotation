@@ -4,7 +4,11 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
 
 import java.util.Locale;
 
-/** Formatos de imagen que se pueden generar. */
+/**
+ * Formatos de imagen que se pueden generar.
+ *
+ * @author Java Universe
+ */
 public enum ImageFormat {
 
     /** PNG (por defecto). */

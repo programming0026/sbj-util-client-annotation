@@ -27,7 +27,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Los hints que se declaran para la imagen nativa cubren todo lo que la librería usa por reflexión. */
+/**
+ * Los hints que se declaran para la imagen nativa cubren todo lo que la librería usa por reflexión.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientAotTest {
 
     /** Cuerpo de respuesta propio de la aplicación. */

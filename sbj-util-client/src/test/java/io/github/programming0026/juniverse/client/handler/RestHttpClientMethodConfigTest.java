@@ -41,7 +41,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
-/** {@code @MethodConfig}: ajustes de un solo método sin tocar los del resto del cliente. */
+/**
+ * {@code @MethodConfig}: ajustes de un solo método sin tocar los del resto del cliente.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientMethodConfigTest {
 
     @RestHttpClient(url = "${mc.url}", readTimeout = 250, connectTimeout = 500,

@@ -4,7 +4,11 @@ import io.github.programming0026.juniverse.client.util.Constants;
 import io.github.programming0026.juniverse.client.autoconfigure.EnableRestHttpClients;
 import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 
-/** Dos clientes con el mismo nombre de bean, para provocar un error de registro. */
+/**
+ * Dos clientes con el mismo nombre de bean, para provocar un error de registro.
+ *
+ * @author Java Universe
+ */
 public final class DuplicateClients {
 
     private DuplicateClients() {

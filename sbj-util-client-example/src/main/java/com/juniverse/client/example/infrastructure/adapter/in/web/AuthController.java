@@ -21,7 +21,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Adaptador de entrada: autenticación (iniciar sesión, usuario actual y renovar tokens). */
+/**
+ * Adaptador de entrada: autenticación (iniciar sesión, usuario actual y renovar tokens).
+ *
+ * @author Java Universe
+ */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Autenticación", description = "Inicio de sesión, usuario actual y renovación de tokens")

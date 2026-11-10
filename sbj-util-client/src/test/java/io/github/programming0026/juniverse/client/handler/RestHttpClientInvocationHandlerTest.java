@@ -47,6 +47,9 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+/**
+ * @author Java Universe
+ */
 class RestHttpClientInvocationHandlerTest {
 
     private static final String BASE = "http://localhost/api";

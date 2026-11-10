@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Prueba de punta a punta: la aplicación completa (API REST → casos de uso → adaptadores → clientes
  * generados por {@code sbj-util-client}) contra un DummyJSON falso local. Al arrancar el contexto, la
  * librería valida y crea los tres clientes, así que cualquier error de declaración rompe esta clase.
+ *
+ * @author Java Universe
  */
 @SpringBootTest
 class DummyJsonIntegrationTest {

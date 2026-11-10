@@ -4,7 +4,11 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
 
 import java.util.Locale;
 
-/** Sentido del ordenamiento. */
+/**
+ * Sentido del ordenamiento.
+ *
+ * @author Java Universe
+ */
 public enum SortOrder {
 
     /** De menor a mayor. */

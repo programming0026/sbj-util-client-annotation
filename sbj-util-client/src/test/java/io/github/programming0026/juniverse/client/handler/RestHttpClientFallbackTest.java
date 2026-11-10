@@ -38,7 +38,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** El {@code fallback} responde cuando el servicio no está disponible y solo entonces. */
+/**
+ * El {@code fallback} responde cuando el servicio no está disponible y solo entonces.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientFallbackTest {
 
     /** Respuestas del fallback, distinguibles de las del servidor. */

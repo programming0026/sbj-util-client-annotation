@@ -21,6 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * La documentación OpenAPI se genera a partir de los controladores: esta prueba comprueba que describe la
  * API completa y que Swagger UI está disponible. No llama a DummyJSON.
+ *
+ * @author Java Universe
  */
 @SpringBootTest
 class OpenApiDocumentationTest {

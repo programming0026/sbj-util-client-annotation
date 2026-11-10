@@ -3,7 +3,11 @@ package com.juniverse.client.example.application.port.in;
 import com.juniverse.client.example.domain.model.NewProduct;
 import com.juniverse.client.example.domain.model.Product;
 
-/** Caso de uso: crear un producto. */
+/**
+ * Caso de uso: crear un producto.
+ *
+ * @author Java Universe
+ */
 public interface CreateProductUseCase {
 
     /**

@@ -9,6 +9,7 @@ import java.util.List;
  * @param total cuántos productos hay en total
  * @param skip cuántos se omitieron antes de esta página
  * @param limit el tamaño de página pedido
+ * @author Java Universe
  */
 public record ProductPage(List<Product> items, long total, int skip, int limit) {
 

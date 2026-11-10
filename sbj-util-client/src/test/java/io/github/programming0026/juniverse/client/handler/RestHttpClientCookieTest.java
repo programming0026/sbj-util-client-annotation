@@ -25,7 +25,11 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** Parámetros {@code @CookieValue}: se envían como pares del header {@code Cookie}. */
+/**
+ * Parámetros {@code @CookieValue}: se envían como pares del header {@code Cookie}.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientCookieTest {
 
     private static final String BASE = "http://localhost/api";

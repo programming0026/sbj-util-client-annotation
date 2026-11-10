@@ -15,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @param lastName apellido
  * @param gender género
  * @param image imagen de perfil
+ * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record UserDto(Long id, String username, String email, String firstName, String lastName, String gender,

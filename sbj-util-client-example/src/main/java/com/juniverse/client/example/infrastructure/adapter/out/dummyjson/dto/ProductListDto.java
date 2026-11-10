@@ -14,6 +14,7 @@ import java.util.List;
  * @param total cuántos hay en total
  * @param skip cuántos se omitieron
  * @param limit el tamaño de página
+ * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProductListDto(List<ProductDto> products, Long total, Integer skip, Integer limit) {

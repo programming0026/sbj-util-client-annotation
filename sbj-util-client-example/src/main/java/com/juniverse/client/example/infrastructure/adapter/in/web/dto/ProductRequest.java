@@ -16,6 +16,7 @@ import java.math.BigDecimal;
  * @param price precio
  * @param stock unidades disponibles
  * @param brand marca
+ * @author Java Universe
  */
 public record ProductRequest(
         @Schema(description = "Nombre del producto (obligatorio al crear)", example = "Lámpara de escritorio") String title,

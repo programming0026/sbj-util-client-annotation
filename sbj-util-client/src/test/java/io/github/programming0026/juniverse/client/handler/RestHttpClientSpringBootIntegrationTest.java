@@ -31,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 /**
  * Los clientes usan la configuración HTTP de la aplicación Spring Boot: el Jackson configurado, los
  * {@link RestClientCustomizer} y el {@link RestTemplateBuilder}, sin perder sus propios timeouts.
+ *
+ * @author Java Universe
  */
 class RestHttpClientSpringBootIntegrationTest {
 

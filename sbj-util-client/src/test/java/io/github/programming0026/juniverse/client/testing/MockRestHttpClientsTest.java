@@ -22,7 +22,11 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** {@link MockRestHttpClients}: un servidor simulado por cliente, aunque haya varios en la aplicación. */
+/**
+ * {@link MockRestHttpClients}: un servidor simulado por cliente, aunque haya varios en la aplicación.
+ *
+ * @author Java Universe
+ */
 class MockRestHttpClientsTest {
 
     @RestHttpClient(url = "http://users.test", retry = @RetryConfig(maxRetries = 1))

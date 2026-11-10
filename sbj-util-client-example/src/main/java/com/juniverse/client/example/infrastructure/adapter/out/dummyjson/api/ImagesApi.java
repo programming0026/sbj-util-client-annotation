@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
  *
  * Devuelve {@code ResponseEntity<byte[]>} para conservar los bytes y el tipo de contenido
  * ({@code image/png}, {@code image/jpeg} o {@code image/webp}).
+ *
+ * @author Java Universe
  */
 @RestHttpClient(
         name = "dummyJsonImages",

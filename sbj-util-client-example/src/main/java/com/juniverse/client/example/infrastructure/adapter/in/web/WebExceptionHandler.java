@@ -18,6 +18,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * Traduce las excepciones del dominio a respuestas HTTP (RFC 9457, {@code ProblemDetail}).
  *
  * Es el único lugar que conoce la correspondencia entre errores de negocio y códigos de estado.
+ *
+ * @author Java Universe
  */
 @RestControllerAdvice
 public class WebExceptionHandler {

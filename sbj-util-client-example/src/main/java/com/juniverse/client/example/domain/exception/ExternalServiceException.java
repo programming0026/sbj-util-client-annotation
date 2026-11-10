@@ -1,6 +1,10 @@
 package com.juniverse.client.example.domain.exception;
 
-/** El servicio externo no está disponible: falla de red, timeout, error 5xx o circuito abierto. */
+/**
+ * El servicio externo no está disponible: falla de red, timeout, error 5xx o circuito abierto.
+ *
+ * @author Java Universe
+ */
 public class ExternalServiceException extends DomainException {
 
     /**

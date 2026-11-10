@@ -14,6 +14,8 @@ import org.springframework.web.client.HttpClientErrorException;
  * Los adaptadores tratan primero los casos con significado de negocio (un 404 es "no existe", un 400 al
  * iniciar sesión es "credenciales inválidas") y delegan aquí el resto, de modo que ninguna excepción de
  * Spring, de la librería o de Resilience4j sale del adaptador.
+ *
+ * @author Java Universe
  */
 @Component
 public class DummyJsonErrorTranslator {

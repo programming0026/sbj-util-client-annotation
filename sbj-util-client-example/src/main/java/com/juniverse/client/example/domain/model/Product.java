@@ -19,6 +19,7 @@ import java.util.List;
  * @param sku código de inventario, o null
  * @param thumbnail URL de la miniatura, o null
  * @param images URLs de las imágenes
+ * @author Java Universe
  */
 public record Product(
         long id,

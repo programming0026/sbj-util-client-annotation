@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *
  * @param username usuario
  * @param password contraseña
+ * @author Java Universe
  */
 public record LoginRequest(
         @Schema(description = "Nombre de usuario", example = "emilys") String username,

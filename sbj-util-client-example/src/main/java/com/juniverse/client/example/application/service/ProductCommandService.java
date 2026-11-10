@@ -16,6 +16,8 @@ import java.util.Objects;
  *
  * Separado de {@link ProductQueryService} (responsabilidad única): las consultas y los cambios evolucionan
  * por razones distintas y dependen de puertos distintos.
+ *
+ * @author Java Universe
  */
 public class ProductCommandService implements CreateProductUseCase, UpdateProductUseCase, DeleteProductUseCase {
 

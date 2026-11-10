@@ -24,6 +24,8 @@ import java.util.List;
  *
  * Es la única clase que conoce ambos lados: así el dominio no depende de la forma de la API externa y un
  * cambio en esa API solo afecta a este paquete.
+ *
+ * @author Java Universe
  */
 @Component
 public class DummyJsonMapper {

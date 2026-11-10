@@ -17,7 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Adaptador de entrada: generación de imágenes de marcador de posición. */
+/**
+ * Adaptador de entrada: generación de imágenes de marcador de posición.
+ *
+ * @author Java Universe
+ */
 @RestController
 @RequestMapping("/api/images")
 @Tag(name = "Imágenes", description = "Generador de imágenes de marcador de posición")

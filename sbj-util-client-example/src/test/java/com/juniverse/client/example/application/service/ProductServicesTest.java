@@ -21,7 +21,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** Los servicios se prueban solo con dobles de los puertos de salida: no hace falta Spring ni red. */
+/**
+ * Los servicios se prueban solo con dobles de los puertos de salida: no hace falta Spring ni red.
+ *
+ * @author Java Universe
+ */
 class ProductServicesTest {
 
     private static final Product PRODUCT =

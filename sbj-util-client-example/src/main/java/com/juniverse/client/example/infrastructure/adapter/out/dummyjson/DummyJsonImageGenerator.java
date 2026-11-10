@@ -8,7 +8,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-/** Adaptador de salida: genera imágenes con el cliente declarativo {@link ImagesApi}. */
+/**
+ * Adaptador de salida: genera imágenes con el cliente declarativo {@link ImagesApi}.
+ *
+ * @author Java Universe
+ */
 @Component
 public class DummyJsonImageGenerator implements ImageGenerator {
 

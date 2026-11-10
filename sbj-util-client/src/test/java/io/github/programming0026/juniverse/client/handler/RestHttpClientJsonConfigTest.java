@@ -30,7 +30,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** {@code jsonConfig}: el JSON de un cliente se personaliza sin afectar a los demás ni a la aplicación. */
+/**
+ * {@code jsonConfig}: el JSON de un cliente se personaliza sin afectar a los demás ni a la aplicación.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientJsonConfigTest {
 
     /** Tipo de la API: la API usa snake_case. */

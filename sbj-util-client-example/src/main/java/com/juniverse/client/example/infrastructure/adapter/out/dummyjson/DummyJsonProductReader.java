@@ -14,7 +14,11 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.util.List;
 import java.util.Optional;
 
-/** Adaptador de salida: implementa la lectura del catálogo con el cliente declarativo {@link ProductsApi}. */
+/**
+ * Adaptador de salida: implementa la lectura del catálogo con el cliente declarativo {@link ProductsApi}.
+ *
+ * @author Java Universe
+ */
 @Component
 public class DummyJsonProductReader implements ProductReader {
 

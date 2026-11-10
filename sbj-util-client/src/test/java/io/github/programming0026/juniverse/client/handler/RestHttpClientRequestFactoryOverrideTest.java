@@ -54,6 +54,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 /**
  * Qué pasa cuando un customizer reemplaza la request factory de un cliente: los mocks de Spring funcionan sin
  * configurar nada, y un reemplazo accidental no deja al cliente sin su pool, timeouts y SSL.
+ *
+ * @author Java Universe
  */
 class RestHttpClientRequestFactoryOverrideTest {
 

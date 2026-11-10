@@ -5,6 +5,7 @@ package com.juniverse.client.example.domain.model;
  *
  * @param accessToken token de acceso, de vida corta
  * @param refreshToken token para obtener un nuevo token de acceso
+ * @author Java Universe
  */
 public record AuthTokens(String accessToken, String refreshToken) {
 

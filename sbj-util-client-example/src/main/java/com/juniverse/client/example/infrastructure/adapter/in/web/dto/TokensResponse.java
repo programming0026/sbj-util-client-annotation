@@ -7,6 +7,7 @@ import com.juniverse.client.example.domain.model.AuthTokens;
  *
  * @param accessToken token de acceso
  * @param refreshToken token de renovación
+ * @author Java Universe
  */
 public record TokensResponse(String accessToken, String refreshToken) {
 

@@ -16,6 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+/**
+ * @author Java Universe
+ */
 class SSLUtilTest {
 
     static final String KEYSTORE = "classpath:test-keystore.p12";

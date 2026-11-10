@@ -17,6 +17,8 @@ import org.springframework.context.annotation.Configuration;
  * Los servicios de la aplicación no llevan anotaciones de Spring: aquí, en la infraestructura, es donde se
  * decide qué adaptador implementa cada puerto. Cambiar DummyJSON por otro proveedor solo exige un adaptador
  * nuevo; esta configuración y el resto de la aplicación no cambian.
+ *
+ * @author Java Universe
  */
 @Configuration(proxyBeanMethods = false)
 public class UseCaseConfig {

@@ -1,6 +1,10 @@
 package com.juniverse.client.example.domain.exception;
 
-/** Los datos de entrada no cumplen las reglas del dominio (valores fuera de rango, campos vacíos, etc.). */
+/**
+ * Los datos de entrada no cumplen las reglas del dominio (valores fuera de rango, campos vacíos, etc.).
+ *
+ * @author Java Universe
+ */
 public class InvalidRequestException extends DomainException {
 
     /**

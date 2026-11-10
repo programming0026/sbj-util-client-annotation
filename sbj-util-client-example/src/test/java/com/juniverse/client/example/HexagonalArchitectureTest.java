@@ -14,6 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Verifica la regla de dependencias de la arquitectura hexagonal revisando los imports del código fuente:
  * las dependencias solo apuntan hacia adentro (infraestructura → aplicación → dominio).
+ *
+ * @author Java Universe
  */
 class HexagonalArchitectureTest {
 

@@ -37,7 +37,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Subida de archivos y formularios {@code multipart/form-data} con {@code @RequestPart}. */
+/**
+ * Subida de archivos y formularios {@code multipart/form-data} con {@code @RequestPart}.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientMultipartTest {
 
     /** Objeto que viaja como una parte JSON. */

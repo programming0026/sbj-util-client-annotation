@@ -26,6 +26,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+/**
+ * @author Java Universe
+ */
 class RestClientUtilTest {
 
     @RestHttpClient(url = "http://localhost:8080")

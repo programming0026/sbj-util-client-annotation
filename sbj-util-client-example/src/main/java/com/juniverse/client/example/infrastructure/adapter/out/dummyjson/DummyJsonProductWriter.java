@@ -14,6 +14,8 @@ import java.util.Optional;
  * Adaptador de salida: implementa la escritura del catálogo con el cliente declarativo {@link ProductsApi}.
  *
  * DummyJSON simula estas operaciones (no persiste nada), pero responde igual que lo haría un servicio real.
+ *
+ * @author Java Universe
  */
 @Component
 public class DummyJsonProductWriter implements ProductWriter {

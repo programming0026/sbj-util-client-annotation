@@ -17,6 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * @author Java Universe
+ */
 class DefaultErrorHandlerTest {
 
     private final DefaultErrorHandler handler = new DefaultErrorHandler();

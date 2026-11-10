@@ -4,7 +4,11 @@ import com.juniverse.client.example.domain.exception.ProductNotFoundException;
 import com.juniverse.client.example.domain.model.Product;
 import com.juniverse.client.example.domain.model.ProductChanges;
 
-/** Caso de uso: modificar parcialmente un producto. */
+/**
+ * Caso de uso: modificar parcialmente un producto.
+ *
+ * @author Java Universe
+ */
 public interface UpdateProductUseCase {
 
     /**

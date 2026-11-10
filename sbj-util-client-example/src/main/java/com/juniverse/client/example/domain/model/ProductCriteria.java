@@ -13,6 +13,7 @@ import java.util.Set;
  * @param category categoría (slug), o null
  * @param sortBy campo de ordenamiento, o null
  * @param order sentido del ordenamiento
+ * @author Java Universe
  */
 public record ProductCriteria(PageRequest page, String searchText, String category, String sortBy, SortOrder order) {
 

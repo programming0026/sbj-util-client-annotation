@@ -20,6 +20,9 @@ import org.springframework.core.type.AnnotationMetadata;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * @author Java Universe
+ */
 class RestHttpClientRegistrarTest {
 
     @Configuration

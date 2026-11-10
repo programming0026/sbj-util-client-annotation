@@ -17,6 +17,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+/**
+ * @author Java Universe
+ */
 class AuthenticationServiceTest {
 
     private static final UserProfile USER = new UserProfile(1, "emilys", "e@x.com", "Emily", "Johnson", null, null);

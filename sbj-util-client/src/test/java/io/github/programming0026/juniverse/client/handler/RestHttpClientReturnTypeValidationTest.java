@@ -24,7 +24,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Los tipos de retorno que la librería no soporta se rechazan al crear el cliente, con un mensaje claro. */
+/**
+ * Los tipos de retorno que la librería no soporta se rechazan al crear el cliente, con un mensaje claro.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientReturnTypeValidationTest {
 
     private static final String URL = "http://localhost:8080";

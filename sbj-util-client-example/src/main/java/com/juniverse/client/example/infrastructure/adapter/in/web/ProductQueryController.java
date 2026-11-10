@@ -24,6 +24,8 @@ import java.util.List;
 /**
  * Adaptador de entrada: consultas del catálogo. Solo conoce los puertos de entrada (casos de uso), nunca
  * los clientes de DummyJSON.
+ *
+ * @author Java Universe
  */
 @RestController
 @RequestMapping("/api/products")

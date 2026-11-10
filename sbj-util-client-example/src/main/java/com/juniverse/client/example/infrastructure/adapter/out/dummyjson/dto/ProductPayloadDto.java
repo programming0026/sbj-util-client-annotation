@@ -14,6 +14,7 @@ import java.math.BigDecimal;
  * @param price precio
  * @param stock unidades disponibles
  * @param brand marca
+ * @author Java Universe
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ProductPayloadDto(String title, String description, String category, BigDecimal price, Integer stock,

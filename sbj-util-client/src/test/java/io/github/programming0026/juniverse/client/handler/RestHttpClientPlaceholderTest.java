@@ -26,7 +26,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Resolución de placeholders {@code ${...}} con el Environment de Spring, de punta a punta. */
+/**
+ * Resolución de placeholders {@code ${...}} con el Environment de Spring, de punta a punta.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientPlaceholderTest {
 
     @RestHttpClient(url = "${missing.base-url}")

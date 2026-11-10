@@ -7,7 +7,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/** Cliente configurado completamente con placeholders, para el test de integración. */
+/**
+ * Cliente configurado completamente con placeholders, para el test de integración.
+ *
+ * @author Java Universe
+ */
 public final class PlaceholderClients {
 
     private PlaceholderClients() {

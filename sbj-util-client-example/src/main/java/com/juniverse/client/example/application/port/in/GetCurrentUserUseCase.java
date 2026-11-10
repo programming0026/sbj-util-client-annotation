@@ -3,7 +3,11 @@ package com.juniverse.client.example.application.port.in;
 import com.juniverse.client.example.domain.exception.UnauthorizedException;
 import com.juniverse.client.example.domain.model.UserProfile;
 
-/** Caso de uso: consultar el usuario dueño de un token de acceso. */
+/**
+ * Caso de uso: consultar el usuario dueño de un token de acceso.
+ *
+ * @author Java Universe
+ */
 public interface GetCurrentUserUseCase {
 
     /**

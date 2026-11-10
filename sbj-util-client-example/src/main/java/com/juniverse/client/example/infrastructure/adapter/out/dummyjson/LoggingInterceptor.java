@@ -14,6 +14,8 @@ import java.io.IOException;
  *
  * No es un bean de Spring: lo declara {@code @RestHttpClient(interceptors = ...)} y la librería lo crea.
  * Nunca registra headers ni cuerpos, para no filtrar tokens ni contraseñas.
+ *
+ * @author Java Universe
  */
 public class LoggingInterceptor implements ClientHttpRequestInterceptor {
 

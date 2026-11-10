@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * Cuerpo para renovar los tokens en la API REST del ejemplo.
  *
  * @param refreshToken token de renovación
+ * @author Java Universe
  */
 public record RefreshRequest(
         @Schema(description = "Token de renovación que devuelve el inicio de sesión", example = "eyJhbGciOiJIUzI1NiJ9...") String refreshToken) {

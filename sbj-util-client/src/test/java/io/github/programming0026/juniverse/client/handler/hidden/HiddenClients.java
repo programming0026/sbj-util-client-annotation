@@ -4,7 +4,11 @@ import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 import io.github.programming0026.juniverse.client.autoconfigure.RetryConfig;
 import org.springframework.web.bind.annotation.GetMapping;
 
-/** Cliente con interfaz no pública en otro paquete: la librería no puede llamar a su fallback por reflexión. */
+/**
+ * Cliente con interfaz no pública en otro paquete: la librería no puede llamar a su fallback por reflexión.
+ *
+ * @author Java Universe
+ */
 public final class HiddenClients {
 
     private HiddenClients() {

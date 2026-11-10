@@ -7,7 +7,11 @@ import com.juniverse.client.example.domain.model.ProductChanges;
 
 import java.util.Optional;
 
-/** Puerto de salida: escritura en el catálogo de productos. */
+/**
+ * Puerto de salida: escritura en el catálogo de productos.
+ *
+ * @author Java Universe
+ */
 public interface ProductWriter {
 
     /**

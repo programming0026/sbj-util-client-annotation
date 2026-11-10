@@ -18,6 +18,8 @@ import org.springframework.web.client.HttpClientErrorException;
  *
  * Traduce los códigos de DummyJSON al significado de negocio: 400 al iniciar sesión son credenciales
  * inválidas; 400, 401 o 403 con un token son una sesión no autorizada.
+ *
+ * @author Java Universe
  */
 @Component
 public class DummyJsonAuthenticationGateway implements AuthenticationGateway {

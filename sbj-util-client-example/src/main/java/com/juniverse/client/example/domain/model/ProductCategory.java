@@ -5,6 +5,7 @@ package com.juniverse.client.example.domain.model;
  *
  * @param slug identificador usable en filtros
  * @param name nombre para mostrar
+ * @author Java Universe
  */
 public record ProductCategory(String slug, String name) {
 }

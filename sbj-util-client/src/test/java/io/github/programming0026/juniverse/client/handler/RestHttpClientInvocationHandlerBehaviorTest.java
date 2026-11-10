@@ -43,7 +43,11 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** Tipos de retorno, mapping de la interfaz, métodos de Object/default y orden de la resiliencia. */
+/**
+ * Tipos de retorno, mapping de la interfaz, métodos de Object/default y orden de la resiliencia.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientInvocationHandlerBehaviorTest {
 
     private static final String BASE = "http://localhost/api";

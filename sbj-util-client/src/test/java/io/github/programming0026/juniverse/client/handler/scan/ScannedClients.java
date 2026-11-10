@@ -3,7 +3,11 @@ package io.github.programming0026.juniverse.client.handler.scan;
 import org.springframework.web.bind.annotation.GetMapping;
 import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 
-/** Contenedor de las interfaces que encuentra {@link ScanConfig}. */
+/**
+ * Contenedor de las interfaces que encuentra {@link ScanConfig}.
+ *
+ * @author Java Universe
+ */
 public final class ScannedClients {
 
     private ScannedClients() {

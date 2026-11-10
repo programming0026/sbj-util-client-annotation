@@ -3,7 +3,11 @@ package com.juniverse.client.example.application.port.in;
 import com.juniverse.client.example.domain.exception.ProductNotFoundException;
 import com.juniverse.client.example.domain.model.Product;
 
-/** Caso de uso: consultar un producto por su identificador. */
+/**
+ * Caso de uso: consultar un producto por su identificador.
+ *
+ * @author Java Universe
+ */
 public interface GetProductUseCase {
 
     /**

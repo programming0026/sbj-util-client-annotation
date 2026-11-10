@@ -15,7 +15,11 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Autoconfiguración de Spring Boot: escaneo automático de clientes y métricas. */
+/**
+ * Autoconfiguración de Spring Boot: escaneo automático de clientes y métricas.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientAutoConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()

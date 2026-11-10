@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
  * @param text texto a dibujar, o null
  * @param fontSize tamaño de la letra (1 a {@value #MAX_FONT_SIZE}), o null
  * @param format formato de salida
+ * @author Java Universe
  */
 public record ImageSpec(int width, int height, String backgroundColor, String textColor, String text,
                         Integer fontSize, ImageFormat format) {

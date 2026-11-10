@@ -7,7 +7,11 @@ import io.github.programming0026.juniverse.client.enums.ClientType;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.GetMapping;
 
-/** Clientes para probar la integración con la configuración de Spring Boot. */
+/**
+ * Clientes para probar la integración con la configuración de Spring Boot.
+ *
+ * @author Java Universe
+ */
 public final class BootClients {
 
     private BootClients() {

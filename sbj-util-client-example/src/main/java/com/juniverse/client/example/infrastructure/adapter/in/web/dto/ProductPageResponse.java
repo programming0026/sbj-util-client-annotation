@@ -12,6 +12,7 @@ import java.util.List;
  * @param skip cuántos se omitieron
  * @param limit el tamaño de página
  * @param hasNext si hay más páginas
+ * @author Java Universe
  */
 public record ProductPageResponse(List<ProductResponse> items, long total, int skip, int limit, boolean hasNext) {
 

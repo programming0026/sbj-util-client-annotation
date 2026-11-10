@@ -16,6 +16,8 @@ import org.springframework.context.annotation.Configuration;
  * los controladores; aquí solo se definen los datos generales y el esquema de seguridad {@code bearerAuth},
  * que el botón <i>Authorize</i> de Swagger UI usa para enviar el token en {@code Authorization}. Los textos
  * de la documentación están en español; los mensajes de error de la API, en inglés.
+ *
+ * @author Java Universe
  */
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfig {

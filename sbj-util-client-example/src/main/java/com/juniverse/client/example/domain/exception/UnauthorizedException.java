@@ -1,6 +1,10 @@
 package com.juniverse.client.example.domain.exception;
 
-/** El token de acceso o de renovación falta, es inválido o expiró. */
+/**
+ * El token de acceso o de renovación falta, es inválido o expiró.
+ *
+ * @author Java Universe
+ */
 public class UnauthorizedException extends DomainException {
 
     /**

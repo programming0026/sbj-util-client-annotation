@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Adaptador de entrada: operaciones que modifican el catálogo. */
+/**
+ * Adaptador de entrada: operaciones que modifican el catálogo.
+ *
+ * @author Java Universe
+ */
 @RestController
 @RequestMapping("/api/products")
 @Tag(name = "Productos", description = "Consulta y modificación del catálogo de productos")

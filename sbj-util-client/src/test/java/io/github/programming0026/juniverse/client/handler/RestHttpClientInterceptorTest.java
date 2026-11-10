@@ -30,7 +30,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Interceptores por cliente, con inyección de dependencias y después de los globales de la aplicación. */
+/**
+ * Interceptores por cliente, con inyección de dependencias y después de los globales de la aplicación.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientInterceptorTest {
 
     /** Bean de la aplicación que usa el interceptor de autenticación. */

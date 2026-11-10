@@ -16,6 +16,8 @@ import java.util.Objects;
  * Casos de uso de autenticación: iniciar sesión, consultar el usuario actual y renovar tokens.
  *
  * Aplica la regla de negocio de que no se llama al proveedor con tokens vacíos.
+ *
+ * @author Java Universe
  */
 public class AuthenticationService implements LoginUseCase, GetCurrentUserUseCase, RefreshSessionUseCase {
 

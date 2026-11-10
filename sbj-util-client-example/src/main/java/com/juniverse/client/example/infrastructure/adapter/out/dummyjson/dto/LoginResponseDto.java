@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @param image imagen de perfil
  * @param accessToken token de acceso
  * @param refreshToken token de renovación
+ * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record LoginResponseDto(Long id, String username, String email, String firstName, String lastName,

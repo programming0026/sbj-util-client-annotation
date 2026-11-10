@@ -12,6 +12,7 @@ import com.juniverse.client.example.domain.model.UserProfile;
  * @param lastName apellido
  * @param gender género
  * @param image imagen de perfil
+ * @author Java Universe
  */
 public record UserResponse(long id, String username, String email, String firstName, String lastName,
                            String gender, String image) {

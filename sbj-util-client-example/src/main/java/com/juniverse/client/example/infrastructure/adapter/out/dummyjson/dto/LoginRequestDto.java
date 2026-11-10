@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param username usuario
  * @param password contraseña
  * @param expiresInMins minutos de vida del token de acceso, o null para el valor por defecto del servicio
+ * @author Java Universe
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record LoginRequestDto(String username, String password, Integer expiresInMins) {

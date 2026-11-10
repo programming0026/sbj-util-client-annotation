@@ -7,6 +7,7 @@ import com.juniverse.client.example.domain.model.ProductCategory;
  *
  * @param slug identificador
  * @param name nombre para mostrar
+ * @author Java Universe
  */
 public record CategoryResponse(String slug, String name) {
 

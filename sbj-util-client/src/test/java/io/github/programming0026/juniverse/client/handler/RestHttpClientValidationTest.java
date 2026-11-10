@@ -31,7 +31,11 @@ import static org.springframework.test.web.client.ExpectedCount.times;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** Validación de los clientes al crearlos y análisis de los métodos una sola vez. */
+/**
+ * Validación de los clientes al crearlos y análisis de los métodos una sola vez.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientValidationTest {
 
     private static final String BASE = "http://localhost/api";

@@ -5,6 +5,8 @@ package com.juniverse.client.example.domain.exception;
  *
  * Los adaptadores traducen los errores técnicos (HTTP, red) a estas excepciones, y los adaptadores de
  * entrada las traducen a su propio protocolo (por ejemplo, a códigos de estado HTTP).
+ *
+ * @author Java Universe
  */
 public abstract class DomainException extends RuntimeException {
 

@@ -7,6 +7,7 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
  *
  * @param username el usuario
  * @param password la contraseña
+ * @author Java Universe
  */
 public record Credentials(String username, String password) {
 

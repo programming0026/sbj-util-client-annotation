@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * No hay ningún {@code @EnableRestHttpClients}: la autoconfiguración de la librería registra las interfaces
  * {@code @RestHttpClient} de este paquete y sus subpaquetes.
+ *
+ * @author Java Universe
  */
 @SpringBootApplication
 public class SbjUtilClientExampleApplication {

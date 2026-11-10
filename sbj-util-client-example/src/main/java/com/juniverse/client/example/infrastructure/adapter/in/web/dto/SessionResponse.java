@@ -7,6 +7,7 @@ import com.juniverse.client.example.domain.model.AuthSession;
  *
  * @param user el usuario
  * @param tokens los tokens de la sesión
+ * @author Java Universe
  */
 public record SessionResponse(UserResponse user, TokensResponse tokens) {
 

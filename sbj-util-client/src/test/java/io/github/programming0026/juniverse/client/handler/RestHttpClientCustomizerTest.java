@@ -29,7 +29,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** {@link RestHttpClientCustomizer}: configuración de un cliente concreto, identificado por su nombre. */
+/**
+ * {@link RestHttpClientCustomizer}: configuración de un cliente concreto, identificado por su nombre.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientCustomizerTest {
 
     @RestHttpClient(url = "${cz.url}", retry = @RetryConfig(maxRetries = 1))

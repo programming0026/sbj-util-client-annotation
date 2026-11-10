@@ -6,7 +6,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Los patrones de {@code nonProxyHosts}. */
+/**
+ * Los patrones de {@code nonProxyHosts}.
+ *
+ * @author Java Universe
+ */
 class NonProxyHostsRoutePlannerTest {
 
     @Test

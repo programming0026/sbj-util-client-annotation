@@ -8,7 +8,11 @@ import com.juniverse.client.example.domain.model.AuthTokens;
 import com.juniverse.client.example.domain.model.Credentials;
 import com.juniverse.client.example.domain.model.UserProfile;
 
-/** Puerto de salida: el proveedor de identidad que autentica a los usuarios. */
+/**
+ * Puerto de salida: el proveedor de identidad que autentica a los usuarios.
+ *
+ * @author Java Universe
+ */
 public interface AuthenticationGateway {
 
     /**

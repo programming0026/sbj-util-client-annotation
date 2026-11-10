@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
  *
  * Login y refresh son POST (no idempotentes): la librería solo los reintenta si la conexión ni siquiera se
  * llegó a establecer, para no repetir una operación que el servidor pudo haber procesado.
+ *
+ * @author Java Universe
  */
 @RestHttpClient(
         name = "dummyJsonAuth",

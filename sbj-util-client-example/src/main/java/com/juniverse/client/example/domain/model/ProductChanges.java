@@ -13,6 +13,7 @@ import java.math.BigDecimal;
  * @param price nuevo precio (0 o más), o null
  * @param stock nuevas unidades (0 o más), o null
  * @param brand nueva marca, o null
+ * @author Java Universe
  */
 public record ProductChanges(String title, String description, String category, BigDecimal price, Integer stock,
                              String brand) {

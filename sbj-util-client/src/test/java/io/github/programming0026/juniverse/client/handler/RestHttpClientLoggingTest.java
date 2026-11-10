@@ -33,7 +33,11 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** {@code logging = true}: una línea por petición, sin headers, cuerpos ni valores de la query. */
+/**
+ * {@code logging = true}: una línea por petición, sin headers, cuerpos ni valores de la query.
+ *
+ * @author Java Universe
+ */
 class RestHttpClientLoggingTest {
 
     private static final String LOGGER = Constants.BASE + ".http";

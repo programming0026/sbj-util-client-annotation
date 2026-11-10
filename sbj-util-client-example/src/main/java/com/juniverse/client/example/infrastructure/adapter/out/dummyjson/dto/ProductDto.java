@@ -25,6 +25,7 @@ import java.util.List;
  * @param sku código de inventario
  * @param thumbnail miniatura
  * @param images imágenes
+ * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProductDto(

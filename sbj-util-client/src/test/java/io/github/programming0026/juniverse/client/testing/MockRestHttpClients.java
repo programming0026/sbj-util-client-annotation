@@ -30,6 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * No forma parte del jar de la librería (para no depender de {@code spring-test} en producción): vive en los tests
  * de la librería y se copia a los de tu aplicación; el README la muestra completa.
+ *
+ * @author Java Universe
  */
 public class MockRestHttpClients implements RestHttpClientCustomizer {
 

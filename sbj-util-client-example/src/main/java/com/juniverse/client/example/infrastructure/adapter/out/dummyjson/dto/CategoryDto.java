@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @param slug identificador
  * @param name nombre para mostrar
  * @param url URL de la categoría (no se usa)
+ * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CategoryDto(String slug, String name, String url) {

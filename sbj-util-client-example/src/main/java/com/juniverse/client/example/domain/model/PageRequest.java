@@ -7,6 +7,7 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
  *
  * @param limit cuántos elementos como máximo (de 1 a {@value #MAX_LIMIT})
  * @param skip cuántos elementos se omiten antes de la página (0 o más)
+ * @author Java Universe
  */
 public record PageRequest(int limit, int skip) {
 

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  *
  * @param accessToken token de acceso
  * @param refreshToken token de renovación
+ * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RefreshResponseDto(String accessToken, String refreshToken) {
