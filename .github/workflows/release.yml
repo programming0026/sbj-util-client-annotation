@@ -1,12 +1,18 @@
 name: Release
 
-# Publica la librería en Maven Central al subir un tag con formato v<versión> (por ejemplo, v2.0.0).
 on:
   push:
-    tags: ['v*']
+    tags: ['sbj-util-client-annotation-v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
+
+env:
+  TAG_PREFIX: sbj-util-client-annotation-v
 
 jobs:
   publish:
@@ -15,7 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # setup-java escribe settings.xml con las credenciales del servidor "central" e importa la clave GPG.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -27,17 +32,23 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      # El tag debe coincidir con la versión del pom (v2.0.0 <-> 2.0.0); si no, se aborta antes de publicar.
       - name: Check tag matches pom version
         working-directory: sbj-util-client
         run: |
           POM_VERSION=$(mvn -B -ntp -q help:evaluate -Dexpression=project.version -DforceStdout)
-          if [ "v${POM_VERSION}" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match pom version ${POM_VERSION}"
+          TAG_VERSION="${GITHUB_REF_NAME#"${TAG_PREFIX}"}"
+          if [ "${TAG_VERSION}" != "${POM_VERSION}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match pom version ${POM_VERSION} (expected ${TAG_PREFIX}${POM_VERSION})"
             exit 1
           fi
+          case "${POM_VERSION}" in
+            *-SNAPSHOT)
+              echo "::error::SNAPSHOT versions cannot be released to Maven Central (${POM_VERSION})"
+              exit 1
+              ;;
+          esac
+          echo "Releasing version ${POM_VERSION}"
 
-      # deploy con el perfil release: tests, JaCoCo, checkstyle, jars de fuentes y Javadoc, firma GPG y subida.
       - name: Deploy
         working-directory: sbj-util-client
         run: mvn -B -ntp -Prelease deploy
