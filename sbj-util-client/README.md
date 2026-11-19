@@ -1,5 +1,7 @@
 # sbj-util-client
 
+**Español** | [English](README.en.md)
+
 Librería para declarar **clientes REST como interfaces** en Spring Boot 4, con patrones de resiliencia de
 Resilience4j (retry, circuit breaker, rate limiter y time limiter) integrados.
 

@@ -1,5 +1,7 @@
 # sbj-util-client-annotation
 
+**Español** | [English](README.en.md)
+
 Clientes REST **declarativos** para Spring Boot 4, con resiliencia integrada, y una aplicación de ejemplo que los
 usa. Declaras una interfaz con las anotaciones de Spring Web que ya conoces y la librería genera el cliente:
 
@@ -119,14 +121,17 @@ Cada proyecto se compila por separado (no hay POM padre). Instala primero la lib
 
 ```
 sbj-util-client-annotation/
-├── README.md                    Este archivo
+├── README.md                    Este archivo (español)
+├── README.en.md                 Este archivo (inglés)
 ├── LICENSE                      Licencia MIT
 ├── sbj-util-client/             La librería
-│   ├── README.md                Documentación completa y diagrama de clases
+│   ├── README.md                Documentación completa y diagrama de clases (español)
+│   ├── README.en.md             Documentación completa y diagrama de clases (inglés)
 │   ├── config/checkstyle.xml    Reglas de estilo
 │   └── src/                     Código y pruebas
 └── sbj-util-client-example/     La aplicación de ejemplo
-    ├── README.md                Arquitectura, endpoints y pruebas del ejemplo
+    ├── README.md                Arquitectura, endpoints y pruebas del ejemplo (español)
+    ├── README.en.md             Arquitectura, endpoints y pruebas del ejemplo (inglés)
     └── src/                     Código y pruebas
 ```
 
