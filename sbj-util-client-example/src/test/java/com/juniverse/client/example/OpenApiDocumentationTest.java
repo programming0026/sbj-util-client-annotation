@@ -19,8 +19,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * La documentación OpenAPI se genera a partir de los controladores: esta prueba comprueba que describe la
- * API completa y que Swagger UI está disponible. No llama a DummyJSON.
+ * The OpenAPI documentation is generated from the controllers: this test checks that it describes the
+ * whole API and that Swagger UI is available. It does not call DummyJSON.
  *
  * @author Java Universe
  */
@@ -90,7 +90,7 @@ class OpenApiDocumentationTest {
         mvc.perform(get("/v3/api-docs"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
-                // Solo /me exige el token, y el header Authorization no aparece como parámetro suelto.
+                // Only /me requires the token, and the Authorization header does not appear as a loose parameter.
                 .andExpect(jsonPath("$.paths['/api/auth/me'].get.security[0].bearerAuth").exists())
                 .andExpect(jsonPath("$.paths['/api/auth/me'].get.parameters").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/auth/login'].post.security").doesNotExist());

@@ -3,11 +3,11 @@ package com.juniverse.client.example.infrastructure.adapter.out.dummyjson.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Categoría de DummyJSON.
+ * DummyJSON category.
  *
- * @param slug identificador
- * @param name nombre para mostrar
- * @param url URL de la categoría (no se usa)
+ * @param slug identifier
+ * @param name display name
+ * @param url category URL (not used)
  * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

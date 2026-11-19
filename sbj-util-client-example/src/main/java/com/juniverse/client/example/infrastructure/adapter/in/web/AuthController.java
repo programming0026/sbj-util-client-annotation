@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Adaptador de entrada: autenticación (iniciar sesión, usuario actual y renovar tokens).
+ * Input adapter: authentication (log in, current user and token renewal).
  *
  * @author Java Universe
  */
@@ -38,11 +38,11 @@ public class AuthController {
     private final RefreshSessionUseCase refreshSession;
 
     /**
-     * Crea el controlador.
+     * Creates the controller.
      *
-     * @param login caso de uso de inicio de sesión
-     * @param getCurrentUser caso de uso del usuario actual
-     * @param refreshSession caso de uso de renovación de tokens
+     * @param login login use case
+     * @param getCurrentUser current user use case
+     * @param refreshSession token renewal use case
      */
     public AuthController(LoginUseCase login, GetCurrentUserUseCase getCurrentUser,
                           RefreshSessionUseCase refreshSession) {
@@ -52,10 +52,10 @@ public class AuthController {
     }
 
     /**
-     * Inicia sesión.
+     * Logs in.
      *
-     * @param request usuario y contraseña
-     * @return el usuario y sus tokens
+     * @param request user name and password
+     * @return the user and their tokens
      */
     @PostMapping("/login")
     @Operation(summary = "Iniciar sesión",
@@ -69,10 +69,10 @@ public class AuthController {
     }
 
     /**
-     * Consulta el usuario dueño del token del header {@code Authorization: Bearer <token>}.
+     * Gets the user who owns the token of the {@code Authorization: Bearer <token>} header.
      *
-     * @param authorization el header {@code Authorization}
-     * @return el usuario
+     * @param authorization the {@code Authorization} header
+     * @return the user
      */
     @GetMapping("/me")
     @Operation(summary = "Consultar el usuario actual",
@@ -87,10 +87,10 @@ public class AuthController {
     }
 
     /**
-     * Renueva los tokens.
+     * Renews the tokens.
      *
-     * @param request el token de renovación
-     * @return los tokens nuevos
+     * @param request the refresh token
+     * @return the new tokens
      */
     @PostMapping("/refresh")
     @Operation(summary = "Renovar los tokens", description = "Cambia un token de renovación por un par de tokens nuevo.")

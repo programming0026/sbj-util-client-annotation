@@ -3,19 +3,19 @@ package com.juniverse.client.example.infrastructure.adapter.in.web.dto;
 import com.juniverse.client.example.domain.model.AuthSession;
 
 /**
- * Sesión iniciada en la API REST del ejemplo.
+ * Logged-in session in the example's REST API.
  *
- * @param user el usuario
- * @param tokens los tokens de la sesión
+ * @param user the user
+ * @param tokens the session tokens
  * @author Java Universe
  */
 public record SessionResponse(UserResponse user, TokensResponse tokens) {
 
     /**
-     * Convierte una sesión del dominio.
+     * Converts a domain session.
      *
-     * @param session la sesión
-     * @return la respuesta
+     * @param session the session
+     * @return the response
      */
     public static SessionResponse from(AuthSession session) {
         return new SessionResponse(UserResponse.from(session.user()), TokensResponse.from(session.tokens()));

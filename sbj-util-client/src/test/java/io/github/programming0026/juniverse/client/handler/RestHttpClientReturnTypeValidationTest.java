@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Los tipos de retorno que la librería no soporta se rechazan al crear el cliente, con un mensaje claro.
+ * Return types that the library does not support are rejected when the client is created, with a clear message.
  *
  * @author Java Universe
  */

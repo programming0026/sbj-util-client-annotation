@@ -7,9 +7,9 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * Configuración de SSL/TLS.
+ * SSL/TLS configuration.
  *
- * Define el keystore y el truststore para conexiones HTTPS seguras.
+ * It defines the keystore and the truststore for secure HTTPS connections.
  *
  * @author Java Universe
  */
@@ -19,50 +19,50 @@ import java.lang.annotation.ElementType;
 public @interface SSLConfig {
 
     /**
-     * Indica si se valida el certificado SSL.
+     * Whether the SSL certificate is validated.
      *
-     * ADVERTENCIA: con false se desactiva la validación de certificados (solo para desarrollo).
-     * Únicamente se permite con el perfil dev, local o development.
+     * WARNING: with false certificate validation is disabled (for development only).
+     * It is only allowed with the dev, local or development profile.
      *
-     * @return true si la validación SSL está habilitada
+     * @return true if SSL validation is enabled
      */
     boolean enabled() default true;
 
     /**
-     * Ruta del keystore. Admite el prefijo {@code classpath:}.
+     * Path of the keystore. It accepts the {@code classpath:} prefix.
      *
-     * Ejemplo: "classpath:keystore.jks" o "/ruta/a/keystore.jks"
+     * Example: "classpath:keystore.jks" or "/path/to/keystore.jks"
      *
-     * @return la ruta del keystore
+     * @return the keystore path
      */
     String keystorePath() default "";
 
     /**
-     * Contraseña del keystore.
+     * Keystore password.
      *
-     * Admite placeholders, por ejemplo {@code "${KEYSTORE_PASSWORD}"}; nunca subas contraseñas al
-     * control de versiones.
+     * It accepts placeholders, for example {@code "${KEYSTORE_PASSWORD}"}; never commit passwords to
+     * version control.
      *
-     * @return la contraseña del keystore
+     * @return the keystore password
      */
     String keystorePassword() default "";
 
     /**
-     * Ruta del truststore. Admite el prefijo {@code classpath:}.
+     * Path of the truststore. It accepts the {@code classpath:} prefix.
      *
-     * Ejemplo: "classpath:truststore.jks" o "/ruta/a/truststore.jks"
+     * Example: "classpath:truststore.jks" or "/path/to/truststore.jks"
      *
-     * @return la ruta del truststore
+     * @return the truststore path
      */
     String truststorePath() default "";
 
     /**
-     * Contraseña del truststore.
+     * Truststore password.
      *
-     * Admite placeholders, por ejemplo {@code "${TRUSTSTORE_PASSWORD}"}; nunca subas contraseñas al
-     * control de versiones.
+     * It accepts placeholders, for example {@code "${TRUSTSTORE_PASSWORD}"}; never commit passwords to
+     * version control.
      *
-     * @return la contraseña del truststore
+     * @return the truststore password
      */
     String truststorePassword() default "";
 }

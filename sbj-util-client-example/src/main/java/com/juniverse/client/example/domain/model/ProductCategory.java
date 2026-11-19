@@ -1,10 +1,10 @@
 package com.juniverse.client.example.domain.model;
 
 /**
- * Categoría de productos.
+ * Product category.
  *
- * @param slug identificador usable en filtros
- * @param name nombre para mostrar
+ * @param slug identifier usable in filters
+ * @param name display name
  * @author Java Universe
  */
 public record ProductCategory(String slug, String name) {

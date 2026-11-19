@@ -6,41 +6,41 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Describe la imagen que se quiere generar.
+ * Describes the image to generate.
  *
- * El servicio externo responde con una página HTML de error ante tamaños o colores inválidos, así que el
- * dominio los valida antes de llamarlo.
+ * The external service answers with an HTML error page for invalid sizes or colors, so the
+ * domain validates them before calling it.
  *
- * @param width ancho en píxeles (1 a {@value #MAX_SIDE})
- * @param height alto en píxeles (1 a {@value #MAX_SIDE})
- * @param backgroundColor color de fondo en hexadecimal de 6 dígitos, sin {@code #}
- * @param textColor color del texto en hexadecimal de 6 dígitos, sin {@code #}
- * @param text texto a dibujar, o null
- * @param fontSize tamaño de la letra (1 a {@value #MAX_FONT_SIZE}), o null
- * @param format formato de salida
+ * @param width width in pixels (1 to {@value #MAX_SIDE})
+ * @param height height in pixels (1 to {@value #MAX_SIDE})
+ * @param backgroundColor 6-digit hexadecimal background color, without {@code #}
+ * @param textColor 6-digit hexadecimal text color, without {@code #}
+ * @param text text to draw, or null
+ * @param fontSize font size (1 to {@value #MAX_FONT_SIZE}), or null
+ * @param format output format
  * @author Java Universe
  */
 public record ImageSpec(int width, int height, String backgroundColor, String textColor, String text,
                         Integer fontSize, ImageFormat format) {
 
-    /** Lado máximo permitido. */
+    /** Maximum allowed side. */
     public static final int MAX_SIDE = 2000;
 
-    /** Tamaño de letra máximo permitido. */
+    /** Maximum allowed font size. */
     public static final int MAX_FONT_SIZE = 200;
 
-    /** Color de fondo por defecto. */
+    /** Default background color. */
     public static final String DEFAULT_BACKGROUND = "cccccc";
 
-    /** Color de texto por defecto. */
+    /** Default text color. */
     public static final String DEFAULT_TEXT_COLOR = "969696";
 
     private static final Pattern HEX_COLOR = Pattern.compile("[0-9a-fA-F]{6}");
 
     /**
-     * Aplica los valores por defecto y valida el resto.
+     * Applies the default values and validates the rest.
      *
-     * @throws InvalidRequestException si el tamaño, los colores o la letra están fuera de rango
+     * @throws InvalidRequestException if the size, the colors or the font are out of range
      */
     public ImageSpec {
         if (width < 1 || width > MAX_SIDE || height < 1 || height > MAX_SIDE) {
@@ -56,20 +56,20 @@ public record ImageSpec(int width, int height, String backgroundColor, String te
     }
 
     /**
-     * Imagen de un tamaño con todo lo demás por defecto.
+     * Image of a given size with everything else as default.
      *
-     * @param width el ancho
-     * @param height el alto
-     * @return la especificación
+     * @param width the width
+     * @param height the height
+     * @return the specification
      */
     public static ImageSpec ofSize(int width, int height) {
         return new ImageSpec(width, height, null, null, null, null, null);
     }
 
     /**
-     * Tamaño en el formato {@code ANCHOxALTO} que usa el servicio externo.
+     * Size in the {@code WIDTHxHEIGHT} format used by the external service.
      *
-     * @return por ejemplo {@code 300x200}
+     * @return for example {@code 300x200}
      */
     public String sizeSegment() {
         return width + "x" + height;

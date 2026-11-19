@@ -12,18 +12,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Procesador AOT: durante la compilación (Spring AOT / imagen nativa) busca los clientes registrados y
- * declara sus hints de proxy y reflexión. Se registra en {@code META-INF/spring/aot.factories}.
+ * AOT processor: at build time (Spring AOT / native image) it finds the registered clients and
+ * declares their proxy and reflection hints. It is registered in {@code META-INF/spring/aot.factories}.
  *
  * @author Java Universe
  */
 public class RestHttpClientAotProcessor implements BeanFactoryInitializationAotProcessor {
 
     /**
-     * Crea la contribución con los hints de todos los clientes del contexto.
+     * Creates the contribution with the hints of every client in the context.
      *
-     * @param beanFactory el bean factory ya con todas las definiciones
-     * @return la contribución, o {@code null} si no hay clientes
+     * @param beanFactory the bean factory with all the definitions already registered
+     * @return the contribution, or {@code null} if there are no clients
      */
     @Override
     public BeanFactoryInitializationAotContribution processAheadOfTime(ConfigurableListableBeanFactory beanFactory) {
@@ -43,10 +43,10 @@ public class RestHttpClientAotProcessor implements BeanFactoryInitializationAotP
     }
 
     /**
-     * Obtiene la interfaz de una definición creada por el registrador, o {@code null} si es otro bean.
+     * Gets the interface of a definition created by the registrar, or {@code null} if it is another bean.
      *
-     * @param definition la definición del bean
-     * @return la interfaz del cliente o {@code null}
+     * @param definition the bean definition
+     * @return the client interface or {@code null}
      */
     static Class<?> clientInterface(BeanDefinition definition) {
         if (!RestHttpClientFactoryBean.class.getName().equals(definition.getBeanClassName())) {

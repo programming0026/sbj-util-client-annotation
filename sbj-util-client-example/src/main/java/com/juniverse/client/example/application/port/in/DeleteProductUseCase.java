@@ -4,18 +4,18 @@ import com.juniverse.client.example.domain.exception.ProductNotFoundException;
 import com.juniverse.client.example.domain.model.Product;
 
 /**
- * Caso de uso: eliminar un producto.
+ * Use case: delete a product.
  *
  * @author Java Universe
  */
 public interface DeleteProductUseCase {
 
     /**
-     * Elimina un producto.
+     * Deletes a product.
      *
-     * @param id el identificador
-     * @return el producto eliminado
-     * @throws ProductNotFoundException si no existe
+     * @param id the identifier
+     * @return the deleted product
+     * @throws ProductNotFoundException if it does not exist
      */
     Product delete(long id);
 }

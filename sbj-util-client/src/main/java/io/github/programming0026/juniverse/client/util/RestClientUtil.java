@@ -39,31 +39,31 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Construye él {@link RestClient} o {@link RestTemplate} de cada cliente sobre Apache HttpClient 5,
- * con timeouts, SSL y pool de conexiones tomados de su anotación {@link RestHttpClient}.
+ * Builds the {@link RestClient} or {@link RestTemplate} of each client on top of Apache HttpClient 5,
+ * with timeouts, SSL and connection pool taken from its {@link RestHttpClient} annotation.
  *
  * @author Java Universe
  */
 public class RestClientUtil {
-    /** Utilidad para crear los contextos SSL. */
+    /** Utility to create the SSL contexts. */
     private final SSLUtil sslUtil;
 
     /**
-     * Crea la utilidad.
+     * Creates the utility.
      *
-     * @param sslUtil la utilidad SSL
+     * @param sslUtil the SSL utility
      */
     public RestClientUtil(SSLUtil sslUtil) {
         this.sslUtil = sslUtil;
     }
     /**
-     * Crea la request factory de Apache HttpClient 5 con su pool de conexiones.
-     * Quien la crea es responsable de cerrarla con {@link HttpComponentsClientHttpRequestFactory#destroy()}
-     * cuando ya no se use, para liberar el pool.
+     * Creates the Apache HttpClient 5 request factory with its connection pool.
+     * Whoever creates it is responsible for closing it with {@link HttpComponentsClientHttpRequestFactory#destroy()}
+     * when it is no longer used, to release the pool.
      *
-     * @param config la configuración del cliente
-     * @return la request factory
-     * @throws ClientException si falla la configuración SSL
+     * @param config the client configuration
+     * @return the request factory
+     * @throws ClientException if the SSL configuration fails
      */
     public HttpComponentsClientHttpRequestFactory createRequestFactory(RestHttpClient config) {
         try {
@@ -83,13 +83,13 @@ public class RestClientUtil {
     }
 
     /**
-     * Crea el contexto de la petición cuando el método tiene su propio {@code readTimeout}
-     * ({@link MethodReadTimeout}); si no, devuelve null y se usa la configuración del cliente. Al ser un
-     * {@code RequestConfig} propio, Spring lo respeta tal cual, así que repite el timeout de espera de una
-     * conexión del pool del cliente y las redirecciones.
+     * Creates the request context when the method has its own {@code readTimeout}
+     * ({@link MethodReadTimeout}); otherwise it returns null and the client's configuration is used. Being a
+     * {@code RequestConfig} of its own, Spring respects it as is, so it repeats the client's pool connection
+     * wait timeout and the redirect settings.
      *
-     * @param config la configuración del cliente
-     * @return el contexto con el timeout del método, o null
+     * @param config the client configuration
+     * @return the context with the method's timeout, or null
      */
     private static HttpClientContext methodContext(RestHttpClient config) {
         return MethodReadTimeout.current().stream().mapToObj(millis -> {
@@ -105,12 +105,12 @@ public class RestClientUtil {
     }
 
     /**
-     * Crea el builder de un RestClient con la request factory y la URL base del cliente, listo para que se le
-     * apliquen más customizers.
+     * Creates the builder of a RestClient with the client's request factory and base URL, ready for further
+     * customizers to be applied to it.
      *
-     * @param config la configuración del cliente
-     * @param requestFactory la request factory
-     * @return el builder
+     * @param config the client configuration
+     * @param requestFactory the request factory
+     * @return the builder
      */
     public RestClient.Builder restClientBuilder(RestHttpClient config, ClientHttpRequestFactory requestFactory) {
         return RestClient.builder()
@@ -119,24 +119,24 @@ public class RestClientUtil {
     }
 
     /**
-     * Configura un RestClient sobre la request factory indicada.
+     * Configures a RestClient on the given request factory.
      *
-     * @param config la configuración del cliente
-     * @param requestFactory la request factory
-     * @return el RestClient
+     * @param config the client configuration
+     * @param requestFactory the request factory
+     * @return the RestClient
      */
     public RestClient configureRestClient(RestHttpClient config, ClientHttpRequestFactory requestFactory) {
         return configureRestClient(config, requestFactory, RestClient.builder());
     }
 
     /**
-     * Configura un RestClient a partir de un builder ya personalizado, fijando la request factory y la URL
-     * base del cliente (reemplazan lo que el builder tuviera).
+     * Configures a RestClient from an already customized builder, setting the client's request factory and
+     * base URL (they replace whatever the builder had).
      *
-     * @param config la configuración del cliente
-     * @param requestFactory la request factory
-     * @param builder el builder a completar
-     * @return el RestClient
+     * @param config the client configuration
+     * @param requestFactory the request factory
+     * @param builder the builder to complete
+     * @return the RestClient
      */
     public RestClient configureRestClient(RestHttpClient config, ClientHttpRequestFactory requestFactory,
                                           RestClient.Builder builder) {
@@ -147,32 +147,32 @@ public class RestClientUtil {
     }
 
     /**
-     * Configura un RestTemplate sobre la request factory indicada.
+     * Configures a RestTemplate on the given request factory.
      *
-     * @param requestFactory la request factory
-     * @return el RestTemplate
+     * @param requestFactory the request factory
+     * @return the RestTemplate
      */
     public RestTemplate configureRestTemplate(ClientHttpRequestFactory requestFactory) {
         return new RestTemplate(requestFactory);
     }
 
     /**
-     * Configura un RestClient con su propia request factory (que no se cierra automáticamente).
+     * Configures a RestClient with its own request factory (which is not closed automatically).
      *
-     * @param config la configuración del cliente
-     * @return el RestClient
-     * @throws ClientException si falla la configuración SSL
+     * @param config the client configuration
+     * @return the RestClient
+     * @throws ClientException if the SSL configuration fails
      */
     public RestClient configureRestClient(RestHttpClient config) {
         return configureRestClient(config, createRequestFactory(config));
     }
 
     /**
-     * Configura un RestTemplate con su propia request factory (que no se cierra automáticamente).
+     * Configures a RestTemplate with its own request factory (which is not closed automatically).
      *
-     * @param config la configuración del cliente
-     * @return el RestTemplate
-     * @throws ClientException si falla la configuración SSL
+     * @param config the client configuration
+     * @return the RestTemplate
+     * @throws ClientException if the SSL configuration fails
      */
     public RestTemplate configureRestTemplate(RestHttpClient config) {
         return configureRestTemplate(createRequestFactory(config));
@@ -182,22 +182,22 @@ public class RestClientUtil {
 
 
    /**
-     * Crea un HttpClient con configuración de timeouts, SSL y pool de conexiones.
-     * El pool se configura con los atributos de la anotación:
-     * - maxConnections: conexiones totales del pool (por defecto 100)
-     * - maxConnectionsPerRoute: conexiones por ruta (por defecto 20)
-     * - connectionTimeToLive: tiempo de vida de las conexiones en ms (por defecto -1, sin límite)
-     * Si SSL está habilitado sin keystore ni truststore se usa el contexto SSL por defecto de la JVM.
-     * IMPORTANTE: las contraseñas se toman tal cual de la anotación.
+     * Creates an HttpClient with timeout, SSL and connection pool configuration.
+     * The pool is configured with the annotation's attributes:
+     * - maxConnections: total connections of the pool (default 100)
+     * - maxConnectionsPerRoute: connections per route (default 20)
+     * - connectionTimeToLive: time to live of the connections in ms (default -1, no limit)
+     * If SSL is enabled without keystore or truststore, the JVM's default SSL context is used.
+     * IMPORTANT: passwords are taken as is from the annotation.
      *
-     * @param config la configuración del cliente
-     * @return el HttpClient
-     * @throws NoSuchAlgorithmException si el algoritmo TLS no está disponible
-     * @throws UnrecoverableKeyException si no se puede recuperar la clave del keystore
-     * @throws CertificateException si un certificado no se puede cargar
-     * @throws KeyStoreException si el keystore no es válido
-     * @throws IOException si el keystore o truststore no se puede leer
-     * @throws KeyManagementException sí falla la inicialización del contexto SSL
+     * @param config the client configuration
+     * @return the HttpClient
+     * @throws NoSuchAlgorithmException if the TLS algorithm is not available
+     * @throws UnrecoverableKeyException if the key cannot be recovered from the keystore
+     * @throws CertificateException if a certificate cannot be loaded
+     * @throws KeyStoreException if the keystore is not valid
+     * @throws IOException if the keystore or truststore cannot be read
+     * @throws KeyManagementException if the SSL context initialization fails
      */
     private HttpClient createHttpClient(RestHttpClient config)
             throws NoSuchAlgorithmException, UnrecoverableKeyException, CertificateException,
@@ -284,12 +284,12 @@ public class RestClientUtil {
     }
 
     /**
-     * Aplica el proxy al HttpClient si tiene host: la ruta por el proxy (salvo {@code nonProxyHosts}) y, si hay
-     * usuario, las credenciales para el proxy.
+     * Applies the proxy to the HttpClient if it has a host: the route through the proxy (except
+     * {@code nonProxyHosts}) and, if there is a user, the credentials for the proxy.
      *
-     * @param builder el builder del HttpClient
-     * @param proxy la configuración del proxy
-     * @throws ClientException si el puerto, el protocolo o las credenciales no son válidos
+     * @param builder the HttpClient builder
+     * @param proxy the proxy configuration
+     * @throws ClientException if the port, the scheme or the credentials are not valid
      */
     private static void configureProxy(HttpClientBuilder builder, ProxyConfig proxy) {
         if (proxy.host().isBlank()) {
@@ -313,11 +313,11 @@ public class RestClientUtil {
     }
 
     /**
-     * Convierte el puerto del proxy.
+     * Converts the proxy port.
      *
-     * @param text el puerto como texto
-     * @return el puerto
-     * @throws ClientException si no es un número entre 1 y 65535
+     * @param text the port as text
+     * @return the port
+     * @throws ClientException if it is not a number between 1 and 65535
      */
     private static int parsePort(String text) {
         try {
@@ -326,7 +326,7 @@ public class RestClientUtil {
                 return port;
             }
         } catch (NumberFormatException e) {
-            // se informa abajo con el mismo mensaje
+            // reported below with the same message
         }
         throw new ClientException("The proxy port must be a number between 1 and 65535, but is '" + text + "'");
     }

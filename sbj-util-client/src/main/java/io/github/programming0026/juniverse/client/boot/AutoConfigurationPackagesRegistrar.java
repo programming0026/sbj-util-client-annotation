@@ -12,24 +12,24 @@ import org.springframework.core.type.AnnotationMetadata;
 import java.util.List;
 
 /**
- * Registra los clientes escaneando los paquetes de la aplicación Spring Boot (los de la clase con
- * {@code @SpringBootApplication}), igual que Boot hace con los {@code @Component}.
+ * Registers the clients by scanning the packages of the Spring Boot application (those of the class with
+ * {@code @SpringBootApplication}), just as Boot does with {@code @Component}.
  *
- * Lo usa {@link RestHttpClientAutoConfiguration} cuando la aplicación no declara
+ * It is used by {@link RestHttpClientAutoConfiguration} when the application does not declare
  * {@code @EnableRestHttpClients}.
  *
  * @author Java Universe
  */
 class AutoConfigurationPackagesRegistrar extends RestHttpClientRegistrar {
 
-    /** El logger. */
+    /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(AutoConfigurationPackagesRegistrar.class);
 
     /**
-     * Registra los clientes de los paquetes de autoconfiguración; si no hay ninguno registrado, no hace nada.
+     * Registers the clients of the auto-configuration packages; if none is registered, it does nothing.
      *
-     * @param metadata los metadatos de la autoconfiguración (no se usan)
-     * @param registry el registro de definiciones de bean
+     * @param metadata the auto-configuration metadata (not used)
+     * @param registry the bean definition registry
      */
     @Override
     public void registerBeanDefinitions(AnnotationMetadata metadata, @NonNull BeanDefinitionRegistry registry) {

@@ -7,9 +7,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Ajustes de un método del cliente que reemplazan los del {@link RestHttpClient} solo para ese método; por
- * ejemplo, dar más tiempo a una descarga sin aflojar los límites del resto de las llamadas. Lo que no se indica
- * se hereda del cliente. El circuit breaker y el rate limiter siguen siendo del cliente completo.
+ * Settings of a client method that override those of the {@link RestHttpClient} only for that method; for
+ * example, giving a download more time without loosening the limits of the rest of the calls. Anything not
+ * specified is inherited from the client. The circuit breaker and the rate limiter remain those of the whole
+ * client.
  *
  * <pre>{@code
  * @GetMapping("/reports/{id}")
@@ -17,7 +18,7 @@ import java.lang.annotation.Target;
  * InputStream report(@PathVariable String id);
  * }</pre>
  *
- * Los valores se validan al crear el cliente.
+ * The values are validated when the client is created.
  *
  * @author Java Universe
  */
@@ -27,32 +28,33 @@ import java.lang.annotation.Target;
 public @interface MethodConfig {
 
     /**
-     * Tiempo máximo de espera de la respuesta, en milisegundos, para este método (reemplaza a
-     * {@link RestHttpClient#readTimeout()}). Con un retorno {@code InputStream} rige también cada lectura del
-     * cuerpo. {@code -1} (por defecto) hereda el del cliente; si se indica debe ser mayor que cero.
+     * Maximum time to wait for the response, in milliseconds, for this method (replaces
+     * {@link RestHttpClient#readTimeout()}). With an {@code InputStream} return type it also governs each read
+     * of the body. {@code -1} (the default) inherits the client's value; if specified it must be greater than
+     * zero.
      *
-     * @return el read timeout en milisegundos, o {@code -1} para heredarlo
+     * @return the read timeout in milliseconds, or {@code -1} to inherit it
      */
     long readTimeout() default -1;
 
     /**
-     * Número total de intentos para este método, el primero incluido (reemplaza a
-     * {@link RetryConfig#maxRetries()}; {@code 1} significa sin reintentos). El resto de la configuración de
-     * reintentos (espera, backoff, {@code retryNonIdempotent}) se hereda del cliente. {@code -1} (por defecto)
-     * hereda el del cliente; si se indica debe ser al menos {@code 1}.
+     * Total number of attempts for this method, the first one included (replaces
+     * {@link RetryConfig#maxRetries()}; {@code 1} means no retries). The rest of the retry configuration (wait,
+     * backoff, {@code retryNonIdempotent}) is inherited from the client. {@code -1} (the default) inherits the
+     * client's value; if specified it must be at least {@code 1}.
      *
-     * @return el total de intentos, o {@code -1} para heredarlo
+     * @return the total number of attempts, or {@code -1} to inherit it
      */
     int maxRetries() default -1;
 
     /**
-     * Tiempo máximo de cada intento, en milisegundos, para este método (reemplaza a
-     * {@link TimeLimiterConfig#timeout()}). Con un valor mayor que cero el método tiene límite de tiempo
-     * aunque el cliente no lo tenga habilitado; {@code 0} quita el límite del cliente para este método;
-     * {@code -1} (por defecto) hereda el del cliente. Si el método tiene un {@link #readTimeout()} mayor que el
-     * límite que le toca, el límite corta primero.
+     * Maximum time of each attempt, in milliseconds, for this method (replaces
+     * {@link TimeLimiterConfig#timeout()}). With a value greater than zero the method has a time limit even if
+     * the client does not have it enabled; {@code 0} removes the client's limit for this method; {@code -1} (the
+     * default) inherits the client's value. If the method has a {@link #readTimeout()} greater than the limit
+     * that applies to it, the limit cuts first.
      *
-     * @return el tiempo máximo en milisegundos, {@code 0} para quitarlo o {@code -1} para heredarlo
+     * @return the maximum time in milliseconds, {@code 0} to remove it or {@code -1} to inherit it
      */
     long timeLimiterTimeout() default -1;
 }

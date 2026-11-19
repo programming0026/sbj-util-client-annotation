@@ -33,40 +33,40 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Registra un bean por cada interfaz anotada con {@link RestHttpClient}.
- * Se activa con {@link EnableRestHttpClients}: busca en los paquetes base las interfaces de nivel
- * superior o anidadas estáticas y registra para cada una un {@link RestHttpClientFactoryBean}.
+ * Registers a bean for each interface annotated with {@link RestHttpClient}.
+ * It is activated with {@link EnableRestHttpClients}: it searches the base packages for top-level
+ * or static nested interfaces and registers a {@link RestHttpClientFactoryBean} for each one.
  *
  * @author Java Universe
  */
 public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware,
         ResourceLoaderAware {
-    /** El logger. */
+    /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(RestHttpClientRegistrar.class);
 
-    /** Nombre del bean marcador que indica que la aplicación usa {@link EnableRestHttpClients}. */
+    /** Name of the marker bean that indicates the application uses {@link EnableRestHttpClients}. */
     public static final String ENABLED_MARKER_BEAN = "restHttpClientEnabledMarker";
 
-    /** Bean marcador: existe cuando la aplicación declaró {@link EnableRestHttpClients}. */
+    /** Marker bean: it exists when the application declared {@link EnableRestHttpClients}. */
     public static final class EnabledMarker implements Serializable {
     }
 
     /**
-     * El entorno para resolver placeholders en {@code basePackages} y {@code name}. Spring lo inyecta
-     * antes de registrar; el valor inicial solo se usa si el registrar se crea a mano.
+     * The environment used to resolve placeholders in {@code basePackages} and {@code name}. Spring injects it
+     * before registering; the initial value is only used if the registrar is created by hand.
      */
     private Environment environment = new StandardEnvironment();
 
     /**
-     * El cargador de recursos (y de clases) de la aplicación. Spring lo inyecta antes de registrar; el
-     * valor inicial solo se usa si el registrar se crea a mano.
+     * The application's resource (and class) loader. Spring injects it before registering; the
+     * initial value is only used if the registrar is created by hand.
      */
     private ResourceLoader resourceLoader = new DefaultResourceLoader();
 
     /**
-     * Recibe el entorno de Spring.
+     * Receives the Spring environment.
      *
-     * @param environment el entorno
+     * @param environment the environment
      */
     @Override
     public void setEnvironment(@NonNull Environment environment) {
@@ -74,10 +74,10 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
     }
 
     /**
-     * Recibe el cargador de recursos de Spring; se usa para escanear y cargar las interfaces con el
-     * class loader de la aplicación (por ejemplo, el de Spring Boot DevTools).
+     * Receives Spring's resource loader; it is used to scan and load the interfaces with the
+     * application's class loader (for example, that of Spring Boot DevTools).
      *
-     * @param resourceLoader el cargador de recursos
+     * @param resourceLoader the resource loader
      */
     @Override
     public void setResourceLoader(@NonNull ResourceLoader resourceLoader) {
@@ -85,17 +85,17 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
     }
 
     /**
-     * Busca los clientes y registra sus definiciones de bean. Los argumentos {@code CircuitBreakerUtil} y
-     * {@code RestClientUtil} del constructor del factory bean son los beans de {@link ClientConfig},
-     * referenciados por sus nombres con prefijo ({@link ClientConfig#CIRCUIT_BREAKER_UTIL_BEAN} y
+     * Finds the clients and registers their bean definitions. The {@code CircuitBreakerUtil} and
+     * {@code RestClientUtil} arguments of the factory bean constructor are the beans of {@link ClientConfig},
+     * referenced by their prefixed names ({@link ClientConfig#CIRCUIT_BREAKER_UTIL_BEAN} and
      * {@link ClientConfig#REST_CLIENT_UTIL_BEAN}).
-     * Si un cliente ya está registrado con el mismo nombre (por ejemplo, porque dos
-     * {@code @EnableRestHttpClients} escanean el mismo paquete), se omite; si el nombre lo usa otro bean,
-     * se lanza un error en vez de sobrescribirlo.
+     * If a client is already registered with the same name (for example, because two
+     * {@code @EnableRestHttpClients} scan the same package), it is skipped; if the name is used by another bean,
+     * an error is thrown instead of overwriting it.
      *
-     * @param metadata los metadatos de la clase anotada con {@link EnableRestHttpClients}
-     * @param registry el registro de definiciones de bean
-     * @throws ClientException si una interfaz no se puede cargar o registrar (por ejemplo, nombre duplicado)
+     * @param metadata the metadata of the class annotated with {@link EnableRestHttpClients}
+     * @param registry the bean definition registry
+     * @throws ClientException if an interface cannot be loaded or registered (for example, duplicate name)
      */
     @Override
     public void registerBeanDefinitions(AnnotationMetadata metadata, @NonNull BeanDefinitionRegistry registry) {
@@ -119,11 +119,11 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
     }
 
     /**
-     * Busca los clientes en los paquetes indicados y registra un {@link RestHttpClientFactoryBean} por cada uno.
+     * Searches for the clients in the given packages and registers a {@link RestHttpClientFactoryBean} for each.
      *
-     * @param basePackages los paquetes donde buscar (admiten placeholders)
-     * @param registry el registro de definiciones de bean
-     * @throws ClientException si una interfaz no se puede cargar o registrar (por ejemplo, nombre duplicado)
+     * @param basePackages the packages to search (they accept placeholders)
+     * @param registry the bean definition registry
+     * @throws ClientException if an interface cannot be loaded or registered (for example, duplicate name)
      */
     protected void registerClients(String[] basePackages, BeanDefinitionRegistry registry) {
         ClassPathScanningCandidateComponentProvider scanner = createClientScanner();
@@ -242,12 +242,12 @@ public class RestHttpClientRegistrar implements ImportBeanDefinitionRegistrar, E
     }
 
     /**
-     * Determina el nombre del bean: el {@code name} de la anotación (con sus placeholders resueltos) o,
-     * si está vacío, el nombre simple de la interfaz con la primera letra en minúscula.
+     * Determines the bean name: the {@code name} of the annotation (with its placeholders resolved) or,
+     * if empty, the simple name of the interface with the first letter in lowercase.
      *
-     * @param clientInterface la interfaz del cliente
-     * @param annotation la anotación del cliente
-     * @return el nombre del bean
+     * @param clientInterface the client interface
+     * @param annotation the client annotation
+     * @return the bean name
      */
     private String determineBeanName(Class<?> clientInterface, RestHttpClient annotation) {
 

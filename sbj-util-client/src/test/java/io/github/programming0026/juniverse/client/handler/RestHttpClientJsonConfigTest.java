@@ -31,17 +31,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * {@code jsonConfig}: el JSON de un cliente se personaliza sin afectar a los demás ni a la aplicación.
+ * {@code jsonConfig}: a client's JSON is customized without affecting the others or the application.
  *
  * @author Java Universe
  */
 class RestHttpClientJsonConfigTest {
 
-    /** Tipo de la API: la API usa snake_case. */
+    /** API type: the API uses snake_case. */
     public record Person(String firstName, Integer age) {
     }
 
-    /** Configurador del ejemplo del README. */
+    /** Configurer from the README example. */
     public static class SnakeCase implements JsonMapperConfigurer {
         @Override
         public void configure(JsonMapper.Builder builder) {
@@ -60,11 +60,11 @@ class RestHttpClientJsonConfigTest {
         String echo(@RequestBody Person person);
     }
 
-    /** No cambia nada: sirve para ver la base del mapper. */
+    /** Changes nothing: it is used to see the mapper's base. */
     public static class Untouched implements JsonMapperConfigurer {
         @Override
         public void configure(JsonMapper.Builder builder) {
-            // sin cambios
+            // no changes
         }
     }
 
@@ -93,12 +93,12 @@ class RestHttpClientJsonConfigTest {
         String echo(@RequestBody Person person);
     }
 
-    /** Lo declara como bean la prueba: necesita una dependencia. */
+    /** Declared as a bean by the test: it needs a dependency. */
     public static class Suffix {
         final String value = "_x";
     }
 
-    /** Configurador con dependencias: se crea con inyección. */
+    /** Configurer with dependencies: it is created with injection. */
     public static class InjectedConfigurer implements JsonMapperConfigurer {
         static final AtomicReference<String> SEEN = new AtomicReference<>();
 
@@ -195,7 +195,7 @@ class RestHttpClientJsonConfigTest {
         PlainClient client = client(PlainClient.class);
 
         assertThat(client.echo(new Person("Ana", 30))).isEqualTo("{'firstName':'Ana','age':30}");
-        // Sin snake_case, "firstName" es la propiedad que se lee (y no first_name).
+        // Without snake_case, "firstName" is the property that is read (and not first_name).
         assertThat(client.person()).isEqualTo(new Person("camel", 30));
     }
 

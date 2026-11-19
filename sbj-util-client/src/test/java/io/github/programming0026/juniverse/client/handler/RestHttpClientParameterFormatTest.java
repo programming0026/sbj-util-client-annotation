@@ -29,8 +29,8 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * {@code @DateTimeFormat} y {@code @NumberFormat} dan formato a los parámetros; sin ellas el texto es el de
- * siempre ({@code String.valueOf}).
+ * {@code @DateTimeFormat} and {@code @NumberFormat} format the parameters; without them the text is the usual
+ * one ({@code String.valueOf}).
  *
  * @author Java Universe
  */
@@ -38,7 +38,7 @@ class RestHttpClientParameterFormatTest {
 
     private static final String BASE = "http://localhost/api";
 
-    /** Cliente con parámetros formateados y sin formatear. */
+    /** Client with formatted and unformatted parameters. */
     @RestHttpClient(url = BASE, retry = @RetryConfig(maxRetries = 1, retryDelay = 1))
     interface FormatClient {
 

@@ -15,21 +15,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Servidor HTTP local que hace de DummyJSON en los tests: responde lo que se le configure y guarda las
- * peticiones recibidas, para comprobar qué envían realmente los clientes de la librería.
+ * Local HTTP server that acts as DummyJSON in the tests: it answers whatever is configured and stores the
+ * received requests, to check what the library's clients actually send.
  *
  * @author Java Universe
  */
 public final class FakeDummyJsonServer {
 
     /**
-     * Petición recibida.
+     * Received request.
      *
-     * @param method método HTTP
-     * @param path ruta (sin query)
-     * @param query query string tal como llegó, o null
-     * @param headers headers, con los nombres en minúsculas
-     * @param body cuerpo como texto
+     * @param method HTTP method
+     * @param path path (without query)
+     * @param query query string as received, or null
+     * @param headers headers, with lowercase names
+     * @param body body as text
      */
     public record Received(String method, String path, String query, Map<String, String> headers, String body) {
     }
@@ -41,7 +41,7 @@ public final class FakeDummyJsonServer {
     private final Map<String, Reply> replies = new ConcurrentHashMap<>();
     private final List<Received> requests = new CopyOnWriteArrayList<>();
 
-    /** Arranca el servidor en un puerto libre. */
+    /** Starts the server on a free port. */
     public FakeDummyJsonServer() {
         try {
             server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
@@ -53,74 +53,74 @@ public final class FakeDummyJsonServer {
     }
 
     /**
-     * Puerto en el que escucha.
+     * Port it listens on.
      *
-     * @return el puerto
+     * @return the port
      */
     public int port() {
         return server.getAddress().getPort();
     }
 
     /**
-     * URL base del servidor.
+     * Base URL of the server.
      *
-     * @return por ejemplo {@code http://127.0.0.1:54321}
+     * @return for example {@code http://127.0.0.1:54321}
      */
     public String baseUrl() {
         return "http://127.0.0.1:" + port();
     }
 
     /**
-     * Configura una respuesta JSON.
+     * Configures a JSON response.
      *
-     * @param method método HTTP
-     * @param path ruta exacta
-     * @param status código de estado
-     * @param json cuerpo JSON
+     * @param method HTTP method
+     * @param path exact path
+     * @param status status code
+     * @param json JSON body
      */
     public void replyJson(String method, String path, int status, String json) {
         replies.put(key(method, path), new Reply(status, "application/json", json.getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
-     * Configura una respuesta binaria.
+     * Configures a binary response.
      *
-     * @param method método HTTP
-     * @param path ruta exacta
-     * @param contentType tipo de contenido
-     * @param body los bytes
+     * @param method HTTP method
+     * @param path exact path
+     * @param contentType content type
+     * @param body the bytes
      */
     public void replyBytes(String method, String path, String contentType, byte[] body) {
         replies.put(key(method, path), new Reply(200, contentType, body));
     }
 
     /**
-     * Peticiones recibidas desde el último {@link #reset()}.
+     * Requests received since the last {@link #reset()}.
      *
-     * @return las peticiones, en orden
+     * @return the requests, in order
      */
     public List<Received> requests() {
         return List.copyOf(requests);
     }
 
     /**
-     * Peticiones recibidas para un método y una ruta.
+     * Requests received for a method and a path.
      *
-     * @param method método HTTP
-     * @param path ruta exacta
-     * @return las peticiones que coinciden
+     * @param method HTTP method
+     * @param path exact path
+     * @return the matching requests
      */
     public List<Received> requests(String method, String path) {
         return requests.stream().filter(r -> r.method().equals(method) && r.path().equals(path)).toList();
     }
 
-    /** Olvida las respuestas configuradas y las peticiones recibidas. */
+    /** Forgets the configured responses and the received requests. */
     public void reset() {
         replies.clear();
         requests.clear();
     }
 
-    /** Detiene el servidor. */
+    /** Stops the server. */
     public void stop() {
         server.stop(0);
     }

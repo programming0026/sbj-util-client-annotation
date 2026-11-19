@@ -3,18 +3,18 @@ package com.juniverse.client.example.domain.model;
 import com.juniverse.client.example.domain.exception.InvalidRequestException;
 
 /**
- * Usuario y contraseña para iniciar sesión.
+ * User name and password to log in.
  *
- * @param username el usuario
- * @param password la contraseña
+ * @param username the user name
+ * @param password the password
  * @author Java Universe
  */
 public record Credentials(String username, String password) {
 
     /**
-     * Valida que ambos datos vengan.
+     * Validates that both values are present.
      *
-     * @throws InvalidRequestException si falta el usuario o la contraseña
+     * @throws InvalidRequestException if the user name or the password is missing
      */
     public Credentials {
         if (username == null || username.isBlank()) {
@@ -26,7 +26,7 @@ public record Credentials(String username, String password) {
         username = username.trim();
     }
 
-    /** La contraseña nunca debe aparecer en logs ni en mensajes de error. */
+    /** The password must never appear in logs or error messages. */
     @Override
     public String toString() {
         return "Credentials[username=" + username + ", password=***]";

@@ -10,20 +10,20 @@ import java.util.Locale;
 import java.util.stream.Stream;
 
 /**
- * Envía por un proxy salvo los destinos de {@code nonProxyHosts}, a los que se llega directamente.
+ * Sends requests through a proxy except for the {@code nonProxyHosts} destinations, which are reached directly.
  *
  * @author Java Universe
  */
 class NonProxyHostsRoutePlanner extends DefaultProxyRoutePlanner {
 
-    /** Patrones en minúsculas. */
+    /** Lowercase patterns. */
     private final List<String> nonProxyHosts;
 
     /**
-     * Crea el planificador.
+     * Creates the planner.
      *
-     * @param proxy el proxy
-     * @param nonProxyHosts los patrones de hosts que no usan el proxy
+     * @param proxy the proxy
+     * @param nonProxyHosts the patterns of hosts that do not use the proxy
      */
     NonProxyHostsRoutePlanner(HttpHost proxy, String[] nonProxyHosts) {
         super(proxy);
@@ -34,12 +34,12 @@ class NonProxyHostsRoutePlanner extends DefaultProxyRoutePlanner {
     }
 
     /**
-     * Devuelve el proxy, o {@code null} (conexión directa) si el destino coincide con un patrón.
+     * Returns the proxy, or {@code null} (direct connection) if the target matches a pattern.
      *
-     * @param target el destino
-     * @param context el contexto de la petición
-     * @return el proxy o {@code null}
-     * @throws HttpException si falla la resolución
+     * @param target the target
+     * @param context the request context
+     * @return the proxy or {@code null}
+     * @throws HttpException if the resolution fails
      */
     @Override
     protected HttpHost determineProxy(HttpHost target, HttpContext context) throws HttpException {
@@ -47,11 +47,11 @@ class NonProxyHostsRoutePlanner extends DefaultProxyRoutePlanner {
     }
 
     /**
-     * Indica si un host coincide con algún patrón.
+     * Indicates whether a host matches any pattern.
      *
-     * @param host el host
-     * @param patterns los patrones, ya en minúsculas
-     * @return true si coincide
+     * @param host the host
+     * @param patterns the patterns, already in lowercase
+     * @return true if it matches
      */
     static boolean matches(String host, List<String> patterns) {
         String name = host.toLowerCase(Locale.ROOT);

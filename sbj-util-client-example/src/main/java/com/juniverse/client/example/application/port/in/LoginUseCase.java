@@ -5,18 +5,18 @@ import com.juniverse.client.example.domain.model.AuthSession;
 import com.juniverse.client.example.domain.model.Credentials;
 
 /**
- * Caso de uso: iniciar sesión.
+ * Use case: log in.
  *
  * @author Java Universe
  */
 public interface LoginUseCase {
 
     /**
-     * Inicia sesión.
+     * Logs in.
      *
-     * @param credentials usuario y contraseña
-     * @return el usuario y sus tokens
-     * @throws InvalidCredentialsException si los datos no son correctos
+     * @param credentials user name and password
+     * @return the user and their tokens
+     * @throws InvalidCredentialsException if the data is not correct
      */
     AuthSession login(Credentials credentials);
 }

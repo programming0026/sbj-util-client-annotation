@@ -3,16 +3,16 @@ package com.juniverse.client.example.infrastructure.adapter.out.dummyjson.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Cuerpo para renovar los tokens.
+ * Body to renew the tokens.
  *
- * @param refreshToken token de renovación
- * @param expiresInMins minutos de vida del nuevo token de acceso, o null para el valor por defecto
+ * @param refreshToken refresh token
+ * @param expiresInMins minutes of life of the new access token, or null for the default value
  * @author Java Universe
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RefreshRequestDto(String refreshToken, Integer expiresInMins) {
 
-    /** El token nunca debe aparecer en logs. */
+    /** The token must never appear in logs. */
     @Override
     public String toString() {
         return "RefreshRequestDto[refreshToken=***]";

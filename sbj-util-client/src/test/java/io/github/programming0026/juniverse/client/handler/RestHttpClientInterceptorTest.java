@@ -31,13 +31,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Interceptores por cliente, con inyección de dependencias y después de los globales de la aplicación.
+ * Per-client interceptors, with dependency injection and after the application's global ones.
  *
  * @author Java Universe
  */
 class RestHttpClientInterceptorTest {
 
-    /** Bean de la aplicación que usa el interceptor de autenticación. */
+    /** Application bean used by the authentication interceptor. */
     static class TokenProvider {
 
         String token() {
@@ -45,7 +45,7 @@ class RestHttpClientInterceptorTest {
         }
     }
 
-    /** Interceptor sin constructor vacío: Spring lo crea inyectando {@link TokenProvider}. */
+    /** Interceptor without an empty constructor: Spring creates it by injecting {@link TokenProvider}. */
     static class AuthInterceptor implements ClientHttpRequestInterceptor {
 
         private final TokenProvider tokenProvider;
@@ -63,7 +63,7 @@ class RestHttpClientInterceptorTest {
         }
     }
 
-    /** Segundo interceptor, para comprobar el orden. */
+    /** Second interceptor, to check the order. */
     static class TraceInterceptor implements ClientHttpRequestInterceptor {
 
         @Override
@@ -90,7 +90,7 @@ class RestHttpClientInterceptorTest {
         String ping();
     }
 
-    /** Interceptor global de la aplicación, que debe ejecutarse antes que los del cliente. */
+    /** Application global interceptor, which must run before the client's ones. */
     private static final ClientHttpRequestInterceptor GLOBAL = (request, body, execution) -> {
         request.getHeaders().add("X-Chain", "global");
         return execution.execute(request, body);

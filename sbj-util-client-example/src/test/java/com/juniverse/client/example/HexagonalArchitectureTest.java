@@ -12,8 +12,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Verifica la regla de dependencias de la arquitectura hexagonal revisando los imports del código fuente:
- * las dependencias solo apuntan hacia adentro (infraestructura → aplicación → dominio).
+ * Verifies the dependency rule of the hexagonal architecture by checking the source code imports:
+ * dependencies only point inwards (infrastructure → application → domain).
  *
  * @author Java Universe
  */

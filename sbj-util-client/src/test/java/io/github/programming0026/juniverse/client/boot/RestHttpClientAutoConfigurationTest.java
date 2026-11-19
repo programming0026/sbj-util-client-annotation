@@ -16,7 +16,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Autoconfiguración de Spring Boot: escaneo automático de clientes y métricas.
+ * Spring Boot auto-configuration: automatic client scanning and metrics.
  *
  * @author Java Universe
  */
@@ -26,7 +26,7 @@ class RestHttpClientAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(RestHttpClientAutoConfiguration.class,
                     RestHttpClientMetricsAutoConfiguration.class));
 
-    /** Simula una aplicación cuyo {@code @SpringBootApplication} está en el paquete de los clientes de prueba. */
+    /** Simulates an application whose {@code @SpringBootApplication} is in the package of the test clients. */
     private final ApplicationContextRunner bootApplication = runner.withInitializer(context ->
             AutoConfigurationPackages.register((BeanDefinitionRegistry) context.getBeanFactory(),
                     Constants.BASE + ".handler.scan"));

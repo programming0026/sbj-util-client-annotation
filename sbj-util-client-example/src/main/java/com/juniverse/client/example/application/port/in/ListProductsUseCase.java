@@ -4,17 +4,17 @@ import com.juniverse.client.example.domain.model.ProductCriteria;
 import com.juniverse.client.example.domain.model.ProductPage;
 
 /**
- * Caso de uso: consultar productos (todos, por texto o por categoría), paginados y ordenados.
+ * Use case: query products (all, by text or by category), paginated and sorted.
  *
  * @author Java Universe
  */
 public interface ListProductsUseCase {
 
     /**
-     * Consulta una página de productos.
+     * Queries a page of products.
      *
-     * @param criteria qué productos y cómo
-     * @return la página de productos
+     * @param criteria which products and how
+     * @return the page of products
      */
     ProductPage list(ProductCriteria criteria);
 }

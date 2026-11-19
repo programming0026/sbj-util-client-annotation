@@ -1,16 +1,16 @@
 package io.github.programming0026.juniverse.client.enums;
 
 /**
- * Implementación HTTP que usa un cliente.
+ * HTTP implementation used by a client.
  *
  * @author Java Universe
  */
 public enum ClientType {
 
-    /** Usa {@code RestClient} de Spring (por defecto). */
+    /** Uses Spring's {@code RestClient} (the default). */
     REST_CLIENT,
 
-    /** Usa {@code RestTemplate} de Spring. */
+    /** Uses Spring's {@code RestTemplate}. */
     REST_TEMPLATE,
 
 }

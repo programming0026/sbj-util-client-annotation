@@ -1,10 +1,10 @@
 package com.juniverse.client.example.domain.model;
 
 /**
- * Resultado de iniciar sesión: el usuario y sus tokens.
+ * Result of logging in: the user and their tokens.
  *
- * @param user el usuario autenticado
- * @param tokens los tokens de la sesión
+ * @param user the authenticated user
+ * @param tokens the session tokens
  * @author Java Universe
  */
 public record AuthSession(UserProfile user, AuthTokens tokens) {

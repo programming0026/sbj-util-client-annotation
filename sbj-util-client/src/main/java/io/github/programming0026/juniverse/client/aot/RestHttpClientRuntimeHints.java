@@ -26,31 +26,31 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Registra los hints de GraalVM (proxies y reflexión) que necesita un cliente {@code @RestHttpClient}.
+ * Registers the GraalVM hints (proxies and reflection) that a {@code @RestHttpClient} client needs.
  *
- * En la JVM la librería descubre por reflexión: crea un proxy JDK de la interfaz, lee sus métodos,
- * parámetros y anotaciones, crea copias sintetizadas de las anotaciones (para resolver los placeholders),
- * instancia el manejador de errores, los interceptores y el fallback, y Jackson enlaza los tipos de retorno y
- * de cuerpo. En una imagen nativa nada de eso existe si no se declara antes.
+ * On the JVM the library discovers things by reflection: it creates a JDK proxy of the interface, reads its
+ * methods, parameters and annotations, creates synthesized copies of the annotations (to resolve placeholders),
+ * instantiates the error handler, the interceptors and the fallback, and Jackson binds the return and body
+ * types. In a native image none of that exists unless it is declared beforehand.
  *
  * @author Java Universe
  */
 public final class RestHttpClientRuntimeHints {
 
-    /** Registra los tipos que Jackson enlaza. */
+    /** Registers the types that Jackson binds. */
     private static final BindingReflectionHintsRegistrar BINDING = new BindingReflectionHintsRegistrar();
 
     /**
-     * Clase de utilidades: no se instancia.
+     * Utility class: it is not instantiated.
      */
     private RestHttpClientRuntimeHints() {
     }
 
     /**
-     * Registra los hints de un cliente.
+     * Registers the hints of a client.
      *
-     * @param hints el registro de hints de la aplicación
-     * @param clientInterface la interfaz anotada con {@code @RestHttpClient}
+     * @param hints the application's hints registry
+     * @param clientInterface the interface annotated with {@code @RestHttpClient}
      */
     public static void register(RuntimeHints hints, Class<?> clientInterface) {
         hints.proxies().registerJdkProxy(clientInterface);
@@ -67,7 +67,6 @@ public final class RestHttpClientRuntimeHints {
                 bound.add(parameter.getParameterizedType());
             }
         }
-        // Las anotaciones anidadas de @RestHttpClient también se sintetizan al resolver los placeholders.
         annotations.addAll(List.of(RestHttpClient.class, SSLConfig.class, CircuitBreakerConfig.class,
                 RetryConfig.class, RateLimiterConfig.class, TimeLimiterConfig.class, MethodConfig.class,
                 ProxyConfig.class));
@@ -92,11 +91,11 @@ public final class RestHttpClientRuntimeHints {
     }
 
     /**
-     * Reúne las anotaciones de un elemento y, de forma recursiva, sus metaanotaciones (por ejemplo
-     * {@code @GetMapping} y su {@code @RequestMapping}).
+     * Collects the annotations of an element and, recursively, their meta-annotations (for example
+     * {@code @GetMapping} and its {@code @RequestMapping}).
      *
-     * @param element el elemento anotado
-     * @param found las anotaciones ya encontradas, a las que se añaden las nuevas
+     * @param element the annotated element
+     * @param found the annotations already found, to which the new ones are added
      */
     private static void collectAnnotations(AnnotatedElement element, Set<Class<? extends Annotation>> found) {
         for (Annotation annotation : element.getAnnotations()) {
@@ -108,18 +107,17 @@ public final class RestHttpClientRuntimeHints {
 
     private static void registerAnnotation(RuntimeHints hints, Class<? extends Annotation> type) {
         hints.reflection().registerType(type, MemberCategory.INVOKE_PUBLIC_METHODS);
-        // La copia sintetizada de las anotaciones de la librería es un proxy JDK de la anotación.
         if (type.getPackageName().startsWith(Constants.BASE + ".")) {
             hints.proxies().registerJdkProxy(type);
         }
     }
 
     /**
-     * Registra una clase que la librería instancia: constructores, campos y métodos, para que funcione también
-     * con inyección de dependencias.
+     * Registers a class that the library instantiates: constructors, fields and methods, so that it also works
+     * with dependency injection.
      *
-     * @param hints el registro de hints
-     * @param type la clase que se instancia
+     * @param hints the hints registry
+     * @param type the class that is instantiated
      */
     private static void registerComponent(RuntimeHints hints, Class<?> type) {
         hints.reflection().registerType(type, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
@@ -127,10 +125,10 @@ public final class RestHttpClientRuntimeHints {
     }
 
     /**
-     * Registra para Jackson los tipos propios de la aplicación; ignora los del JDK y de Spring.
+     * Registers for Jackson the application's own types; it ignores the JDK and Spring ones.
      *
-     * @param hints el registro de hints
-     * @param type el tipo, posiblemente genérico
+     * @param hints the hints registry
+     * @param type the type, possibly generic
      */
     private static void registerBinding(RuntimeHints hints, Type type) {
         ResolvableType resolvable = ResolvableType.forType(type);

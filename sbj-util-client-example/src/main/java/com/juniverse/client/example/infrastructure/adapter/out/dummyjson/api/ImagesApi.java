@@ -9,10 +9,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * Cliente declarativo de https://dummyjson.com/docs/image.
+ * Declarative client of https://dummyjson.com/docs/image.
  *
- * Devuelve {@code ResponseEntity<byte[]>} para conservar los bytes y el tipo de contenido
- * ({@code image/png}, {@code image/jpeg} o {@code image/webp}).
+ * Returns {@code ResponseEntity<byte[]>} to keep the bytes and the content type
+ * ({@code image/png}, {@code image/jpeg} or {@code image/webp}).
  *
  * @author Java Universe
  */
@@ -26,15 +26,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface ImagesApi {
 
     /**
-     * Genera una imagen.
+     * Generates an image.
      *
-     * @param size tamaño, por ejemplo {@code 300x200}
-     * @param background color de fondo en hexadecimal
-     * @param color color del texto en hexadecimal
-     * @param text texto a dibujar, o null
-     * @param fontSize tamaño de la letra, o null
-     * @param type {@code png}, {@code jpg} o {@code webp}
-     * @return la imagen con su tipo de contenido
+     * @param size size, for example {@code 300x200}
+     * @param background background color in hexadecimal
+     * @param color text color in hexadecimal
+     * @param text text to draw, or null
+     * @param fontSize font size, or null
+     * @param type {@code png}, {@code jpg} or {@code webp}
+     * @return the image with its content type
      */
     @GetMapping("/{size}/{background}/{color}")
     ResponseEntity<byte[]> generate(@PathVariable("size") String size,

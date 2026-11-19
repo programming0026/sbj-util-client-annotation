@@ -5,15 +5,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 /**
- * Página de productos de DummyJSON.
+ * Page of DummyJSON products.
  *
- * Los números son tipos envoltorio a propósito: DummyJSON omite campos en algunas respuestas (por ejemplo
- * al crear o modificar) y Jackson 3 rechaza un campo primitivo ausente.
+ * The numbers are wrapper types on purpose: DummyJSON omits fields in some responses (for example
+ * when creating or modifying) and Jackson 3 rejects a missing primitive field.
  *
- * @param products los productos de la página
- * @param total cuántos hay en total
- * @param skip cuántos se omitieron
- * @param limit el tamaño de página
+ * @param products the products of the page
+ * @param total how many there are in total
+ * @param skip how many were skipped
+ * @param limit the page size
  * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

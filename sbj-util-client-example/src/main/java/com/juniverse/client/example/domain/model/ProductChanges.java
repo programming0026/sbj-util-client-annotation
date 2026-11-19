@@ -5,23 +5,23 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
 import java.math.BigDecimal;
 
 /**
- * Cambios parciales a un producto: solo se modifican los campos que no son null, y al menos uno debe venir.
+ * Partial changes to a product: only the non-null fields are modified, and at least one must be present.
  *
- * @param title nuevo nombre, o null
- * @param description nueva descripción, o null
- * @param category nueva categoría, o null
- * @param price nuevo precio (0 o más), o null
- * @param stock nuevas unidades (0 o más), o null
- * @param brand nueva marca, o null
+ * @param title new name, or null
+ * @param description new description, or null
+ * @param category new category, or null
+ * @param price new price (0 or more), or null
+ * @param stock new units (0 or more), or null
+ * @param brand new brand, or null
  * @author Java Universe
  */
 public record ProductChanges(String title, String description, String category, BigDecimal price, Integer stock,
                              String brand) {
 
     /**
-     * Valida que haya al menos un cambio y que los valores sean correctos.
+     * Validates that there is at least one change and that the values are correct.
      *
-     * @throws InvalidRequestException si no hay cambios o hay valores inválidos
+     * @throws InvalidRequestException if there are no changes or there are invalid values
      */
     public ProductChanges {
         if (title == null && description == null && category == null && price == null && stock == null

@@ -4,17 +4,17 @@ import com.juniverse.client.example.domain.model.GeneratedImage;
 import com.juniverse.client.example.domain.model.ImageSpec;
 
 /**
- * Caso de uso: generar una imagen de marcador de posición.
+ * Use case: generate a placeholder image.
  *
  * @author Java Universe
  */
 public interface GenerateImageUseCase {
 
     /**
-     * Genera una imagen.
+     * Generates an image.
      *
-     * @param spec cómo debe ser la imagen
-     * @return la imagen generada
+     * @param spec what the image must be like
+     * @return the generated image
      */
     GeneratedImage generate(ImageSpec spec);
 }

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Adaptador de entrada: generación de imágenes de marcador de posición.
+ * Input adapter: generation of placeholder images.
  *
  * @author Java Universe
  */
@@ -30,25 +30,25 @@ public class ImageController {
     private final GenerateImageUseCase generateImage;
 
     /**
-     * Crea el controlador.
+     * Creates the controller.
      *
-     * @param generateImage caso de uso de generación de imágenes
+     * @param generateImage image generation use case
      */
     public ImageController(GenerateImageUseCase generateImage) {
         this.generateImage = generateImage;
     }
 
     /**
-     * Genera una imagen y la devuelve con su tipo de contenido.
+     * Generates an image and returns it with its content type.
      *
-     * @param width ancho en píxeles
-     * @param height alto en píxeles
-     * @param background color de fondo en hexadecimal, sin {@code #}
-     * @param color color del texto en hexadecimal, sin {@code #}
-     * @param text texto a dibujar
-     * @param fontSize tamaño de la letra
-     * @param format {@code png}, {@code jpg} o {@code webp}
-     * @return los bytes de la imagen
+     * @param width width in pixels
+     * @param height height in pixels
+     * @param background background color in hexadecimal, without {@code #}
+     * @param color text color in hexadecimal, without {@code #}
+     * @param text text to draw
+     * @param fontSize font size
+     * @param format {@code png}, {@code jpg} or {@code webp}
+     * @return the image bytes
      */
     @GetMapping
     @Operation(summary = "Generar una imagen de marcador de posición",

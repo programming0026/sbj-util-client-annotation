@@ -40,41 +40,41 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Crea el proxy de una interfaz {@link RestHttpClient}.
- * Construye el RestClient o RestTemplate según {@code type()}, obtiene él {@link ErrorHandler} y devuelve
- * un proxy dinámico respaldado por {@link RestHttpClientInvocationHandler}. El proxy se crea una sola vez y
- * al arrancar el contexto ({@link #isEagerInit()}), aunque nadie lo inyecte, para que un cliente mal
- * declarado haga fallar el arranque; al cerrarse el contexto se libera el pool de conexiones.
+ * Creates the proxy of a {@link RestHttpClient} interface.
+ * It builds the RestClient or RestTemplate according to {@code type()}, obtains the {@link ErrorHandler} and
+ * returns a dynamic proxy backed by {@link RestHttpClientInvocationHandler}. The proxy is created only once and
+ * when the context starts ({@link #isEagerInit()}), even if nobody injects it, so that a badly
+ * declared client makes startup fail; when the context closes the connection pool is released.
  *
- * @param <T> el tipo de la interfaz del cliente
+ * @param <T> the type of the client interface
  * @author Java Universe
  */
 public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, ApplicationContextAware, DisposableBean {
 
-    /** La interfaz del cliente. */
+    /** The client interface. */
     private final Class<T> clientInterface;
 
-    /** La fábrica de instancias de Resilience4j. */
+    /** The factory of Resilience4j instances. */
     private final CircuitBreakerUtil circuitBreakerUtil;
 
-    /** La utilidad que construye los clientes HTTP. */
+    /** The utility that builds the HTTP clients. */
     private final RestClientUtil restClientUtil;
 
-    /** El contexto de la aplicación. */
+    /** The application context. */
     private ApplicationContext applicationContext;
 
-    /** El proxy creado, o null si todavía no se creó. */
+    /** The created proxy, or null if it has not been created yet. */
     private T proxy;
 
-    /** La request factory del proxy (dueña del pool de conexiones), o null si todavía no se creó. */
+    /** The proxy's request factory (owner of the connection pool), or null if it has not been created yet. */
     private HttpComponentsClientHttpRequestFactory requestFactory;
 
     /**
-     * Crea el factory bean.
+     * Creates the factory bean.
      *
-     * @param clientInterface la interfaz del cliente (no puede ser null)
-     * @param circuitBreakerUtil la fábrica de instancias de Resilience4j
-     * @param restClientUtil la utilidad que construye los clientes HTTP
+     * @param clientInterface the client interface (cannot be null)
+     * @param circuitBreakerUtil the factory of Resilience4j instances
+     * @param restClientUtil the utility that builds the HTTP clients
      */
     public RestHttpClientFactoryBean(Class<T> clientInterface,
                                      CircuitBreakerUtil circuitBreakerUtil,
@@ -85,10 +85,10 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Guarda el contexto de la aplicación.
+     * Stores the application context.
      *
-     * @param applicationContext el contexto de la aplicación
-     * @throws BeansException si ocurre un error de Spring
+     * @param applicationContext the application context
+     * @throws BeansException if a Spring error occurs
      */
     @Override
     public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
@@ -96,9 +96,9 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Obtiene el contexto de la aplicación.
+     * Gets the application context.
      *
-     * @return el contexto de la aplicación
+     * @return the application context
      */
     public ApplicationContext getApplicationContext() {
         return applicationContext;
@@ -106,10 +106,10 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
 
 
     /**
-     * Devuelve el proxy del cliente, creándolo la primera vez.
+     * Returns the client's proxy, creating it the first time.
      *
-     * @return el proxy que implementa la interfaz del cliente
-     * @throws Exception si no se puede crear el manejador de errores
+     * @return the proxy that implements the client interface
+     * @throws Exception if the error handler cannot be created
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -154,7 +154,7 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
                     fallback
             );
         } catch (RuntimeException e) {
-            // El cliente es inválido (por ejemplo, un método mal declarado): se libera el pool ya creado.
+            // The client is invalid (for example, a badly declared method): the already created pool is released.
             factory.destroy();
             throw e;
         }
@@ -169,10 +169,10 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Comprueba que la clase del fallback sirva para reemplazar al cliente.
+     * Checks that the fallback class is suitable to replace the client.
      *
-     * @param fallbackType la clase declarada en {@code fallback()} ({@code void.class} si no hay)
-     * @throws ClientException si no implementa la interfaz del cliente o no es una clase concreta
+     * @param fallbackType the class declared in {@code fallback()} ({@code void.class} if there is none)
+     * @throws ClientException if it does not implement the client interface or is not a concrete class
      */
     private void validateFallback(Class<?> fallbackType) {
         if (fallbackType == void.class) {
@@ -187,9 +187,9 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Libera el pool de conexiones del cliente. Spring lo llama al cerrar el contexto.
+     * Releases the client's connection pool. Spring calls it when the context closes.
      *
-     * @throws Exception si falla el cierre del cliente HTTP
+     * @throws Exception if closing the HTTP client fails
      */
     @Override
     public synchronized void destroy() throws Exception {
@@ -200,15 +200,15 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Obtiene un componente declarado por clase en la anotación (manejador de errores, interceptores). Con
-     * contexto de Spring, usa el bean de ese tipo si hay uno solo y, si no, crea una instancia con inyección
-     * de dependencias (puede usar {@code @Autowired} o constructor con beans). Sin contexto, lo instancia con
-     * su constructor sin argumentos.
+     * Obtains a component declared by class in the annotation (error handler, interceptors). With a
+     * Spring context, it uses the bean of that type if there is only one and, otherwise, creates an instance
+     * with dependency injection (it can use {@code @Autowired} or a constructor with beans). Without a context,
+     * it instantiates it with its no-argument constructor.
      *
-     * @param type la clase del componente
-     * @param <C> el tipo del componente
-     * @return el componente
-     * @throws NoSuchMethodException si no se puede instanciar
+     * @param type the component class
+     * @param <C> the component type
+     * @return the component
+     * @throws NoSuchMethodException if it cannot be instantiated
      */
     private <C> C resolveComponent(Class<C> type) throws NoSuchMethodException, InvocationTargetException,
             InstantiationException, IllegalAccessException {
@@ -226,21 +226,21 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Crea el RestClient. Parte de la request factory y la URL del cliente y después aplica los
-     * {@link RestClientCustomizer} de la aplicación en su orden. Así se usa la misma configuración que el
-     * {@code RestClient.Builder} de Spring Boot (message converters con el Jackson de la aplicación,
-     * observabilidad, interceptores), sin pedir ese bean: Boot lo crea con su propia request factory y su
-     * pool, que quedarían sin cerrar.
-     * Como los customizers van después, un test puede reemplazar la request factory por un
-     * {@code MockRestServiceServer}; el {@code guard} impide que lo haga por accidente un customizer pensado
-     * para otros clientes (ver {@link RequestFactoryOverridePolicy}).
+     * Creates the RestClient. It starts from the client's request factory and URL and then applies the
+     * application's {@link RestClientCustomizer}s in their order. This way the same configuration as Spring
+     * Boot's {@code RestClient.Builder} is used (message converters with the application's Jackson,
+     * observability, interceptors), without requesting that bean: Boot creates it with its own request factory
+     * and pool, which would be left unclosed.
+     * Since the customizers go afterwards, a test can replace the request factory with a
+     * {@code MockRestServiceServer}; the {@code guard} prevents a customizer meant for other clients from
+     * doing so by accident (see {@link RequestFactoryOverridePolicy}).
      *
-     * @param annotation la configuración del cliente
-     * @param factory la request factory del cliente
-     * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
-     * @param guard vigila los reemplazos de la request factory
-     * @param jsonConfigurer el configurador JSON del cliente, o {@code null} si no declara uno
-     * @return el RestClient
+     * @param annotation the client configuration
+     * @param factory the client's request factory
+     * @param interceptors the client's own interceptors, which are added after the global ones
+     * @param guard watches over replacements of the request factory
+     * @param jsonConfigurer the client's JSON configurer, or {@code null} if it declares none
+     * @return the RestClient
      */
     private RestClient buildRestClient(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory,
                                        List<ClientHttpRequestInterceptor> interceptors, RequestFactoryGuard guard,
@@ -265,20 +265,20 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Crea el RestTemplate sobre la request factory del cliente. Si la aplicación tiene un
-     * {@link RestTemplateBuilder} (Spring Boot), lo usa para heredar sus message converters, interceptores
-     * y customizers; sus {@code clientSettings} globales se descartan para no pisar los timeouts y el SSL
-     * propios del cliente.
-     * Los customizers del builder se aplican después de la request factory del cliente (así un test puede
-     * reemplazarla por un {@code MockRestServiceServer}); el {@code guard} revisa el resultado y restaura la
-     * del cliente si el reemplazo no es aceptable. Después se aplican los {@link RestHttpClientCustomizer}.
+     * Creates the RestTemplate on top of the client's request factory. If the application has a
+     * {@link RestTemplateBuilder} (Spring Boot), it uses it to inherit its message converters, interceptors
+     * and customizers; its global {@code clientSettings} are discarded so as not to override the client's own
+     * timeouts and SSL.
+     * The builder's customizers are applied after the client's request factory (so a test can
+     * replace it with a {@code MockRestServiceServer}); the {@code guard} checks the result and restores the
+     * client's one if the replacement is not acceptable. Then the {@link RestHttpClientCustomizer}s are applied.
      *
-     * @param annotation la configuración del cliente
-     * @param factory la request factory del cliente
-     * @param interceptors los interceptores propios del cliente, que se agregan después de los globales
-     * @param guard vigila los reemplazos de la request factory
-     * @param jsonConfigurer el configurador JSON del cliente, o {@code null} si no declara uno
-     * @return el RestTemplate
+     * @param annotation the client configuration
+     * @param factory the client's request factory
+     * @param interceptors the client's own interceptors, which are added after the global ones
+     * @param guard watches over replacements of the request factory
+     * @param jsonConfigurer the client's JSON configurer, or {@code null} if it declares none
+     * @return the RestTemplate
      */
     private RestTemplate buildRestTemplate(RestHttpClient annotation, HttpComponentsClientHttpRequestFactory factory,
                                            List<ClientHttpRequestInterceptor> interceptors,
@@ -310,21 +310,21 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Obtiene el nombre del cliente que ven los {@link RestHttpClientCustomizer}: el {@code name()} de la
-     * anotación o, si está vacío, el nombre simple de la interfaz.
+     * Gets the client name seen by the {@link RestHttpClientCustomizer}s: the {@code name()} of the
+     * annotation or, if empty, the simple name of the interface.
      *
-     * @param annotation la configuración del cliente (con los placeholders resueltos)
-     * @return el nombre del cliente
+     * @param annotation the client configuration (with placeholders resolved)
+     * @return the client name
      */
     private String clientName(RestHttpClient annotation) {
         return annotation.name().isEmpty() ? clientInterface.getSimpleName() : annotation.name();
     }
 
     /**
-     * Obtiene el bean factory del contexto. Se usa el de {@link ConfigurableApplicationContext} porque está
-     * disponible incluso antes del {@code refresh()}.
+     * Gets the context's bean factory. The one from {@link ConfigurableApplicationContext} is used because it is
+     * available even before {@code refresh()}.
      *
-     * @return el bean factory, o null si no hay contexto
+     * @return the bean factory, or null if there is no context
      */
     private AutowireCapableBeanFactory beanFactory() {
         if (applicationContext == null) {
@@ -336,12 +336,12 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Crea la función que resuelve placeholders {@code ${...}} (con valor por defecto opcional
-     * {@code ${clave:valor}}) usando el {@link Environment} del contexto. Sin contexto, por ejemplo al
-     * crear el factory bean a mano, usa un {@link StandardEnvironment} (propiedades del sistema y
-     * variables de entorno).
+     * Creates the function that resolves {@code ${...}} placeholders (with an optional default value
+     * {@code ${key:value}}) using the context's {@link Environment}. Without a context, for example when
+     * creating the factory bean by hand, it uses a {@link StandardEnvironment} (system properties and
+     * environment variables).
      *
-     * @return el resolvedor de placeholders
+     * @return the placeholder resolver
      */
     private UnaryOperator<String> placeholderResolver() {
         Environment environment = applicationContext != null
@@ -358,9 +358,9 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Obtiene el tipo del objeto creado.
+     * Gets the type of the created object.
      *
-     * @return la interfaz del cliente
+     * @return the client interface
      */
     @Override
     public Class<?> getObjectType() {
@@ -368,9 +368,9 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Indica que el proxy es singleton.
+     * Indicates that the proxy is a singleton.
      *
-     * @return siempre true
+     * @return always true
      */
     @Override
     public boolean isSingleton() {
@@ -378,9 +378,9 @@ public class RestHttpClientFactoryBean<T> implements SmartFactoryBean<T>, Applic
     }
 
     /**
-     * Pide crear el proxy al arrancar el contexto, para validar el cliente (URL y métodos) de inmediato.
+     * Requests creating the proxy when the context starts, to validate the client (URL and methods) right away.
      *
-     * @return siempre true
+     * @return always true
      */
     @Override
     public boolean isEagerInit() {

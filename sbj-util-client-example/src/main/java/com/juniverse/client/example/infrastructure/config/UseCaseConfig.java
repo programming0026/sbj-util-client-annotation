@@ -12,11 +12,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Ensambla los casos de uso con sus puertos de salida.
+ * Assembles the use cases with their output ports.
  *
- * Los servicios de la aplicación no llevan anotaciones de Spring: aquí, en la infraestructura, es donde se
- * decide qué adaptador implementa cada puerto. Cambiar DummyJSON por otro proveedor solo exige un adaptador
- * nuevo; esta configuración y el resto de la aplicación no cambian.
+ * The application services carry no Spring annotations: here, in the infrastructure, is where it is
+ * decided which adapter implements each port. Replacing DummyJSON with another provider only requires a new
+ * adapter; this configuration and the rest of the application do not change.
  *
  * @author Java Universe
  */
@@ -24,10 +24,10 @@ import org.springframework.context.annotation.Configuration;
 public class UseCaseConfig {
 
     /**
-     * Casos de uso de consulta del catálogo.
+     * Catalog query use cases.
      *
-     * @param productReader el puerto de lectura
-     * @return el servicio
+     * @param productReader the reading port
+     * @return the service
      */
     @Bean
     public ProductQueryService productQueryService(ProductReader productReader) {
@@ -35,10 +35,10 @@ public class UseCaseConfig {
     }
 
     /**
-     * Casos de uso que modifican el catálogo.
+     * Use cases that modify the catalog.
      *
-     * @param productWriter el puerto de escritura
-     * @return el servicio
+     * @param productWriter the writing port
+     * @return the service
      */
     @Bean
     public ProductCommandService productCommandService(ProductWriter productWriter) {
@@ -46,10 +46,10 @@ public class UseCaseConfig {
     }
 
     /**
-     * Casos de uso de autenticación.
+     * Authentication use cases.
      *
-     * @param authenticationGateway el puerto del proveedor de identidad
-     * @return el servicio
+     * @param authenticationGateway the identity provider port
+     * @return the service
      */
     @Bean
     public AuthenticationService authenticationService(AuthenticationGateway authenticationGateway) {
@@ -57,10 +57,10 @@ public class UseCaseConfig {
     }
 
     /**
-     * Caso de uso de generación de imágenes.
+     * Image generation use case.
      *
-     * @param imageGenerator el puerto del generador de imágenes
-     * @return el servicio
+     * @param imageGenerator the image generator port
+     * @return the service
      */
     @Bean
     public ImageService imageService(ImageGenerator imageGenerator) {

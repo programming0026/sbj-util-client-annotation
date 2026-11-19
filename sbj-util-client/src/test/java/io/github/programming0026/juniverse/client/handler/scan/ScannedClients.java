@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 
 /**
- * Contenedor de las interfaces que encuentra {@link ScanConfig}.
+ * Container of the interfaces that {@link ScanConfig} finds.
  *
  * @author Java Universe
  */
@@ -13,7 +13,7 @@ public final class ScannedClients {
     private ScannedClients() {
     }
 
-    /** Cliente con nombre de bean explícito. */
+    /** Client with an explicit bean name. */
     @RestHttpClient(name = "namedClient", url = "http://localhost")
     public interface NamedClient {
 
@@ -21,7 +21,7 @@ public final class ScannedClients {
         String a();
     }
 
-    /** Cliente cuyo nombre de bean se deriva del nombre de la interfaz. */
+    /** Client whose bean name is derived from the interface name. */
     @RestHttpClient(url = "http://localhost")
     public interface DerivedNameClient {
 
@@ -29,7 +29,7 @@ public final class ScannedClients {
         String b();
     }
 
-    /** Sin anotación: el escaneo debe ignorarlo. */
+    /** Without annotation: the scan must ignore it. */
     public interface NotAClient {
     }
 }

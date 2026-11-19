@@ -1,10 +1,10 @@
 package reactor.core.publisher;
 
 /**
- * Falso mínimo de {@code Flux}, solo para probar que la librería rechaza los tipos reactivos por el nombre de la
- * clase sin depender de Reactor (que no está en el classpath).
+ * Minimal fake of {@code Flux}, only to test that the library rejects reactive types by the name of the
+ * class without depending on Reactor (which is not on the classpath).
  *
- * @param <T> el tipo de los valores
+ * @param <T> the type of the values
  * @author Java Universe
  */
 public class Flux<T> {

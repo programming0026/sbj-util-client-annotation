@@ -5,24 +5,24 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
 import java.util.Locale;
 
 /**
- * Sentido del ordenamiento.
+ * Sort direction.
  *
  * @author Java Universe
  */
 public enum SortOrder {
 
-    /** De menor a mayor. */
+    /** From lowest to highest. */
     ASC,
 
-    /** De mayor a menor. */
+    /** From highest to lowest. */
     DESC;
 
     /**
-     * Convierte un texto ({@code asc} o {@code desc}, sin distinguir mayúsculas).
+     * Converts a text ({@code asc} or {@code desc}, case-insensitive).
      *
-     * @param value el texto; si es nulo o vacío se usa {@link #ASC}
-     * @return el sentido
-     * @throws InvalidRequestException si el texto no es válido
+     * @param value the text; if null or empty {@link #ASC} is used
+     * @return the direction
+     * @throws InvalidRequestException if the text is not valid
      */
     public static SortOrder from(String value) {
         if (value == null || value.isBlank()) {
@@ -36,9 +36,9 @@ public enum SortOrder {
     }
 
     /**
-     * Texto en minúsculas, como lo esperan las APIs externas.
+     * Lowercase text, as the external APIs expect it.
      *
-     * @return {@code asc} o {@code desc}
+     * @return {@code asc} or {@code desc}
      */
     public String lowerCase() {
         return name().toLowerCase(Locale.ROOT);

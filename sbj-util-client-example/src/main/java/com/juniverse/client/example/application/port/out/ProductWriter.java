@@ -8,37 +8,37 @@ import com.juniverse.client.example.domain.model.ProductChanges;
 import java.util.Optional;
 
 /**
- * Puerto de salida: escritura en el catálogo de productos.
+ * Output port: writing to the product catalog.
  *
  * @author Java Universe
  */
 public interface ProductWriter {
 
     /**
-     * Crea un producto.
+     * Creates a product.
      *
-     * @param newProduct los datos del producto
-     * @return el producto creado
-     * @throws ExternalServiceException si el catálogo no está disponible
+     * @param newProduct the product data
+     * @return the created product
+     * @throws ExternalServiceException if the catalog is unavailable
      */
     Product create(NewProduct newProduct);
 
     /**
-     * Modifica un producto.
+     * Modifies a product.
      *
-     * @param id el identificador
-     * @param changes los campos a cambiar
-     * @return el producto actualizado, o vacío si no existe
-     * @throws ExternalServiceException si el catálogo no está disponible
+     * @param id the identifier
+     * @param changes the fields to change
+     * @return the updated product, or empty if it does not exist
+     * @throws ExternalServiceException if the catalog is unavailable
      */
     Optional<Product> update(long id, ProductChanges changes);
 
     /**
-     * Elimina un producto.
+     * Deletes a product.
      *
-     * @param id el identificador
-     * @return el producto eliminado, o vacío si no existe
-     * @throws ExternalServiceException si el catálogo no está disponible
+     * @param id the identifier
+     * @return the deleted product, or empty if it does not exist
+     * @throws ExternalServiceException if the catalog is unavailable
      */
     Optional<Product> delete(long id);
 }

@@ -3,25 +3,25 @@ package com.juniverse.client.example.domain.model;
 import java.util.List;
 
 /**
- * Una página de productos.
+ * A page of products.
  *
- * @param items los productos de la página
- * @param total cuántos productos hay en total
- * @param skip cuántos se omitieron antes de esta página
- * @param limit el tamaño de página pedido
+ * @param items the products of the page
+ * @param total how many products there are in total
+ * @param skip how many were skipped before this page
+ * @param limit the requested page size
  * @author Java Universe
  */
 public record ProductPage(List<Product> items, long total, int skip, int limit) {
 
-    /** Copia la lista para que la página sea inmutable. */
+    /** Copies the list so that the page is immutable. */
     public ProductPage {
         items = items == null ? List.of() : List.copyOf(items);
     }
 
     /**
-     * Indica si hay más páginas después de esta.
+     * Indicates whether there are more pages after this one.
      *
-     * @return true si quedan productos por consultar
+     * @return true if there are products left to query
      */
     public boolean hasNext() {
         return (long) skip + items.size() < total;

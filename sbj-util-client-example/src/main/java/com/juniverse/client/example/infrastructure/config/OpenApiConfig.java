@@ -10,25 +10,25 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Documentación OpenAPI de la API del ejemplo.
+ * OpenAPI documentation of the example's API.
  *
- * springdoc genera el documento ({@code /v3/api-docs}) y la interfaz ({@code /swagger-ui.html}) a partir de
- * los controladores; aquí solo se definen los datos generales y el esquema de seguridad {@code bearerAuth},
- * que el botón <i>Authorize</i> de Swagger UI usa para enviar el token en {@code Authorization}. Los textos
- * de la documentación están en español; los mensajes de error de la API, en inglés.
+ * springdoc generates the document ({@code /v3/api-docs}) and the UI ({@code /swagger-ui.html}) from
+ * the controllers; here only the general data and the {@code bearerAuth} security scheme are defined,
+ * which Swagger UI's <i>Authorize</i> button uses to send the token in {@code Authorization}. The texts
+ * of the documentation are in Spanish; the API error messages, in English.
  *
  * @author Java Universe
  */
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfig {
 
-    /** Nombre del esquema de seguridad; los controladores lo referencian con {@code @SecurityRequirement}. */
+    /** Name of the security scheme; the controllers reference it with {@code @SecurityRequirement}. */
     public static final String BEARER_AUTH = "bearerAuth";
 
     /**
-     * Datos generales de la documentación.
+     * General data of the documentation.
      *
-     * @return el documento OpenAPI base
+     * @return the base OpenAPI document
      */
     @Bean
     public OpenAPI exampleOpenApi() {

@@ -4,18 +4,18 @@ import com.juniverse.client.example.domain.exception.UnauthorizedException;
 import com.juniverse.client.example.domain.model.UserProfile;
 
 /**
- * Caso de uso: consultar el usuario dueño de un token de acceso.
+ * Use case: get the user who owns an access token.
  *
  * @author Java Universe
  */
 public interface GetCurrentUserUseCase {
 
     /**
-     * Obtiene el usuario actual.
+     * Gets the current user.
      *
-     * @param accessToken el token de acceso
-     * @return el usuario
-     * @throws UnauthorizedException si el token falta, es inválido o expiró
+     * @param accessToken the access token
+     * @return the user
+     * @throws UnauthorizedException if the token is missing, invalid or expired
      */
     UserProfile getCurrentUser(String accessToken);
 }

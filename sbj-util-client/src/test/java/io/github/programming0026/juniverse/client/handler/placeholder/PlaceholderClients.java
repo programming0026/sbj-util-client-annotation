@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * Cliente configurado completamente con placeholders, para el test de integración.
+ * Client configured entirely with placeholders, for the integration test.
  *
  * @author Java Universe
  */
@@ -17,13 +17,13 @@ public final class PlaceholderClients {
     private PlaceholderClients() {
     }
 
-    /** Configuración cuyo paquete base también es un placeholder. */
+    /** Configuration whose base package is also a placeholder. */
     @Configuration
     @EnableRestHttpClients(basePackages = "${test.clients-package}")
     public static class Config {
     }
 
-    /** Cliente con nombre, URL, ruta, headers y valor por defecto tomados del entorno. */
+    /** Client with name, URL, path, headers and default value taken from the environment. */
     @RestHttpClient(name = "${test.client-name}", url = "${test.base-url}",
             retry = @RetryConfig(maxRetries = 1, retryDelay = 1))
     public interface ItemsClient {

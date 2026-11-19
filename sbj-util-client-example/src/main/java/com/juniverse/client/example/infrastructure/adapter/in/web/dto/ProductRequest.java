@@ -7,15 +7,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
 /**
- * Cuerpo para crear o modificar un producto en la API REST del ejemplo. Las reglas (nombre y precio
- * obligatorios al crear, al menos un campo al modificar) las valida el dominio.
+ * Body to create or modify a product in the example's REST API. The rules (name and price
+ * mandatory when creating, at least one field when modifying) are validated by the domain.
  *
- * @param title nombre
- * @param description descripción
- * @param category categoría
- * @param price precio
- * @param stock unidades disponibles
- * @param brand marca
+ * @param title name
+ * @param description description
+ * @param category category
+ * @param price price
+ * @param stock available units
+ * @param brand brand
  * @author Java Universe
  */
 public record ProductRequest(
@@ -27,18 +27,18 @@ public record ProductRequest(
         @Schema(description = "Marca", example = "Lumina") String brand) {
 
     /**
-     * Convierte el cuerpo en un producto nuevo.
+     * Converts the body into a new product.
      *
-     * @return el producto nuevo
+     * @return the new product
      */
     public NewProduct toNewProduct() {
         return new NewProduct(title, description, category, price, stock, brand);
     }
 
     /**
-     * Convierte el cuerpo en cambios parciales.
+     * Converts the body into partial changes.
      *
-     * @return los cambios
+     * @return the changes
      */
     public ProductChanges toChanges() {
         return new ProductChanges(title, description, category, price, stock, brand);

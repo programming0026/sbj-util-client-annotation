@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 /**
- * Cliente declarativo de https://dummyjson.com/docs/auth.
+ * Declarative client of https://dummyjson.com/docs/auth.
  *
- * Login y refresh son POST (no idempotentes): la librería solo los reintenta si la conexión ni siquiera se
- * llegó a establecer, para no repetir una operación que el servidor pudo haber procesado.
+ * Login and refresh are POST (non-idempotent): the library only retries them if the connection was not even
+ * established, so as not to repeat an operation the server may have processed.
  *
  * @author Java Universe
  */
@@ -35,28 +35,28 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface AuthApi {
 
     /**
-     * Inicia sesión.
+     * Logs in.
      *
-     * @param request usuario y contraseña
-     * @return el usuario y sus tokens
+     * @param request user name and password
+     * @return the user and their tokens
      */
     @PostMapping(path = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
     LoginResponseDto login(@RequestBody LoginRequestDto request);
 
     /**
-     * Obtiene el usuario dueño del token.
+     * Gets the user who owns the token.
      *
-     * @param authorization el header completo, por ejemplo {@code Bearer <token>}
-     * @return el usuario
+     * @param authorization the complete header, for example {@code Bearer <token>}
+     * @return the user
      */
     @GetMapping("/me")
     UserDto me(@RequestHeader("Authorization") String authorization);
 
     /**
-     * Renueva los tokens.
+     * Renews the tokens.
      *
-     * @param request el token de renovación
-     * @return los tokens nuevos
+     * @param request the refresh token
+     * @return the new tokens
      */
     @PostMapping(path = "/refresh", consumes = MediaType.APPLICATION_JSON_VALUE)
     RefreshResponseDto refresh(@RequestBody RefreshRequestDto request);

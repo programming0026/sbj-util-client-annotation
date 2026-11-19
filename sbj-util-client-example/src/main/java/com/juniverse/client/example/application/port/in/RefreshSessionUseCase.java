@@ -4,18 +4,18 @@ import com.juniverse.client.example.domain.exception.UnauthorizedException;
 import com.juniverse.client.example.domain.model.AuthTokens;
 
 /**
- * Caso de uso: renovar los tokens de una sesión.
+ * Use case: renew the tokens of a session.
  *
  * @author Java Universe
  */
 public interface RefreshSessionUseCase {
 
     /**
-     * Renueva los tokens.
+     * Renews the tokens.
      *
-     * @param refreshToken el token de renovación
-     * @return los tokens nuevos
-     * @throws UnauthorizedException si el token falta, es inválido o expiró
+     * @param refreshToken the refresh token
+     * @return the new tokens
+     * @throws UnauthorizedException if the token is missing, invalid or expired
      */
     AuthTokens refresh(String refreshToken);
 }

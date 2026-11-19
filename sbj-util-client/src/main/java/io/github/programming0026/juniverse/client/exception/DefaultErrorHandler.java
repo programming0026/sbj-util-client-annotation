@@ -10,23 +10,23 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Manejador de errores por defecto.
+ * Default error handler.
  *
- * Lanza {@link HttpClientErrorException} para respuestas 4xx y {@link HttpServerErrorException} para
- * 5xx (la subclase específica, por ejemplo {@code NotFound} o {@code ServiceUnavailable}), reintenta
- * 502/503/504 y cuenta los 5xx como falla para el circuit breaker.
+ * It throws {@link HttpClientErrorException} for 4xx responses and {@link HttpServerErrorException} for
+ * 5xx (the specific subclass, for example {@code NotFound} or {@code ServiceUnavailable}), retries
+ * 502/503/504 and counts 5xx responses as failures for the circuit breaker.
  *
  * @author Java Universe
  */
 public class DefaultErrorHandler implements ErrorHandler {
 
     /**
-     * Lanza la excepción HTTP correspondiente con el cuerpo de la respuesta en el mensaje. Si la excepción
-     * original es un {@link HttpStatusCodeException}, conserva su texto de estado, headers y cuerpo.
+     * Throws the corresponding HTTP exception with the response body in the message. If the original
+     * exception is an {@link HttpStatusCodeException}, it keeps its status text, headers and body.
      *
-     * @param statusCode el código de estado
-     * @param responseBody el cuerpo de la respuesta
-     * @param exception la excepción original
+     * @param statusCode the status code
+     * @param responseBody the response body
+     * @param exception the original exception
      */
     @Override
     public void handleError(HttpStatusCode statusCode, String responseBody, Exception exception) {
@@ -50,10 +50,10 @@ public class DefaultErrorHandler implements ErrorHandler {
     }
 
     /**
-     * Reintenta solo 502, 503 y 504.
+     * Retries only 502, 503 and 504.
      *
-     * @param statusCode el código de estado
-     * @return true si se debe reintentar
+     * @param statusCode the status code
+     * @return true if it should be retried
      */
     @Override
     public boolean shouldRetry(HttpStatusCode statusCode) {
@@ -63,10 +63,10 @@ public class DefaultErrorHandler implements ErrorHandler {
     }
 
     /**
-     * Cuenta como falla cualquier 5xx.
+     * Counts any 5xx as a failure.
      *
-     * @param statusCode el código de estado
-     * @return true si se registra como falla
+     * @param statusCode the status code
+     * @return true if it is recorded as a failure
      */
     @Override
     public boolean shouldRecordAsFailure(HttpStatusCode statusCode) {

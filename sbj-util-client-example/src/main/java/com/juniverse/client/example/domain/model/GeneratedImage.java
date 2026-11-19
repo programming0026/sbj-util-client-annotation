@@ -1,30 +1,30 @@
 package com.juniverse.client.example.domain.model;
 
 /**
- * Imagen generada.
+ * Generated image.
  *
- * @param content los bytes de la imagen
- * @param contentType el tipo de contenido, por ejemplo {@code image/png}
+ * @param content the image bytes
+ * @param contentType the content type, for example {@code image/png}
  * @author Java Universe
  */
 public record GeneratedImage(byte[] content, String contentType) {
 
-    /** Copia los bytes para que la imagen sea inmutable. */
+    /** Copies the bytes so that the image is immutable. */
     public GeneratedImage {
         content = content == null ? new byte[0] : content.clone();
     }
 
     /**
-     * Los bytes de la imagen (una copia).
+     * The image bytes (a copy).
      *
-     * @return los bytes
+     * @return the bytes
      */
     @Override
     public byte[] content() {
         return content.clone();
     }
 
-    /** No imprime los bytes. */
+    /** Does not print the bytes. */
     @Override
     public String toString() {
         return "GeneratedImage[contentType=" + contentType + ", size=" + content.length + " bytes]";

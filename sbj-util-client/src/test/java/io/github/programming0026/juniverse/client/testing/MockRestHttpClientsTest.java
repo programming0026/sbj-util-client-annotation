@@ -23,7 +23,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * {@link MockRestHttpClients}: un servidor simulado por cliente, aunque haya varios en la aplicación.
+ * {@link MockRestHttpClients}: one mock server per client, even if there are several in the application.
  *
  * @author Java Universe
  */

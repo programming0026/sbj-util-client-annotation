@@ -26,7 +26,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Parámetros {@code @CookieValue}: se envían como pares del header {@code Cookie}.
+ * {@code @CookieValue} parameters: they are sent as pairs of the {@code Cookie} header.
  *
  * @author Java Universe
  */

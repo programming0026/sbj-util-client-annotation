@@ -7,9 +7,9 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * Configuración del patrón Circuit Breaker de Resilience4j.
+ * Configuration of the Resilience4j Circuit Breaker pattern.
  *
- * El circuit breaker evita fallas en cascada dejando de enviar peticiones a un servicio que está fallando.
+ * The circuit breaker prevents cascading failures by no longer sending requests to a service that is failing.
  *
  * @author Java Universe
  */
@@ -19,44 +19,44 @@ import java.lang.annotation.ElementType;
 public @interface CircuitBreakerConfig {
 
     /**
-     * Indica si el circuit breaker está habilitado.
+     * Whether the circuit breaker is enabled.
      *
-     * @return true si el circuit breaker está habilitado
+     * @return true if the circuit breaker is enabled
      */
     boolean enabled() default false;
 
     /**
-     * Porcentaje de fallas (0-100) a partir del cual se abre el circuito.
+     * Failure percentage (0-100) from which the circuit opens.
      *
-     * @return el umbral de tasa de fallas
+     * @return the failure rate threshold
      */
     int failureRateThreshold() default 50;
 
     /**
-     * Número de llamadas de la ventana deslizante usada para calcular la tasa de fallas.
+     * Number of calls in the sliding window used to compute the failure rate.
      *
-     * @return el tamaño de la ventana deslizante
+     * @return the sliding window size
      */
     int slidingWindowSize() default 100;
 
     /**
-     * Número mínimo de llamadas antes de que el circuit breaker pueda calcular la tasa de fallas.
+     * Minimum number of calls before the circuit breaker can compute the failure rate.
      *
-     * @return el número mínimo de llamadas
+     * @return the minimum number of calls
      */
     int minimumNumberOfCalls() default 10;
 
     /**
-     * Tiempo en milisegundos que el circuito permanece abierto antes de pasar a semiabierto.
+     * Time in milliseconds that the circuit stays open before moving to half-open.
      *
-     * @return el tiempo de espera en estado abierto, en milisegundos
+     * @return the wait time in the open state, in milliseconds
      */
     long waitDurationInOpenState() default 60000;
 
     /**
-     * Número de llamadas permitidas en estado semiabierto para comprobar si el servicio se recuperó.
+     * Number of calls allowed in the half-open state to check whether the service has recovered.
      *
-     * @return el número de llamadas permitidas en estado semiabierto
+     * @return the number of calls allowed in the half-open state
      */
     int permittedNumberOfCallsInHalfOpenState() default 5;
 }

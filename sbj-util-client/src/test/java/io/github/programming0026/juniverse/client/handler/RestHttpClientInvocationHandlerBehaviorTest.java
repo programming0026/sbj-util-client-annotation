@@ -44,7 +44,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Tipos de retorno, mapping de la interfaz, métodos de Object/default y orden de la resiliencia.
+ * Return types, interface mapping, Object/default methods and resilience order.
  *
  * @author Java Universe
  */
@@ -52,7 +52,7 @@ class RestHttpClientInvocationHandlerBehaviorTest {
 
     private static final String BASE = "http://localhost/api";
 
-    /** Elemento de respuesta JSON. */
+    /** JSON response item. */
     record Item(String name, int stock) {
     }
 
@@ -270,7 +270,7 @@ class RestHttpClientInvocationHandlerBehaviorTest {
     void circuitBreakerCountsEveryAttemptAndStopsRetriesWhenOpen() {
         RestTemplate template = new RestTemplate();
         MockRestServiceServer server = MockRestServiceServer.bindTo(template).build();
-        // Una sola llamada lógica hace 2 intentos (retry): el circuito ve 2 fallas y se abre.
+        // A single logical call makes 2 attempts (retry): the circuit sees 2 failures and opens.
         server.expect(times(2), requestTo(BASE + "/unstable")).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
         CircuitClient client = proxy(CircuitClient.class, template);
@@ -278,7 +278,7 @@ class RestHttpClientInvocationHandlerBehaviorTest {
         assertThatThrownBy(client::unstable)
                 .isInstanceOf(HttpServerErrorException.ServiceUnavailable.class)
                 .hasMessageStartingWith("Server error:");
-        // Con el circuito abierto no se hace ninguna petición ni se reintenta.
+        // With the circuit open no request is made and no retry happens.
         assertThatThrownBy(client::unstable).isInstanceOf(CallNotPermittedException.class);
         server.verify();
     }
@@ -305,7 +305,7 @@ class RestHttpClientInvocationHandlerBehaviorTest {
 
         RateLimitedClient client = proxy(RateLimitedClient.class, template);
 
-        // El primer intento usa el único permiso; el reintento es rechazado y no se reintenta de nuevo.
+        // The first attempt uses the only permit; the retry is rejected and is not retried again.
         assertThatThrownBy(client::limited).isInstanceOf(RequestNotPermitted.class);
         server.verify();
     }
@@ -330,7 +330,7 @@ class RestHttpClientInvocationHandlerBehaviorTest {
 
         assertThat(proxy(TimedClient.class, template).timed()).isEqualTo("fast");
         assertThat(finished.await(5, TimeUnit.SECONDS)).isTrue();
-        // La petición que excedió el tiempo se interrumpió en vez de seguir corriendo.
+        // The request that exceeded the time was interrupted instead of continuing to run.
         assertThat(interrupted).isTrue();
     }
 }

@@ -37,7 +37,7 @@ class RestHttpClientFactoryBeanTest {
         String get();
     }
 
-    /** Dependencia que el manejador de errores recibe por inyección. */
+    /** Dependency that the error handler receives through injection. */
     static class Translator {
 
         String translate(int status) {
@@ -45,7 +45,7 @@ class RestHttpClientFactoryBeanTest {
         }
     }
 
-    /** Manejador de errores con dependencias inyectadas por constructor (no tiene constructor sin args). */
+    /** Error handler with dependencies injected through the constructor (it has no no-arg constructor). */
     static class InjectedErrorHandler extends DefaultErrorHandler {
 
         private final Translator translator;

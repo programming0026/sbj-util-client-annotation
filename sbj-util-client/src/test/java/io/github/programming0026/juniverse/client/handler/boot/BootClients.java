@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Clientes para probar la integración con la configuración de Spring Boot.
+ * Clients to test the integration with the Spring Boot configuration.
  *
  * @author Java Universe
  */
@@ -17,17 +17,17 @@ public final class BootClients {
     private BootClients() {
     }
 
-    /** Configuración que activa los clientes de este paquete. */
+    /** Configuration that enables the clients of this package. */
     @Configuration
     @EnableRestHttpClients
     public static class Config {
     }
 
-    /** Respuesta con un campo en camelCase (en JSON llega en snake_case). */
+    /** Response with a camelCase field (in JSON it arrives in snake_case). */
     public record Item(String itemName) {
     }
 
-    /** Cliente con RestClient. */
+    /** Client with RestClient. */
     @RestHttpClient(url = "${test.url}", retry = @RetryConfig(maxRetries = 1))
     public interface RestClientItems {
 
@@ -35,7 +35,7 @@ public final class BootClients {
         Item item();
     }
 
-    /** Cliente con RestTemplate. */
+    /** Client with RestTemplate. */
     @RestHttpClient(url = "${test.url}", type = ClientType.REST_TEMPLATE, retry = @RetryConfig(maxRetries = 1))
     public interface RestTemplateItems {
 
@@ -43,7 +43,7 @@ public final class BootClients {
         Item item();
     }
 
-    /** Cliente con RestTemplate y un timeout de lectura corto propio. */
+    /** Client with RestTemplate and its own short read timeout. */
     @RestHttpClient(url = "${test.slow-url}", type = ClientType.REST_TEMPLATE, readTimeout = 300,
             retry = @RetryConfig(maxRetries = 1))
     public interface SlowRestTemplateItems {

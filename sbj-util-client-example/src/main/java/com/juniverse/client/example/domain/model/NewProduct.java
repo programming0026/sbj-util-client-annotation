@@ -5,23 +5,23 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
 import java.math.BigDecimal;
 
 /**
- * Datos para crear un producto. El nombre y el precio son obligatorios.
+ * Data to create a product. The name and the price are mandatory.
  *
- * @param title nombre
- * @param description descripción, o null
- * @param category categoría, o null
- * @param price precio (0 o más)
- * @param stock unidades disponibles (0 o más), o null
- * @param brand marca, o null
+ * @param title name
+ * @param description description, or null
+ * @param category category, or null
+ * @param price price (0 or more)
+ * @param stock available units (0 or more), or null
+ * @param brand brand, or null
  * @author Java Universe
  */
 public record NewProduct(String title, String description, String category, BigDecimal price, Integer stock,
                          String brand) {
 
     /**
-     * Valida los datos obligatorios.
+     * Validates the mandatory data.
      *
-     * @throws InvalidRequestException si falta el nombre o el precio, o hay valores negativos
+     * @throws InvalidRequestException if the name or the price is missing, or there are negative values
      */
     public NewProduct {
         if (title == null || title.isBlank()) {

@@ -3,16 +3,16 @@ package com.juniverse.client.example.infrastructure.adapter.out.dummyjson.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Tokens nuevos tras renovar la sesión.
+ * New tokens after renewing the session.
  *
- * @param accessToken token de acceso
- * @param refreshToken token de renovación
+ * @param accessToken access token
+ * @param refreshToken refresh token
  * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RefreshResponseDto(String accessToken, String refreshToken) {
 
-    /** Los tokens nunca deben aparecer en logs. */
+    /** Tokens must never appear in logs. */
     @Override
     public String toString() {
         return "RefreshResponseDto[tokens=***]";

@@ -9,39 +9,39 @@ import com.juniverse.client.example.domain.model.Credentials;
 import com.juniverse.client.example.domain.model.UserProfile;
 
 /**
- * Puerto de salida: el proveedor de identidad que autentica a los usuarios.
+ * Output port: the identity provider that authenticates users.
  *
  * @author Java Universe
  */
 public interface AuthenticationGateway {
 
     /**
-     * Autentica a un usuario.
+     * Authenticates a user.
      *
-     * @param credentials usuario y contraseña
-     * @return el usuario y sus tokens
-     * @throws InvalidCredentialsException si los datos no son correctos
-     * @throws ExternalServiceException si el proveedor no está disponible
+     * @param credentials user name and password
+     * @return the user and their tokens
+     * @throws InvalidCredentialsException if the data is not correct
+     * @throws ExternalServiceException if the provider is unavailable
      */
     AuthSession authenticate(Credentials credentials);
 
     /**
-     * Obtiene el usuario dueño de un token de acceso.
+     * Gets the user who owns an access token.
      *
-     * @param accessToken el token de acceso
-     * @return el usuario
-     * @throws UnauthorizedException si el token es inválido o expiró
-     * @throws ExternalServiceException si el proveedor no está disponible
+     * @param accessToken the access token
+     * @return the user
+     * @throws UnauthorizedException if the token is invalid or expired
+     * @throws ExternalServiceException if the provider is unavailable
      */
     UserProfile fetchProfile(String accessToken);
 
     /**
-     * Renueva los tokens.
+     * Renews the tokens.
      *
-     * @param refreshToken el token de renovación
-     * @return los tokens nuevos
-     * @throws UnauthorizedException si el token es inválido o expiró
-     * @throws ExternalServiceException si el proveedor no está disponible
+     * @param refreshToken the refresh token
+     * @return the new tokens
+     * @throws UnauthorizedException if the token is invalid or expired
+     * @throws ExternalServiceException if the provider is unavailable
      */
     AuthTokens renew(String refreshToken);
 }

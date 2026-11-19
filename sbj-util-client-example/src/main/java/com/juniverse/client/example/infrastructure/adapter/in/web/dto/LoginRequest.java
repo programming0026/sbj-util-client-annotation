@@ -4,10 +4,10 @@ import com.juniverse.client.example.domain.model.Credentials;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * Cuerpo para iniciar sesión en la API REST del ejemplo.
+ * Body to log in to the example's REST API.
  *
- * @param username usuario
- * @param password contraseña
+ * @param username user name
+ * @param password password
  * @author Java Universe
  */
 public record LoginRequest(
@@ -15,15 +15,15 @@ public record LoginRequest(
         @Schema(description = "Contraseña", example = "emilyspass", format = "password") String password) {
 
     /**
-     * Convierte el cuerpo en credenciales del dominio.
+     * Converts the body into domain credentials.
      *
-     * @return las credenciales
+     * @return the credentials
      */
     public Credentials toCredentials() {
         return new Credentials(username, password);
     }
 
-    /** La contraseña nunca debe aparecer en logs. */
+    /** The password must never appear in logs. */
     @Override
     public String toString() {
         return "LoginRequest[username=" + username + ", password=***]";

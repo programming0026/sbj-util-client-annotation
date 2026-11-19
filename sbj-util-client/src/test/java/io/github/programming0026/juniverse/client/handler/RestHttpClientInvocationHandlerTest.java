@@ -159,12 +159,12 @@ class RestHttpClientInvocationHandlerTest {
         String slow();
     }
 
-    /** Manejador de errores que nunca lanza, para que se propague la excepción HTTP original. */
+    /** Error handler that never throws, so the original HTTP exception is propagated. */
     static class SilentErrorHandler implements ErrorHandler {
 
         @Override
         public void handleError(HttpStatusCode statusCode, String responseBody, Exception exception) {
-            // vacío a propósito
+            // intentionally empty
         }
 
         @Override
@@ -270,7 +270,7 @@ class RestHttpClientInvocationHandlerTest {
 
     @Test
     void methodsWithoutHttpMethodAreRejected() {
-        // Se rechazan al crear el cliente, no en la primera llamada.
+        // They are rejected when the client is created, not on the first call.
         assertThatThrownBy(() -> proxy(NoHttpMethodClient.class, new RestTemplate(), new DefaultErrorHandler()))
                 .isInstanceOf(ClientException.class)
                 .hasMessageContaining("NoHttpMethodClient.noMethod")
@@ -354,7 +354,7 @@ class RestHttpClientInvocationHandlerTest {
 
     @Test
     void parameterNamesAreUsedWhenAnnotationValueIsEmpty() throws Exception {
-        // Requiere compilar con -parameters (lo activa spring-boot-starter-parent).
+        // Requires compiling with -parameters (enabled by spring-boot-starter-parent).
         Method m = UserClient.class.getMethod("getUserImplicitNames", long.class);
         assertThat(m.getParameters()[0].getName()).isEqualTo("id");
         RestTemplate template = new RestTemplate();

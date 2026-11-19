@@ -6,25 +6,25 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Producto tal como lo devuelve DummyJSON. Los campos que el ejemplo no usa (reseñas, dimensiones, etc.) se
- * ignoran, y los que faltan (por ejemplo en la respuesta de crear) quedan en null.
+ * Product as returned by DummyJSON. The fields the example does not use (reviews, dimensions, etc.) are
+ * ignored, and those that are missing (for example in the create response) are left as null.
  *
- * Los números son tipos envoltorio a propósito: DummyJSON omite campos en algunas respuestas (por ejemplo
- * al crear o modificar) y Jackson 3 rechaza un campo primitivo ausente.
+ * The numbers are wrapper types on purpose: DummyJSON omits fields in some responses (for example
+ * when creating or modifying) and Jackson 3 rejects a missing primitive field.
  *
- * @param id identificador
- * @param title nombre
- * @param description descripción
- * @param category categoría
- * @param price precio
- * @param discountPercentage porcentaje de descuento
- * @param rating valoración
- * @param stock unidades disponibles
- * @param tags etiquetas
- * @param brand marca
- * @param sku código de inventario
- * @param thumbnail miniatura
- * @param images imágenes
+ * @param id identifier
+ * @param title name
+ * @param description description
+ * @param category category
+ * @param price price
+ * @param discountPercentage discount percentage
+ * @param rating rating
+ * @param stock available units
+ * @param tags tags
+ * @param brand brand
+ * @param sku stock keeping unit code
+ * @param thumbnail thumbnail
+ * @param images images
  * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

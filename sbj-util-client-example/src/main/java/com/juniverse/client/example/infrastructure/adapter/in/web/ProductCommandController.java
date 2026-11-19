@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Adaptador de entrada: operaciones que modifican el catálogo.
+ * Input adapter: operations that modify the catalog.
  *
  * @author Java Universe
  */
@@ -34,11 +34,11 @@ public class ProductCommandController {
     private final DeleteProductUseCase deleteProduct;
 
     /**
-     * Crea el controlador.
+     * Creates the controller.
      *
-     * @param createProduct caso de uso de creación
-     * @param updateProduct caso de uso de modificación
-     * @param deleteProduct caso de uso de eliminación
+     * @param createProduct creation use case
+     * @param updateProduct modification use case
+     * @param deleteProduct deletion use case
      */
     public ProductCommandController(CreateProductUseCase createProduct, UpdateProductUseCase updateProduct,
                                     DeleteProductUseCase deleteProduct) {
@@ -48,10 +48,10 @@ public class ProductCommandController {
     }
 
     /**
-     * Crea un producto.
+     * Creates a product.
      *
-     * @param request los datos del producto
-     * @return el producto creado
+     * @param request the product data
+     * @return the created product
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -66,11 +66,11 @@ public class ProductCommandController {
     }
 
     /**
-     * Modifica parcialmente un producto.
+     * Partially modifies a product.
      *
-     * @param id el identificador
-     * @param request los campos a cambiar
-     * @return el producto actualizado
+     * @param id the identifier
+     * @param request the fields to change
+     * @return the updated product
      */
     @PatchMapping("/{id}")
     @Operation(summary = "Modificar algunos campos de un producto",
@@ -85,10 +85,10 @@ public class ProductCommandController {
     }
 
     /**
-     * Elimina un producto.
+     * Deletes a product.
      *
-     * @param id el identificador
-     * @return el producto eliminado
+     * @param id the identifier
+     * @return the deleted product
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar un producto", description = "DummyJSON simula la eliminación.")

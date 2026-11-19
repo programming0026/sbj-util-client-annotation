@@ -1,16 +1,16 @@
 package com.juniverse.client.example.domain.exception;
 
 /**
- * El producto solicitado no existe en el catálogo.
+ * The requested product does not exist in the catalog.
  *
  * @author Java Universe
  */
 public class ProductNotFoundException extends DomainException {
 
     /**
-     * Crea la excepción.
+     * Creates the exception.
      *
-     * @param id el identificador del producto que no se encontró
+     * @param id the identifier of the product that was not found
      */
     public ProductNotFoundException(long id) {
         super("Product with id " + id + " not found");

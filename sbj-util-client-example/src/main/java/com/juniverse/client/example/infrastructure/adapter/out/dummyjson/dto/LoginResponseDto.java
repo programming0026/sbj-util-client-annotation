@@ -3,27 +3,27 @@ package com.juniverse.client.example.infrastructure.adapter.out.dummyjson.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Respuesta de iniciar sesión: el usuario y sus tokens.
+ * Login response: the user and their tokens.
  *
- * Los números son tipos envoltorio a propósito: DummyJSON omite campos en algunas respuestas (por ejemplo
- * al crear o modificar) y Jackson 3 rechaza un campo primitivo ausente.
+ * The numbers are wrapper types on purpose: DummyJSON omits fields in some responses (for example
+ * when creating or modifying) and Jackson 3 rejects a missing primitive field.
  *
- * @param id identificador del usuario
- * @param username usuario
- * @param email correo
- * @param firstName nombre
- * @param lastName apellido
- * @param gender género
- * @param image imagen de perfil
- * @param accessToken token de acceso
- * @param refreshToken token de renovación
+ * @param id user identifier
+ * @param username user name
+ * @param email email
+ * @param firstName first name
+ * @param lastName last name
+ * @param gender gender
+ * @param image profile image
+ * @param accessToken access token
+ * @param refreshToken refresh token
  * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record LoginResponseDto(Long id, String username, String email, String firstName, String lastName,
                                String gender, String image, String accessToken, String refreshToken) {
 
-    /** Los tokens nunca deben aparecer en logs. */
+    /** Tokens must never appear in logs. */
     @Override
     public String toString() {
         return "LoginResponseDto[id=" + id + ", username=" + username + ", tokens=***]";

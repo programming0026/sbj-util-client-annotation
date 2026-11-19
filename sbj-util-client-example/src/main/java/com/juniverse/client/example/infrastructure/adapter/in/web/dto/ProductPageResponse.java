@@ -5,22 +5,22 @@ import com.juniverse.client.example.domain.model.ProductPage;
 import java.util.List;
 
 /**
- * Página de productos en la API REST del ejemplo.
+ * Page of products in the example's REST API.
  *
- * @param items los productos de la página
- * @param total cuántos hay en total
- * @param skip cuántos se omitieron
- * @param limit el tamaño de página
- * @param hasNext si hay más páginas
+ * @param items the products of the page
+ * @param total how many there are in total
+ * @param skip how many were skipped
+ * @param limit the page size
+ * @param hasNext whether there are more pages
  * @author Java Universe
  */
 public record ProductPageResponse(List<ProductResponse> items, long total, int skip, int limit, boolean hasNext) {
 
     /**
-     * Convierte una página del dominio.
+     * Converts a domain page.
      *
-     * @param page la página
-     * @return la respuesta
+     * @param page the page
+     * @return the response
      */
     public static ProductPageResponse from(ProductPage page) {
         return new ProductPageResponse(page.items().stream().map(ProductResponse::from).toList(), page.total(),

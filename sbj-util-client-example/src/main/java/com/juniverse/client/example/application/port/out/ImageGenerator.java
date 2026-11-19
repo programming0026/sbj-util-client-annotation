@@ -5,18 +5,18 @@ import com.juniverse.client.example.domain.model.GeneratedImage;
 import com.juniverse.client.example.domain.model.ImageSpec;
 
 /**
- * Puerto de salida: el servicio que genera imágenes de marcador de posición.
+ * Output port: the service that generates placeholder images.
  *
  * @author Java Universe
  */
 public interface ImageGenerator {
 
     /**
-     * Genera una imagen.
+     * Generates an image.
      *
-     * @param spec cómo debe ser la imagen
-     * @return la imagen generada
-     * @throws ExternalServiceException si el servicio no está disponible
+     * @param spec what the image must be like
+     * @return the generated image
+     * @throws ExternalServiceException if the service is unavailable
      */
     GeneratedImage generate(ImageSpec spec);
 }

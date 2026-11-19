@@ -1,29 +1,29 @@
 package com.juniverse.client.example.domain.exception;
 
 /**
- * Base de las excepciones del dominio: errores de negocio independientes de cualquier tecnología.
+ * Base of the domain exceptions: business errors independent of any technology.
  *
- * Los adaptadores traducen los errores técnicos (HTTP, red) a estas excepciones, y los adaptadores de
- * entrada las traducen a su propio protocolo (por ejemplo, a códigos de estado HTTP).
+ * The adapters translate technical errors (HTTP, network) into these exceptions, and the input adapters
+ * translate them into their own protocol (for example, HTTP status codes).
  *
  * @author Java Universe
  */
 public abstract class DomainException extends RuntimeException {
 
     /**
-     * Crea la excepción con un mensaje.
+     * Creates the exception with a message.
      *
-     * @param message el mensaje
+     * @param message the message
      */
     protected DomainException(String message) {
         super(message);
     }
 
     /**
-     * Crea la excepción con un mensaje y su causa.
+     * Creates the exception with a message and its cause.
      *
-     * @param message el mensaje
-     * @param cause la causa
+     * @param message the message
+     * @param cause the cause
      */
     protected DomainException(String message, Throwable cause) {
         super(message, cause);

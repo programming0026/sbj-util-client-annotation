@@ -18,28 +18,28 @@ import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
- * Vigila que los customizers no quiten por accidente la request factory de un cliente (la que lleva su pool
- * de conexiones, timeouts y SSL), según la {@link RequestFactoryOverridePolicy}.
- * Cada vez que un customizer reemplaza la request factory, la librería sabe cuál fue y lo registra en el log.
+ * Ensures that customizers do not accidentally remove a client's request factory (the one that carries its
+ * connection pool, timeouts and SSL), according to the {@link RequestFactoryOverridePolicy}.
+ * Whenever a customizer replaces the request factory, the library knows which one it was and logs it.
  *
  * @author Java Universe
  */
 final class RequestFactoryGuard {
 
-    /** El logger. */
+    /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(RequestFactoryGuard.class);
 
-    /** El nombre del cliente, para los mensajes del log. */
+    /** The client name, for the log messages. */
     private final String clientName;
 
-    /** La política que decide qué reemplazos se aceptan. */
+    /** The policy that decides which replacements are accepted. */
     private final RequestFactoryOverridePolicy policy;
 
     /**
-     * Crea el guardián de un cliente.
+     * Creates the guard of a client.
      *
-     * @param clientName el nombre del cliente
-     * @param policy la política de reemplazo
+     * @param clientName the client name
+     * @param policy the replacement policy
      */
     RequestFactoryGuard(String clientName, RequestFactoryOverridePolicy policy) {
         this.clientName = clientName;
@@ -47,35 +47,35 @@ final class RequestFactoryGuard {
     }
 
     /**
-     * Aplica un {@link RestClientCustomizer} sobre el builder, interceptando sus llamadas a
-     * {@code requestFactory(...)}: un reemplazo que la política no acepta se ignora.
+     * Applies a {@link RestClientCustomizer} to the builder, intercepting its calls to
+     * {@code requestFactory(...)}: a replacement that the policy does not accept is ignored.
      *
-     * @param builder el builder, que ya trae la request factory de la librería
-     * @param customizer el customizer a aplicar
+     * @param builder the builder, which already carries the library's request factory
+     * @param customizer the customizer to apply
      */
     void customize(RestClient.Builder builder, RestClientCustomizer customizer) {
         customizer.customize(guarded(builder, "RestClientCustomizer " + customizer.getClass().getName()));
     }
 
     /**
-     * Revisa un {@link RestTemplate} ya construido (con los customizers aplicados): si su request factory ya no
-     * es la de la librería y la política no acepta el reemplazo, restaura la de la librería.
+     * Checks an already built {@link RestTemplate} (with the customizers applied): if its request factory is no
+     * longer the library's one and the policy does not accept the replacement, it restores the library's one.
      *
-     * @param template el RestTemplate
-     * @param libraryFactory la request factory de la librería
+     * @param template the RestTemplate
+     * @param libraryFactory the library's request factory
      */
     void guardTemplate(RestTemplate template, ClientHttpRequestFactory libraryFactory) {
         guardTemplate(template, libraryFactory, "A RestTemplateBuilder customizer");
     }
 
     /**
-     * Igual que {@link #guardTemplate(RestTemplate, ClientHttpRequestFactory)} pero indicando quién pudo
-     * hacer el reemplazo, para el log.
+     * Same as {@link #guardTemplate(RestTemplate, ClientHttpRequestFactory)} but indicating who may have
+     * made the replacement, for the log.
      *
-     * @param template el RestTemplate
-     * @param previousFactory la request factory que tenía antes de la personalización, a la que se vuelve
-     *                        si el reemplazo no se acepta
-     * @param source quién personalizó el RestTemplate
+     * @param template the RestTemplate
+     * @param previousFactory the request factory it had before the customization, to which it reverts
+     *                        if the replacement is not accepted
+     * @param source who customized the RestTemplate
      */
     void guardTemplate(RestTemplate template, ClientHttpRequestFactory previousFactory, String source) {
         ClientHttpRequestFactory current = currentRequestFactory(template);
@@ -85,12 +85,12 @@ final class RequestFactoryGuard {
     }
 
     /**
-     * Aplica la personalización de un {@code RestHttpClientCustomizer} sobre el RestTemplate y revisa que no
-     * haya reemplazado la request factory sin que la política lo acepte.
+     * Applies the customization of a {@code RestHttpClientCustomizer} to the RestTemplate and checks that it
+     * has not replaced the request factory without the policy accepting it.
      *
-     * @param template el RestTemplate
-     * @param customizer la personalización
-     * @param source quién personaliza, para el log
+     * @param template the RestTemplate
+     * @param customizer the customization
+     * @param source who customizes, for the log
      */
     void customizeTemplate(RestTemplate template, Consumer<RestTemplate> customizer, String source) {
         ClientHttpRequestFactory before = currentRequestFactory(template);
@@ -99,23 +99,23 @@ final class RequestFactoryGuard {
     }
 
     /**
-     * Aplica la personalización de un {@code RestHttpClientCustomizer} sobre el builder de un RestClient,
-     * interceptando sus llamadas a {@code requestFactory(...)}.
+     * Applies the customization of a {@code RestHttpClientCustomizer} to the builder of a RestClient,
+     * intercepting its calls to {@code requestFactory(...)}.
      *
-     * @param builder el builder
-     * @param customizer la personalización
-     * @param source quién personaliza, para el log
+     * @param builder the builder
+     * @param customizer the customization
+     * @param source who customizes, for the log
      */
     void customizeBuilder(RestClient.Builder builder, Consumer<RestClient.Builder> customizer, String source) {
         customizer.accept(guarded(builder, source));
     }
 
     /**
-     * Obtiene la request factory del RestTemplate sin el envoltorio de los interceptores: con interceptores,
-     * {@code getRequestFactory()} devuelve una factory que los aplica, no la configurada.
+     * Gets the RestTemplate's request factory without the interceptors' wrapper: with interceptors,
+     * {@code getRequestFactory()} returns a factory that applies them, not the configured one.
      *
-     * @param template el RestTemplate
-     * @return la request factory configurada
+     * @param template the RestTemplate
+     * @return the configured request factory
      */
     private static ClientHttpRequestFactory currentRequestFactory(RestTemplate template) {
         List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>(template.getInterceptors());
@@ -128,12 +128,12 @@ final class RequestFactoryGuard {
     }
 
     /**
-     * Decide si se acepta el reemplazo y lo deja en el log.
+     * Decides whether the replacement is accepted and leaves a record in the log.
      *
-     * @param source quién lo hizo
-     * @param replacement la request factory que reemplaza a la de la librería, o null si se pide la de
-     *                    Spring por defecto
-     * @return true si se acepta
+     * @param source who did it
+     * @param replacement the request factory that replaces the library's one, or null if Spring's
+     *                    default one is requested
+     * @return true if it is accepted
      */
     private boolean accept(String source, ClientHttpRequestFactory replacement) {
         String replacementName = replacement == null ? "null (the default one)" : replacement.getClass().getName();
@@ -157,13 +157,13 @@ final class RequestFactoryGuard {
     }
 
     /**
-     * Crea un builder que delega en el real, pero consulta a la política cuando se llama a
-     * {@code requestFactory(...)}. Las llamadas encadenadas y {@code apply(...)} siguen pasando por el
-     * builder vigilado.
+     * Creates a builder that delegates to the real one, but consults the policy when
+     * {@code requestFactory(...)} is called. Chained calls and {@code apply(...)} keep going through the
+     * guarded builder.
      *
-     * @param delegate el builder real
-     * @param source quién personaliza (tipo y clase del customizer), para el log
-     * @return el builder vigilado
+     * @param delegate the real builder
+     * @param source who customizes (customizer type and class), for the log
+     * @return the guarded builder
      */
     @SuppressWarnings("unchecked")
     private RestClient.Builder guarded(RestClient.Builder delegate, String source) {

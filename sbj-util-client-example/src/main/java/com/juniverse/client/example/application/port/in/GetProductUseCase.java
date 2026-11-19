@@ -4,18 +4,18 @@ import com.juniverse.client.example.domain.exception.ProductNotFoundException;
 import com.juniverse.client.example.domain.model.Product;
 
 /**
- * Caso de uso: consultar un producto por su identificador.
+ * Use case: get a product by its identifier.
  *
  * @author Java Universe
  */
 public interface GetProductUseCase {
 
     /**
-     * Obtiene un producto.
+     * Gets a product.
      *
-     * @param id el identificador
-     * @return el producto
-     * @throws ProductNotFoundException si no existe
+     * @param id the identifier
+     * @return the product
+     * @throws ProductNotFoundException if it does not exist
      */
     Product getById(long id);
 }

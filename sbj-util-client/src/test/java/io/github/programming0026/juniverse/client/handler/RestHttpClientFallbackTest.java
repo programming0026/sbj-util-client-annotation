@@ -39,13 +39,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * El {@code fallback} responde cuando el servicio no está disponible y solo entonces.
+ * The {@code fallback} answers when the service is unavailable and only then.
  *
  * @author Java Universe
  */
 class RestHttpClientFallbackTest {
 
-    /** Respuestas del fallback, distinguibles de las del servidor. */
+    /** Fallback responses, distinguishable from the server's. */
     public static class ItemsFallback implements ItemsClient {
 
         static final AtomicInteger CALLS = new AtomicInteger();
@@ -84,7 +84,7 @@ class RestHttpClientFallbackTest {
         String find(@PathVariable("id") String id);
     }
 
-    /** Fallback del cliente con circuit breaker. */
+    /** Fallback of the client with a circuit breaker. */
     public static class BreakerFallback implements BreakerClient {
 
         @Override
@@ -101,7 +101,7 @@ class RestHttpClientFallbackTest {
         String slow();
     }
 
-    /** Fallback del cliente con time limiter. */
+    /** Fallback of the client with a time limiter. */
     public static class SlowFallback implements SlowClient {
 
         @Override
@@ -118,7 +118,7 @@ class RestHttpClientFallbackTest {
         String list();
     }
 
-    /** Clase abstracta: no se puede instanciar. */
+    /** Abstract class: it cannot be instantiated. */
     abstract static class AbstractFallback implements AbstractFallbackClient {
     }
 
@@ -254,7 +254,7 @@ class RestHttpClientFallbackTest {
     void anOpenCircuitUsesTheFallback() throws Exception {
         BreakerClient client = client(BreakerClient.class);
 
-        // Dos fallas llenan la ventana y abren el circuito; a partir de ahí el fallback responde sin llamar.
+        // Two failures fill the window and open the circuit; from then on the fallback answers without calling.
         assertThat(client.find("down")).isEqualTo("open:down");
         assertThat(client.find("down")).isEqualTo("open:down");
         int hitsWhenOpened = hits.get();

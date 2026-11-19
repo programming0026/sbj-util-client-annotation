@@ -55,12 +55,12 @@ class RestClientUtilTest {
     interface BrokenClient {
     }
 
-    /** Dirección no enrutable: la conexión TCP queda colgada hasta que vence el timeout de conexión. */
+    /** Non-routable address: the TCP connection hangs until the connect timeout expires. */
     @RestHttpClient(url = "http://10.255.255.1:81", connectTimeout = 300, readTimeout = 60000)
     interface UnreachableClient {
     }
 
-    /** El servidor de prueba acepta la conexión pero nunca responde. */
+    /** The test server accepts the connection but never responds. */
     @RestHttpClient(url = "http://127.0.0.1", connectTimeout = 60000, readTimeout = 300)
     interface SlowServerClient {
     }
@@ -91,8 +91,8 @@ class RestClientUtilTest {
     void connectTimeoutLimitsTcpConnection() {
         RestClient client = util.configureRestClient(config(UnreachableClient.class));
 
-        // Sin el timeout de conexión, HttpClient espera hasta 3 minutos. Si la red rechaza la
-        // dirección de inmediato, el test también pasa (falla rápido de todos modos).
+        // Without the connect timeout, HttpClient waits up to 3 minutes. If the network rejects the
+        // address immediately, the test also passes (it fails fast anyway).
         assertTimeoutPreemptively(Duration.ofSeconds(10), () ->
                 assertThatThrownBy(() -> client.get().uri("/").retrieve().toBodilessEntity())
                         .isInstanceOf(ResourceAccessException.class));
@@ -112,7 +112,7 @@ class RestClientUtilTest {
             RestTemplate template = util.configureRestTemplate(config(DefaultClient.class));
             String url = "http://127.0.0.1:" + server.getAddress().getPort() + "/";
 
-            // Los reintentos son de Resilience4j: HttpClient no debe repetir por su cuenta un GET con 503.
+            // Retries belong to Resilience4j: HttpClient must not repeat a GET with 503 on its own.
             assertTimeoutPreemptively(Duration.ofMillis(900), () ->
                     assertThatThrownBy(() -> template.getForObject(url, String.class))
                             .isInstanceOf(HttpServerErrorException.ServiceUnavailable.class));

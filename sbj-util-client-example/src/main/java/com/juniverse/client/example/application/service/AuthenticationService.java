@@ -13,9 +13,9 @@ import com.juniverse.client.example.domain.model.UserProfile;
 import java.util.Objects;
 
 /**
- * Casos de uso de autenticación: iniciar sesión, consultar el usuario actual y renovar tokens.
+ * Authentication use cases: log in, get the current user and renew tokens.
  *
- * Aplica la regla de negocio de que no se llama al proveedor con tokens vacíos.
+ * It applies the business rule that the provider is not called with empty tokens.
  *
  * @author Java Universe
  */
@@ -24,9 +24,9 @@ public class AuthenticationService implements LoginUseCase, GetCurrentUserUseCas
     private final AuthenticationGateway authenticationGateway;
 
     /**
-     * Crea el servicio.
+     * Creates the service.
      *
-     * @param authenticationGateway el puerto del proveedor de identidad
+     * @param authenticationGateway the identity provider port
      */
     public AuthenticationService(AuthenticationGateway authenticationGateway) {
         this.authenticationGateway = Objects.requireNonNull(authenticationGateway, "authenticationGateway");

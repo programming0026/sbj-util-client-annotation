@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Casos de uso de consulta del catálogo.
+ * Catalog query use cases.
  *
- * Depende solo del puerto {@link ProductReader} (inversión de dependencias): no sabe si los datos vienen
- * de una API REST, una base de datos o un archivo. Es una clase sin anotaciones de Spring; se registra
- * como bean en la configuración de la infraestructura.
+ * It depends only on the {@link ProductReader} port (dependency inversion): it does not know whether the data
+ * comes from a REST API, a database or a file. It is a class without Spring annotations; it is registered
+ * as a bean in the infrastructure configuration.
  *
  * @author Java Universe
  */
@@ -27,9 +27,9 @@ public class ProductQueryService implements ListProductsUseCase, GetProductUseCa
     private final ProductReader productReader;
 
     /**
-     * Crea el servicio.
+     * Creates the service.
      *
-     * @param productReader el puerto de lectura del catálogo
+     * @param productReader the catalog reading port
      */
     public ProductQueryService(ProductReader productReader) {
         this.productReader = Objects.requireNonNull(productReader, "productReader");

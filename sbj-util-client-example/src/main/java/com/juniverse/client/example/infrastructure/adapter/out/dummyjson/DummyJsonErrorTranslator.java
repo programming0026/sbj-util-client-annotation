@@ -9,11 +9,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 
 /**
- * Traduce los errores técnicos de los clientes de DummyJSON a excepciones del dominio.
+ * Translates the technical errors of the DummyJSON clients into domain exceptions.
  *
- * Los adaptadores tratan primero los casos con significado de negocio (un 404 es "no existe", un 400 al
- * iniciar sesión es "credenciales inválidas") y delegan aquí el resto, de modo que ninguna excepción de
- * Spring, de la librería o de Resilience4j sale del adaptador.
+ * The adapters first handle the cases with business meaning (a 404 is "does not exist", a 400 when
+ * logging in is "invalid credentials") and delegate the rest here, so that no exception from
+ * Spring, the library or Resilience4j leaves the adapter.
  *
  * @author Java Universe
  */
@@ -23,16 +23,16 @@ public class DummyJsonErrorTranslator {
     private static final Logger LOG = LoggerFactory.getLogger(DummyJsonErrorTranslator.class);
 
     /**
-     * Traduce un error técnico.
+     * Translates a technical error.
      *
      * <ul>
-     *   <li>Un 4xx que el servicio externo rechazó: {@link InvalidRequestException}.</li>
-     *   <li>Cualquier otro (5xx, red, timeout, circuito abierto): {@link ExternalServiceException}.</li>
+     *   <li>A 4xx that the external service rejected: {@link InvalidRequestException}.</li>
+     *   <li>Any other (5xx, network, timeout, open circuit): {@link ExternalServiceException}.</li>
      * </ul>
      *
-     * @param operation qué se intentaba hacer, para el mensaje (por ejemplo {@code list products})
-     * @param error el error técnico
-     * @return la excepción del dominio
+     * @param operation what was being attempted, for the message (for example {@code list products})
+     * @param error the technical error
+     * @return the domain exception
      */
     public DomainException translate(String operation, RuntimeException error) {
         if (error instanceof DomainException domainException) {

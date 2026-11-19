@@ -32,13 +32,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Redirecciones y proxy, contra servidores HTTP locales (uno hace de proxy y registra lo que recibe).
+ * Redirects and proxy, against local HTTP servers (one acts as a proxy and records what it receives).
  *
  * @author Java Universe
  */
 class RestHttpClientProxyRedirectTest {
 
-    // ---- Redirecciones ----
+    // ---- Redirects ----
 
     @RestHttpClient(url = "${t.url}", retry = @RetryConfig(maxRetries = 1, retryDelay = 1))
     interface FollowingClient {
@@ -145,7 +145,7 @@ class RestHttpClientProxyRedirectTest {
 
     private final AtomicInteger loopHits = new AtomicInteger();
 
-    /** URI absoluta y credenciales de cada petición que llegó al proxy. */
+    /** Absolute URI and credentials of each request that reached the proxy. */
     private final List<String> proxyRequests = new CopyOnWriteArrayList<>();
 
     private final List<String> proxyAuthorizations = new CopyOnWriteArrayList<>();
@@ -158,7 +158,7 @@ class RestHttpClientProxyRedirectTest {
             reply(exchange, 302, "");
         });
         target.createContext("/new", exchange -> reply(exchange, 200, "final"));
-        // Cadena infinita de URLs distintas (un bucle exacto lo corta antes Apache como redirección circular).
+        // Infinite chain of different URLs (an exact loop is cut earlier by Apache as a circular redirect).
         target.createContext("/hop/", exchange -> {
             loopHits.incrementAndGet();
             String path = exchange.getRequestURI().getPath();
@@ -218,7 +218,7 @@ class RestHttpClientProxyRedirectTest {
         return factory.getObject();
     }
 
-    // ---- Redirecciones ----
+    // ---- Redirects ----
 
     @Test
     void redirectsAreFollowedByDefault() throws Exception {

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Cliente mal declarado que nadie inyecta: el contexto igual debe fallar al arrancar.
+ * Badly declared client that nobody injects: the context must still fail on startup.
  *
  * @author Java Universe
  */
@@ -15,13 +15,13 @@ public final class InvalidClients {
     private InvalidClients() {
     }
 
-    /** Configuración que activa los clientes de este paquete. */
+    /** Configuration that enables the clients of this package. */
     @Configuration
     @EnableRestHttpClients
     public static class Config {
     }
 
-    /** Cliente con una variable de ruta sin {@code @PathVariable}. */
+    /** Client with a path variable without {@code @PathVariable}. */
     @RestHttpClient(url = "http://localhost")
     public interface UnboundPathVariableClient {
 

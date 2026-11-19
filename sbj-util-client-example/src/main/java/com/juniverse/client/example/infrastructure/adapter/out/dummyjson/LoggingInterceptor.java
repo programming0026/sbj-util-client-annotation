@@ -10,10 +10,10 @@ import org.springframework.http.client.ClientHttpResponse;
 import java.io.IOException;
 
 /**
- * Interceptor de los clientes de DummyJSON: registra método, URL, estado y duración de cada petición.
+ * Interceptor of the DummyJSON clients: logs the method, URL, status and duration of each request.
  *
- * No es un bean de Spring: lo declara {@code @RestHttpClient(interceptors = ...)} y la librería lo crea.
- * Nunca registra headers ni cuerpos, para no filtrar tokens ni contraseñas.
+ * It is not a Spring bean: it is declared by {@code @RestHttpClient(interceptors = ...)} and the library creates it.
+ * It never logs headers or bodies, so as not to leak tokens or passwords.
  *
  * @author Java Universe
  */

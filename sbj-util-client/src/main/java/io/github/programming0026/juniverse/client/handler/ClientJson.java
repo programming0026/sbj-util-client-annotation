@@ -9,25 +9,25 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.List;
 
 /**
- * Crea el conversor JSON (Jackson 3) propio de un cliente a partir de su {@link JsonMapperConfigurer}.
+ * Creates the JSON (Jackson 3) converter specific to a client from its {@link JsonMapperConfigurer}.
  *
  * @author Java Universe
  */
 final class ClientJson {
 
     /**
-     * Instancia.
+     * Instance.
      */
     private ClientJson() {
     }
 
     /**
-     * Crea el conversor: parte del {@link JsonMapper} de la aplicación (si hay uno solo) o del mapper por defecto
-     * de Spring, y le aplica el configurador.
+     * Creates the converter: it starts from the application's {@link JsonMapper} (if there is a single one) or
+     * from Spring's default mapper, and applies the configurer to it.
      *
-     * @param beanFactory el bean factory, o {@code null} fuera de Spring
-     * @param configurer el configurador del cliente
-     * @return el conversor JSON del cliente
+     * @param beanFactory the bean factory, or {@code null} outside Spring
+     * @param configurer the client's configurer
+     * @return the client's JSON converter
      */
     static JacksonJsonHttpMessageConverter converter(ListableBeanFactory beanFactory,
                                                      JsonMapperConfigurer configurer) {
@@ -39,10 +39,10 @@ final class ClientJson {
     }
 
     /**
-     * Sustituye en la lista el conversor JSON de Jackson por el del cliente; si no había, lo pone el primero.
+     * Replaces the Jackson JSON converter in the list with the client's one; if there was none, it puts it first.
      *
-     * @param converters la lista de conversores del cliente (modificable)
-     * @param json el conversor JSON del cliente
+     * @param converters the client's converter list (modifiable)
+     * @param json the client's JSON converter
      */
     static void install(List<HttpMessageConverter<?>> converters, HttpMessageConverter<?> json) {
         boolean replaced = false;

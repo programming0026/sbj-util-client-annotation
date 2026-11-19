@@ -7,10 +7,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Configuración de un proxy HTTP/HTTPS por el que salen las peticiones del cliente.
+ * Configuration of an HTTP/HTTPS proxy through which the client's requests go out.
  *
- * El proxy está desactivado mientras {@link #host()} esté vacío. Todos los textos admiten placeholders, por
- * ejemplo {@code @ProxyConfig(host = "${proxy.host:}", port = 3128)}: con la propiedad sin definir no hay
+ * The proxy is disabled while {@link #host()} is empty. All the texts accept placeholders, for
+ * example {@code @ProxyConfig(host = "${proxy.host:}", port = 3128)}: with the property undefined there is no
  * proxy.
  *
  * @author Java Universe
@@ -21,49 +21,49 @@ import java.lang.annotation.Target;
 public @interface ProxyConfig {
 
     /**
-     * Nombre o IP del proxy. Vacío = sin proxy.
+     * Name or IP of the proxy. Empty = no proxy.
      *
-     * @return el host del proxy
+     * @return the proxy host
      */
     String host() default "";
 
     /**
-     * Puerto del proxy, entre 1 y 65535. Es un texto para admitir placeholders, por ejemplo
+     * Proxy port, between 1 and 65535. It is a text to allow placeholders, for example
      * {@code "${proxy.port:3128}"}.
      *
-     * @return el puerto del proxy
+     * @return the proxy port
      */
     String port() default "8080";
 
     /**
-     * Protocolo con el que se habla con el proxy ({@code http} o {@code https}); es independiente del
-     * protocolo del servicio de destino.
+     * Protocol used to talk to the proxy ({@code http} or {@code https}); it is independent of the protocol of
+     * the target service.
      *
-     * @return el protocolo del proxy
+     * @return the proxy scheme
      */
     String scheme() default "http";
 
     /**
-     * Usuario para un proxy que pide autenticación básica. Vacío = sin autenticación.
+     * User for a proxy that requires basic authentication. Empty = no authentication.
      *
-     * @return el usuario
+     * @return the user name
      */
     String username() default "";
 
     /**
-     * Contraseña del proxy. Usa un placeholder, por ejemplo {@code "${PROXY_PASSWORD}"}; nunca la subas al
-     * control de versiones.
+     * Proxy password. Use a placeholder, for example {@code "${PROXY_PASSWORD}"}; never commit it to
+     * version control.
      *
-     * @return la contraseña
+     * @return the password
      */
     String password() default "";
 
     /**
-     * Destinos a los que se llega directamente, sin pasar por el proxy. Cada patrón es un nombre exacto
-     * ({@code localhost}) o lleva un {@code *} al principio ({@code *.interno.com}) o al final
-     * ({@code 10.0.*}); no distingue mayúsculas.
+     * Destinations that are reached directly, without going through the proxy. Each pattern is an exact name
+     * ({@code localhost}) or has a {@code *} at the start ({@code *.internal.com}) or at the end
+     * ({@code 10.0.*}); it is case-insensitive.
      *
-     * @return los patrones de hosts sin proxy
+     * @return the host patterns that bypass the proxy
      */
     String[] nonProxyHosts() default {};
 }

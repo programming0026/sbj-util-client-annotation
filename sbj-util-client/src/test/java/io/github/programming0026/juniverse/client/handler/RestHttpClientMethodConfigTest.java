@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 /**
- * {@code @MethodConfig}: ajustes de un solo método sin tocar los del resto del cliente.
+ * {@code @MethodConfig}: settings of a single method without touching those of the rest of the client.
  *
  * @author Java Universe
  */
@@ -303,11 +303,11 @@ class RestHttpClientMethodConfigTest {
     void aLongerMethodTimeoutAlsoAppliesToTheStreamedBody() throws Exception {
         TimeoutClient client = client(TimeoutClient.class);
 
-        // El cuerpo se detiene 600 ms a la mitad: con el timeout del cliente (250 ms) la lectura falla...
+        // The body stalls 600 ms halfway: with the client's timeout (250 ms) the read fails...
         try (InputStream in = client.slowBodyWithClientTimeout()) {
             assertThatThrownBy(in::readAllBytes).isInstanceOf(SocketTimeoutException.class);
         }
-        // ...y con el del método (3 s) se completa.
+        // ...and with the method's one (3 s) it completes.
         try (InputStream in = client.slowBodyWithLongerTimeout()) {
             assertThat(in.readAllBytes()).hasSize(100);
         }

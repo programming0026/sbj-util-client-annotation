@@ -1,15 +1,15 @@
 package com.juniverse.client.example.domain.model;
 
 /**
- * Par de tokens de una sesión.
+ * Pair of tokens of a session.
  *
- * @param accessToken token de acceso, de vida corta
- * @param refreshToken token para obtener un nuevo token de acceso
+ * @param accessToken short-lived access token
+ * @param refreshToken token to obtain a new access token
  * @author Java Universe
  */
 public record AuthTokens(String accessToken, String refreshToken) {
 
-    /** Los tokens nunca deben aparecer en logs. */
+    /** Tokens must never appear in logs. */
     @Override
     public String toString() {
         return "AuthTokens[accessToken=***, refreshToken=***]";

@@ -3,41 +3,41 @@ package io.github.programming0026.juniverse.client.exception;
 import java.io.Serial;
 
 /**
- * Excepción de la librería: errores de configuración, de registro, valores requeridos faltantes o
- * tiempo de espera agotado. Los errores HTTP no se envuelven en esta excepción.
+ * Library exception: configuration or registration errors, missing required values or
+ * exhausted timeouts. HTTP errors are not wrapped in this exception.
  *
  * @author Java Universe
  */
 public class ClientException extends RuntimeException {
     /**
-     * Identificador de versión para serialización.
+     * Version identifier for serialization.
      */
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * Crea la excepción con un mensaje.
+     * Creates the exception with a message.
      *
-     * @param message el mensaje
+     * @param message the message
      */
     public ClientException(String message) {
         super(message);
     }
 
     /**
-     * Crea la excepción con un mensaje y su causa.
+     * Creates the exception with a message and its cause.
      *
-     * @param message el mensaje
-     * @param cause la causa
+     * @param message the message
+     * @param cause the cause
      */
     public ClientException(String message, Throwable cause) {
         super(message, cause);
     }
 
     /**
-     * Crea la excepción a partir de su causa.
+     * Creates the exception from its cause.
      *
-     * @param cause la causa
+     * @param cause the cause
      */
     public ClientException(Throwable cause) {
         super(cause);

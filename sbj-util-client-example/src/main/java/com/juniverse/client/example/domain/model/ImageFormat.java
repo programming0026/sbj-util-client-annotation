@@ -5,13 +5,13 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
 import java.util.Locale;
 
 /**
- * Formatos de imagen que se pueden generar.
+ * Image formats that can be generated.
  *
  * @author Java Universe
  */
 public enum ImageFormat {
 
-    /** PNG (por defecto). */
+    /** PNG (the default). */
     PNG("png"),
 
     /** JPEG. */
@@ -20,7 +20,7 @@ public enum ImageFormat {
     /** WebP. */
     WEBP("webp");
 
-    /** Valor que se envía al servicio de imágenes. */
+    /** Value sent to the image service. */
     private final String queryValue;
 
     ImageFormat(String queryValue) {
@@ -28,20 +28,20 @@ public enum ImageFormat {
     }
 
     /**
-     * Valor que se envía al servicio de imágenes.
+     * Value sent to the image service.
      *
-     * @return {@code png}, {@code jpg} o {@code webp}
+     * @return {@code png}, {@code jpg} or {@code webp}
      */
     public String queryValue() {
         return queryValue;
     }
 
     /**
-     * Convierte un texto (sin distinguir mayúsculas; {@code jpeg} se acepta como {@code jpg}).
+     * Converts a text (case-insensitive; {@code jpeg} is accepted as {@code jpg}).
      *
-     * @param value el texto; si es nulo o vacío se usa {@link #PNG}
-     * @return el formato
-     * @throws InvalidRequestException si el formato no es válido
+     * @param value the text; if null or empty {@link #PNG} is used
+     * @return the format
+     * @throws InvalidRequestException if the format is not valid
      */
     public static ImageFormat from(String value) {
         if (value == null || value.isBlank()) {

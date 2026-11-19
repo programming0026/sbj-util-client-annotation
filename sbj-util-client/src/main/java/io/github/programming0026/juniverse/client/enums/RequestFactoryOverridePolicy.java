@@ -7,45 +7,45 @@ import org.springframework.http.client.ClientHttpRequestFactory;
 import java.util.Locale;
 
 /**
- * Qué hace la librería cuando un customizer ({@code RestClientCustomizer}, o los de un
- * {@code RestTemplateBuilder}) reemplaza la request factory de un cliente.
+ * What the library does when a customizer ({@code RestClientCustomizer}, or those of a
+ * {@code RestTemplateBuilder}) replaces the request factory of a client.
  *
- * La request factory de la librería es la que lleva el pool de conexiones, los timeouts y el SSL de
- * {@code @RestHttpClient}. Los customizers se aplican después de ella para que los tests puedan sustituirla
- * por un {@code MockRestServiceServer}, pero un customizer pensado para otros clientes de la aplicación
- * (por ejemplo, uno global que fija timeouts) también podría reemplazarla por accidente y dejar al cliente
- * sin su configuración. Esta política decide qué reemplazos se aceptan. Se configura con la propiedad
- * {@value #PROPERTY}.
+ * The library's request factory is the one that carries the connection pool, the timeouts and the SSL of
+ * {@code @RestHttpClient}. Customizers are applied after it so that tests can replace it
+ * with a {@code MockRestServiceServer}, but a customizer meant for other clients of the application
+ * (for example, a global one that sets timeouts) could also replace it by accident and leave the client
+ * without its configuration. This policy decides which replacements are accepted. It is configured with the
+ * {@value #PROPERTY} property.
  *
  * @author Java Universe
  */
 public enum RequestFactoryOverridePolicy {
 
-    /** Por defecto: solo se aceptan los dobles de pruebas de Spring; cualquier otro reemplazo se ignora. */
+    /** Default: only Spring's test doubles are accepted; any other replacement is ignored. */
     AUTO,
 
-    /** Se acepta cualquier reemplazo (con un aviso si no es un doble de pruebas). */
+    /** Any replacement is accepted (with a warning if it is not a test double). */
     ALLOW,
 
-    /** Nunca se acepta un reemplazo, ni siquiera el de un doble de pruebas. */
+    /** A replacement is never accepted, not even that of a test double. */
     DENY;
 
-    /** Nombre de la propiedad que elige la política. */
+    /** Name of the property that chooses the policy. */
     public static final String PROPERTY = "rest-http-client.request-factory-override";
 
-    /** Cuántos envoltorios (por ejemplo {@code BufferingClientHttpRequestFactory}) se miran por dentro. */
+    /** How many wrappers (for example {@code BufferingClientHttpRequestFactory}) are looked inside. */
     private static final int MAX_UNWRAP_DEPTH = 5;
 
-    /** Paquete de los envoltorios de request factory de Spring que se pueden mirar por dentro. */
+    /** Package of the Spring request factory wrappers that can be looked inside. */
     private static final String SPRING_HTTP_CLIENT_PACKAGE = "org.springframework.http.client.";
 
     /**
-     * Convierte el valor de la propiedad.
+     * Converts the property value.
      *
-     * @param value el valor ({@code auto}, {@code allow} o {@code deny}, sin distinguir mayúsculas); si es
-     *              nulo o vacío se usa {@link #AUTO}
-     * @return la política
-     * @throws ClientException si el valor no es válido
+     * @param value the value ({@code auto}, {@code allow} or {@code deny}, case-insensitive); if it is
+     *              null or empty {@link #AUTO} is used
+     * @return the policy
+     * @throws ClientException if the value is not valid
      */
     public static RequestFactoryOverridePolicy from(String value) {
         if (value == null || value.isBlank()) {
@@ -59,11 +59,11 @@ public enum RequestFactoryOverridePolicy {
     }
 
     /**
-     * Indica si la política acepta que un customizer deje esta request factory en el cliente.
+     * Indicates whether the policy accepts a customizer leaving this request factory in the client.
      *
-     * @param replacement la request factory con la que se reemplazaría la de la librería, o null si se
-     *                    pide la de Spring por defecto
-     * @return true si se acepta
+     * @param replacement the request factory that would replace the library's one, or null if Spring's
+     *                    default one is requested
+     * @return true if it is accepted
      */
     public boolean accepts(ClientHttpRequestFactory replacement) {
         return switch (this) {
@@ -74,13 +74,13 @@ public enum RequestFactoryOverridePolicy {
     }
 
     /**
-     * Indica si la request factory es un doble de pruebas de Spring: la que instala
-     * {@code MockRestServiceServer} (y los {@code MockServerRestClientCustomizer} de Spring Boot), también
-     * si va envuelta en otra de {@code org.springframework.http.client} (por ejemplo, con
-     * {@code bufferContent()}), o un mock de Mockito.
+     * Indicates whether the request factory is a Spring test double: the one installed by
+     * {@code MockRestServiceServer} (and Spring Boot's {@code MockServerRestClientCustomizer}), also
+     * when wrapped in another one from {@code org.springframework.http.client} (for example, with
+     * {@code bufferContent()}), or a Mockito mock.
      *
-     * @param factory la request factory
-     * @return true si es un doble de pruebas
+     * @param factory the request factory
+     * @return true if it is a test double
      */
     public static boolean isTestDouble(ClientHttpRequestFactory factory) {
         ClientHttpRequestFactory current = factory;
@@ -96,11 +96,11 @@ public enum RequestFactoryOverridePolicy {
     }
 
     /**
-     * Obtiene la request factory que envuelve un envoltorio de Spring, con su método público
-     * {@code getDelegate()}.
+     * Gets the request factory wrapped by a Spring wrapper, using its public
+     * {@code getDelegate()} method.
      *
-     * @param wrapper el envoltorio
-     * @return la request factory envuelta, o null si no es un envoltorio de Spring
+     * @param wrapper the wrapper
+     * @return the wrapped request factory, or null if it is not a Spring wrapper
      */
     private static ClientHttpRequestFactory wrapped(ClientHttpRequestFactory wrapper) {
         return wrapper instanceof AbstractClientHttpRequestFactoryWrapper spring ? spring.getDelegate() : null;

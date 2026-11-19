@@ -23,7 +23,7 @@ class AnnotationPlaceholderResolverTest {
         void get();
     }
 
-    /** Reemplaza "[x]" por "X" para ver qué valores pasaron por el resolvedor. */
+    /** Replaces "[x]" with "X" to see which values went through the resolver. */
     private static String upper(String value) {
         return value.replace("[", "").replace("]", "").toUpperCase();
     }

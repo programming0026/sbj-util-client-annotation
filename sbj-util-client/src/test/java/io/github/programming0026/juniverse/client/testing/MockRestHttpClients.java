@@ -13,43 +13,43 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Para probar aplicaciones con <b>varios</b> clientes de la librería: crea un {@link MockRestServiceServer}
- * por cada cliente y los entrega por su nombre. Con el {@code MockServerRestClientCustomizer} de Spring Boot,
- * en cambio, {@code getServer()} falla en cuanto hay más de un cliente y {@code getServers()} no dice a qué
- * cliente pertenece cada servidor.
+ * To test applications with <b>several</b> clients of the library: it creates a {@link MockRestServiceServer}
+ * for each client and hands them out by name. With Spring Boot's {@code MockServerRestClientCustomizer},
+ * on the other hand, {@code getServer()} fails as soon as there is more than one client and {@code getServers()}
+ * does not say which client each server belongs to.
  *
- * Se declara como bean (un método que devuelva {@code new MockRestHttpClients()}) en la configuración de la
- * prueba y funciona con clientes {@code REST_CLIENT} y {@code REST_TEMPLATE}. Después, en cada prueba:
+ * It is declared as a bean (a method that returns {@code new MockRestHttpClients()}) in the test's
+ * configuration and works with {@code REST_CLIENT} and {@code REST_TEMPLATE} clients. Then, in each test:
  *
  * <pre>{@code
  * mocks.server(UsersClient.class).expect(requestTo("https://users/1")).andRespond(...);
  * mocks.server(PaymentsClient.class).expect(requestTo("https://payments/charge")).andRespond(...);
- * // ... ejecutar el código bajo prueba ...
+ * // ... run the code under test ...
  * mocks.verify();
  * }</pre>
  *
- * No forma parte del jar de la librería (para no depender de {@code spring-test} en producción): vive en los tests
- * de la librería y se copia a los de tu aplicación; el README la muestra completa.
+ * It is not part of the library's jar (so as not to depend on {@code spring-test} in production): it lives in the
+ * library's tests and is copied to those of your application; the README shows it in full.
  *
  * @author Java Universe
  */
 public class MockRestHttpClients implements RestHttpClientCustomizer {
 
-    /** Los servidores por nombre de cliente. */
+    /** The servers by client name. */
     private final Map<String, MockRestServiceServer> servers = new ConcurrentHashMap<>();
 
-    /** Si los servidores guardan el cuerpo de las respuestas para poder leerlo más de una vez. */
+    /** Whether the servers keep the response body so it can be read more than once. */
     private boolean bufferContent;
 
-    /** Si los servidores aceptan las peticiones en cualquier orden. */
+    /** Whether the servers accept requests in any order. */
     private boolean ignoreExpectOrder;
 
     /**
-     * Hace que los servidores guarden el cuerpo de las peticiones y respuestas en memoria para poder leerlo
-     * más de una vez (por ejemplo, con interceptores que lo registran). Debe llamarse antes de que se creen
-     * los clientes.
+     * Makes the servers keep the body of requests and responses in memory so it can be read
+     * more than once (for example, with interceptors that log it). It must be called before the
+     * clients are created.
      *
-     * @return este objeto
+     * @return this object
      */
     public MockRestHttpClients bufferContent() {
         this.bufferContent = true;
@@ -57,10 +57,10 @@ public class MockRestHttpClients implements RestHttpClientCustomizer {
     }
 
     /**
-     * Hace que los servidores acepten las peticiones esperadas en cualquier orden. Debe llamarse antes de que
-     * se creen los clientes.
+     * Makes the servers accept the expected requests in any order. It must be called before the
+     * clients are created.
      *
-     * @return este objeto
+     * @return this object
      */
     public MockRestHttpClients ignoreExpectOrder() {
         this.ignoreExpectOrder = true;
@@ -68,10 +68,10 @@ public class MockRestHttpClients implements RestHttpClientCustomizer {
     }
 
     /**
-     * Enlaza un servidor al builder de un cliente {@code REST_CLIENT}.
+     * Binds a server to the builder of a {@code REST_CLIENT} client.
      *
-     * @param clientName el nombre del cliente
-     * @param builder el builder del cliente
+     * @param clientName the client name
+     * @param builder the client's builder
      */
     @Override
     public void customize(String clientName, RestClient.Builder builder) {
@@ -79,10 +79,10 @@ public class MockRestHttpClients implements RestHttpClientCustomizer {
     }
 
     /**
-     * Enlaza un servidor al RestTemplate de un cliente {@code REST_TEMPLATE}.
+     * Binds a server to the RestTemplate of a {@code REST_TEMPLATE} client.
      *
-     * @param clientName el nombre del cliente
-     * @param template el RestTemplate del cliente
+     * @param clientName the client name
+     * @param template the client's RestTemplate
      */
     @Override
     public void customize(String clientName, RestTemplate template) {
@@ -98,12 +98,12 @@ public class MockRestHttpClients implements RestHttpClientCustomizer {
     }
 
     /**
-     * Obtiene el servidor de un cliente.
+     * Gets the server of a client.
      *
-     * @param clientName el nombre del cliente: el {@code name()} de {@code @RestHttpClient} o, si está vacío, el
-     *                   nombre simple de la interfaz
-     * @return el servidor, para declarar las peticiones esperadas
-     * @throws IllegalStateException si no hay un cliente con ese nombre (el mensaje lista los que hay)
+     * @param clientName the client name: the {@code name()} of {@code @RestHttpClient} or, if empty, the
+     *                   simple name of the interface
+     * @return the server, to declare the expected requests
+     * @throws IllegalStateException if there is no client with that name (the message lists the existing ones)
      */
     public MockRestServiceServer server(String clientName) {
         MockRestServiceServer server = servers.get(clientName);
@@ -115,13 +115,13 @@ public class MockRestHttpClients implements RestHttpClientCustomizer {
     }
 
     /**
-     * Obtiene el servidor del cliente declarado por una interfaz. Usa el {@code name()} de {@code @RestHttpClient}
-     * tal cual está escrito o, si está vacío, el nombre simple de la interfaz; con un {@code name()} que lleve
-     * placeholders usa {@link #server(String)} con el nombre ya resuelto.
+     * Gets the server of the client declared by an interface. It uses the {@code name()} of {@code @RestHttpClient}
+     * exactly as written or, if empty, the simple name of the interface; with a {@code name()} that carries
+     * placeholders it uses {@link #server(String)} with the already resolved name.
      *
-     * @param clientInterface la interfaz del cliente
-     * @return el servidor, para declarar las peticiones esperadas
-     * @throws IllegalStateException si ese cliente no existe
+     * @param clientInterface the client interface
+     * @return the server, to declare the expected requests
+     * @throws IllegalStateException if that client does not exist
      */
     public MockRestServiceServer server(Class<?> clientInterface) {
         RestHttpClient annotation = clientInterface.getAnnotation(RestHttpClient.class);
@@ -132,19 +132,19 @@ public class MockRestHttpClients implements RestHttpClientCustomizer {
     }
 
     /**
-     * Obtiene los nombres de los clientes con servidor, ordenados.
+     * Gets the names of the clients with a server, sorted.
      *
-     * @return los nombres
+     * @return the names
      */
     public Set<String> clientNames() {
         return new TreeSet<>(servers.keySet());
     }
 
     /**
-     * Comprueba que todos los clientes hicieron las peticiones esperadas. Si faltan en varios, el error nombra
-     * a cada cliente.
+     * Checks that all the clients made the expected requests. If several are missing, the error names
+     * each client.
      *
-     * @throws AssertionError si algún cliente no cumplió sus expectativas
+     * @throws AssertionError if any client did not meet its expectations
      */
     public void verify() {
         Map<String, AssertionError> failures = new TreeMap<>();
@@ -163,7 +163,7 @@ public class MockRestHttpClients implements RestHttpClientCustomizer {
         }
     }
 
-    /** Borra las expectativas y las peticiones registradas de todos los clientes, para reutilizar el contexto. */
+    /** Clears the expectations and the recorded requests of all the clients, to reuse the context. */
     public void reset() {
         servers.values().forEach(MockRestServiceServer::reset);
     }

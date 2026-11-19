@@ -12,10 +12,10 @@ import com.juniverse.client.example.domain.model.ProductChanges;
 import java.util.Objects;
 
 /**
- * Casos de uso que modifican el catálogo (crear, actualizar y eliminar).
+ * Use cases that modify the catalog (create, update and delete).
  *
- * Separado de {@link ProductQueryService} (responsabilidad única): las consultas y los cambios evolucionan
- * por razones distintas y dependen de puertos distintos.
+ * Separate from {@link ProductQueryService} (single responsibility): queries and changes evolve
+ * for different reasons and depend on different ports.
  *
  * @author Java Universe
  */
@@ -24,9 +24,9 @@ public class ProductCommandService implements CreateProductUseCase, UpdateProduc
     private final ProductWriter productWriter;
 
     /**
-     * Crea el servicio.
+     * Creates the service.
      *
-     * @param productWriter el puerto de escritura del catálogo
+     * @param productWriter the catalog writing port
      */
     public ProductCommandService(ProductWriter productWriter) {
         this.productWriter = Objects.requireNonNull(productWriter, "productWriter");

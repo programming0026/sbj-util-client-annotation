@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * {@code logging = true}: una línea por petición, sin headers, cuerpos ni valores de la query.
+ * {@code logging = true}: one line per request, without headers, bodies or query values.
  *
  * @author Java Universe
  */

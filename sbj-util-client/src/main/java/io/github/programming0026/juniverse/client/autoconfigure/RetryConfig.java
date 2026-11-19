@@ -7,10 +7,10 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * Configuración del patrón Retry de Resilience4j.
+ * Configuration of the Resilience4j Retry pattern.
  *
- * Reintenta automáticamente las peticiones fallidas con espera configurable y backoff exponencial.
- * Siempre está activo; qué errores se reintentan lo decide {@code ErrorHandler.shouldRetry}.
+ * It automatically retries failed requests with a configurable wait and exponential backoff.
+ * It is always active; which errors are retried is decided by {@code ErrorHandler.shouldRetry}.
  *
  * @author Java Universe
  */
@@ -20,38 +20,38 @@ import java.lang.annotation.ElementType;
 public @interface RetryConfig {
 
     /**
-     * Número máximo de intentos, incluido el primero (1 = sin reintentos).
+     * Maximum number of attempts, including the first one (1 = no retries).
      *
-     * @return el número máximo de intentos
+     * @return the maximum number of attempts
      */
     int maxRetries() default 3;
 
     /**
-     * Espera inicial entre reintentos, en milisegundos.
+     * Initial wait between retries, in milliseconds.
      *
-     * @return la espera inicial en milisegundos
+     * @return the initial wait in milliseconds
      */
     long retryDelay() default 1000;
 
     /**
-     * Multiplicador del backoff exponencial.
+     * Multiplier of the exponential backoff.
      *
-     * Cada reintento espera {@code retryDelay * multiplicador^(intento - 1)}.
-     * Por ejemplo, con retryDelay=1000 y multiplicador=2.0: 1 s, 2 s, 4 s, 8 s...
+     * Each retry waits {@code retryDelay * multiplier^(attempt - 1)}.
+     * For example, with retryDelay=1000 and multiplier=2.0: 1 s, 2 s, 4 s, 8 s...
      *
-     * @return el multiplicador del backoff exponencial
+     * @return the exponential backoff multiplier
      */
     double exponentialBackoffMultiplier() default 2.0;
 
     /**
-     * Indica si las peticiones no idempotentes (POST y PATCH) se reintentan igual que las idempotentes.
+     * Whether non-idempotent requests (POST and PATCH) are retried the same way as idempotent ones.
      *
-     * Por defecto (false) solo se reintentan cuando falla la conexión, es decir, cuando es seguro que la
-     * petición no llegó al servidor. Con true también se reintentan tras errores HTTP, timeouts o cortes de
-     * conexión, lo que puede duplicar la operación: úsalo solo si el servicio las trata de forma idempotente
-     * (por ejemplo, con una clave de idempotencia).
+     * By default (false) they are only retried when the connection fails, that is, when it is certain that the
+     * request did not reach the server. With true they are also retried after HTTP errors, timeouts or dropped
+     * connections, which may duplicate the operation: use it only if the service treats them idempotently
+     * (for example, with an idempotency key).
      *
-     * @return true para reintentar POST y PATCH sin restricciones
+     * @return true to retry POST and PATCH without restrictions
      */
     boolean retryNonIdempotent() default false;
 }

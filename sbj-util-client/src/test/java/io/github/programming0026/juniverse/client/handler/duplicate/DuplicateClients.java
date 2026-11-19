@@ -5,7 +5,7 @@ import io.github.programming0026.juniverse.client.autoconfigure.EnableRestHttpCl
 import io.github.programming0026.juniverse.client.autoconfigure.RestHttpClient;
 
 /**
- * Dos clientes con el mismo nombre de bean, para provocar un error de registro.
+ * Two clients with the same bean name, to provoke a registration error.
  *
  * @author Java Universe
  */
@@ -14,17 +14,17 @@ public final class DuplicateClients {
     private DuplicateClients() {
     }
 
-    /** Configuración que escanea este paquete de forma explícita. */
+    /** Configuration that explicitly scans this package. */
     @EnableRestHttpClients(basePackages = Constants.BASE + ".handler.duplicate")
     public static class Config {
     }
 
-    /** Primer cliente. */
+    /** First client. */
     @RestHttpClient(name = "dup", url = "http://localhost")
     public interface First {
     }
 
-    /** Segundo cliente con el mismo nombre. */
+    /** Second client with the same name. */
     @RestHttpClient(name = "dup", url = "http://localhost")
     public interface Second {
     }

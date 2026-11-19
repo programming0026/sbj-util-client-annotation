@@ -52,8 +52,8 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Qué pasa cuando un customizer reemplaza la request factory de un cliente: los mocks de Spring funcionan sin
- * configurar nada, y un reemplazo accidental no deja al cliente sin su pool, timeouts y SSL.
+ * What happens when a customizer replaces a client's request factory: Spring's mocks work without
+ * configuring anything, and an accidental replacement does not leave the client without its pool, timeouts and SSL.
  *
  * @author Java Universe
  */
@@ -75,7 +75,7 @@ class RestHttpClientRequestFactoryOverrideTest {
         String ping();
     }
 
-    /** Request factory que no debería usarse nunca: cuenta cuántas veces la llamaron. */
+    /** Request factory that should never be used: it counts how many times it was called. */
     static final class AccidentalFactory implements ClientHttpRequestFactory {
 
         private final AtomicInteger calls = new AtomicInteger();
@@ -87,7 +87,7 @@ class RestHttpClientRequestFactoryOverrideTest {
         }
     }
 
-    /** Un customizer global pensado para otros clientes de la aplicación, que fija su propia request factory. */
+    /** A global customizer meant for other clients of the application, which sets its own request factory. */
     static final class GlobalTimeoutCustomizer implements RestClientCustomizer {
 
         private final AccidentalFactory factory;
@@ -98,7 +98,7 @@ class RestHttpClientRequestFactoryOverrideTest {
 
         @Override
         public void customize(RestClient.Builder builder) {
-            // Encadenado a propósito: las llamadas de antes y de después también deben llegar al builder real.
+            // Chained on purpose: the calls before and after must also reach the real builder.
             builder.defaultHeader("X-Before", "1").requestFactory(factory).defaultHeader("X-After", "2");
         }
     }
@@ -168,7 +168,7 @@ class RestHttpClientRequestFactoryOverrideTest {
                 .map(ILoggingEvent::getFormattedMessage).toList();
     }
 
-    // ------------------------------------------------------------------ mocks (lo que debe seguir funcionando)
+    // ------------------------------------------------------------------ mocks (what must keep working)
 
     @Test
     void aMockRestServiceServerReplacesTheRequestFactoryOfARestClient() throws Exception {
@@ -236,7 +236,7 @@ class RestHttpClientRequestFactoryOverrideTest {
         assertThat(client.ping()).isEqualTo("boot mock");
     }
 
-    // ------------------------------------------------------------------ el riesgo: un reemplazo accidental
+    // ------------------------------------------------------------------ the risk: an accidental replacement
 
     @Test
     void anAccidentalRequestFactoryIsIgnoredAndTheClientKeepsItsOwn() throws Exception {
@@ -248,7 +248,7 @@ class RestHttpClientRequestFactoryOverrideTest {
         assertThat(client.ping()).isEqualTo("pong");
         assertThat(accidental.calls).hasValue(0);
         assertThat(hits).hasValue(1);
-        // El resto de lo que hizo el customizer (antes y después del reemplazo) sí se aplicó.
+        // The rest of what the customizer did (before and after the replacement) was applied.
         assertThat(receivedHeaders.get()).containsEntry("x-before", "1").containsEntry("x-after", "2");
         assertThat(warnings()).singleElement().satisfies(message -> assertThat(message)
                 .contains("Ignored the request factory " + AccidentalFactory.class.getName())
@@ -289,7 +289,7 @@ class RestHttpClientRequestFactoryOverrideTest {
         assertThat(warnings()).isEmpty();
     }
 
-    // ------------------------------------------------------------------ las otras políticas
+    // ------------------------------------------------------------------ the other policies
 
     @Test
     void allowAcceptsAnyReplacementButWarns() throws Exception {

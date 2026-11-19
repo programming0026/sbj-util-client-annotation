@@ -5,26 +5,26 @@ import com.juniverse.client.example.domain.exception.InvalidRequestException;
 import java.util.Set;
 
 /**
- * Qué productos se quieren y cómo: una página, opcionalmente filtrada por texto <b>o</b> por categoría
- * (no ambas a la vez) y opcionalmente ordenada.
+ * Which products are wanted and how: a page, optionally filtered by text <b>or</b> by category
+ * (not both at once) and optionally sorted.
  *
- * @param page la página pedida
- * @param searchText texto a buscar, o null
- * @param category categoría (slug), o null
- * @param sortBy campo de ordenamiento, o null
- * @param order sentido del ordenamiento
+ * @param page the requested page
+ * @param searchText text to search, or null
+ * @param category category (slug), or null
+ * @param sortBy sort field, or null
+ * @param order sort direction
  * @author Java Universe
  */
 public record ProductCriteria(PageRequest page, String searchText, String category, String sortBy, SortOrder order) {
 
-    /** Campos por los que se puede ordenar. */
+    /** Fields by which results can be sorted. */
     public static final Set<String> SORTABLE_FIELDS =
             Set.of("id", "title", "price", "rating", "stock", "brand", "category", "discountPercentage");
 
     /**
-     * Normaliza los valores opcionales y valida las combinaciones.
+     * Normalizes the optional values and validates the combinations.
      *
-     * @throws InvalidRequestException si se pide búsqueda y categoría juntas o un campo de orden desconocido
+     * @throws InvalidRequestException if search and category are requested together or the sort field is unknown
      */
     public ProductCriteria {
         page = page == null ? PageRequest.first() : page;
@@ -41,27 +41,27 @@ public record ProductCriteria(PageRequest page, String searchText, String catego
     }
 
     /**
-     * Todos los productos, primera página, sin orden.
+     * All products, first page, unsorted.
      *
-     * @return los criterios por defecto
+     * @return the default criteria
      */
     public static ProductCriteria all() {
         return new ProductCriteria(null, null, null, null, null);
     }
 
     /**
-     * Indica si se busca por texto.
+     * Indicates whether the search is by text.
      *
-     * @return true si hay texto de búsqueda
+     * @return true if there is search text
      */
     public boolean isSearch() {
         return searchText != null;
     }
 
     /**
-     * Indica si se filtra por categoría.
+     * Indicates whether the filter is by category.
      *
-     * @return true si hay categoría
+     * @return true if there is a category
      */
     public boolean isByCategory() {
         return category != null;

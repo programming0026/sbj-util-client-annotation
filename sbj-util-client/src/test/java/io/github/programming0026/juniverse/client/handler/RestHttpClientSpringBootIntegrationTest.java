@@ -29,8 +29,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 /**
- * Los clientes usan la configuración HTTP de la aplicación Spring Boot: el Jackson configurado, los
- * {@link RestClientCustomizer} y el {@link RestTemplateBuilder}, sin perder sus propios timeouts.
+ * The clients use the HTTP configuration of the Spring Boot application: the configured Jackson, the
+ * {@link RestClientCustomizer} and the {@link RestTemplateBuilder}, without losing their own timeouts.
  *
  * @author Java Universe
  */
@@ -111,7 +111,7 @@ class RestHttpClientSpringBootIntegrationTest {
                     .run(context -> {
                         BootClients.SlowRestTemplateItems client = context.getBean(BootClients.SlowRestTemplateItems.class);
 
-                        // El readTimeout del cliente (300 ms) se respeta aunque el builder global diga 60 s.
+                        // The client's readTimeout (300 ms) is respected even if the global builder says 60 s.
                         assertTimeoutPreemptively(Duration.ofSeconds(10), () ->
                                 assertThatThrownBy(client::item).isInstanceOf(ResourceAccessException.class));
                     });
@@ -125,7 +125,7 @@ class RestHttpClientSpringBootIntegrationTest {
                 .withPropertyValues(url(), "test.slow-url=http://127.0.0.1:1")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    // Sin el Jackson de Boot no hay snake_case: el campo queda sin mapear.
+                    // Without Boot's Jackson there is no snake_case: the field is left unmapped.
                     assertThat(context.getBean(BootClients.RestClientItems.class).item().itemName()).isNull();
                 });
     }

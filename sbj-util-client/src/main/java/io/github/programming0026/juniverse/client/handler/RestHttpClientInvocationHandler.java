@@ -44,72 +44,72 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
- * Atiende cada llamada al proxy de un cliente {@link RestHttpClient}.
- * Al crearse valida la URL base y analiza todos los métodos de la interfaz ({@link MethodMetadata}); un
- * método mal declarado hace fallar la creación del cliente. En cada llamada solo enlaza los argumentos,
- * ejecuta la petición con RestClient o RestTemplate y la envuelve con los decoradores de Resilience4j en el
- * orden que recomienda Resilience4j: Retry (el más externo) → CircuitBreaker → RateLimiter → TimeLimiter →
- * petición. Así cada intento pasa por el circuit breaker, consume un permiso del rate limiter y tiene su
- * propio límite de tiempo.
+ * Serves each call to the proxy of a {@link RestHttpClient} client.
+ * When created it validates the base URL and analyzes all the interface methods ({@link MethodMetadata}); a
+ * badly declared method makes the creation of the client fail. On each call it only binds the arguments,
+ * executes the request with RestClient or RestTemplate and wraps it with the Resilience4j decorators in the
+ * order recommended by Resilience4j: Retry (the outermost) → CircuitBreaker → RateLimiter → TimeLimiter →
+ * request. This way each attempt goes through the circuit breaker, consumes a rate limiter permit and has its
+ * own time limit.
  *
  * @author Java Universe
  */
 public class RestHttpClientInvocationHandler implements InvocationHandler {
 
     /**
-     * Ejecutor de las peticiones con time limiter: un hilo virtual por petición, para no bloquear el
-     * {@code ForkJoinPool} común y para poder interrumpir la petición cuando vence el tiempo.
+     * Executor of the requests with a time limiter: one virtual thread per request, so as not to block the
+     * common {@code ForkJoinPool} and to be able to interrupt the request when the time expires.
      */
     private static final ExecutorService TIME_LIMITER_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
-    /** El logger. */
+    /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(RestHttpClientInvocationHandler.class);
 
-    /** El cliente HTTP: un RestClient o un RestTemplate. */
+    /** The HTTP client: a RestClient or a RestTemplate. */
     private final Object httpClient;
 
-    /** La configuración del cliente. */
+    /** The client configuration. */
     private final RestHttpClient clientConfig;
 
-    /** El manejador de errores. */
+    /** The error handler. */
     private final ErrorHandler errorHandler;
 
-    /** La interfaz del cliente. */
+    /** The client interface. */
     private final Class<?> clientInterface;
 
-    /** Los metadatos de cada método HTTP de la interfaz, calculados una sola vez. */
+    /** The metadata of each HTTP method of the interface, computed only once. */
     private final Map<Method, MethodMetadata> methods;
 
-    /** El circuit breaker, o null si está deshabilitado. */
+    /** The circuit breaker, or null if disabled. */
     private final CircuitBreaker circuitBreaker;
 
-    /** El retry de las peticiones idempotentes (siempre presente). */
+    /** The retry for idempotent requests (always present). */
     private final Retry retry;
 
-    /** El retry de las peticiones no idempotentes (POST, PATCH), más restrictivo (siempre presente). */
+    /** The retry for non-idempotent requests (POST, PATCH), more restrictive (always present). */
     private final Retry nonIdempotentRetry;
 
-    /** El rate limiter, o null si está deshabilitado. */
+    /** The rate limiter, or null if disabled. */
     private final RateLimiter rateLimiter;
 
-    /** El time limiter, o null si está deshabilitado. */
+    /** The time limiter, or null if disabled. */
     private final TimeLimiter timeLimiter;
 
-    /** La implementación que responde cuando el servicio no está disponible, o null si no hay. */
+    /** The implementation that answers when the service is unavailable, or null if there is none. */
     private final Object fallback;
 
-    /** Los reintentos y el time limiter propios de los métodos con {@code @MethodConfig}. */
+    /** The retries and time limiter specific to the methods with {@code @MethodConfig}. */
     private final Map<MethodMetadata, MethodResilience> methodResilience;
 
     /**
-     * Crea el handler sin resolución de placeholders en los mappings.
+     * Creates the handler without placeholder resolution in the mappings.
      *
-     * @param httpClient el cliente HTTP (RestClient o RestTemplate)
-     * @param clientConfig la configuración del cliente
-     * @param errorHandler el manejador de errores
-     * @param clientInterface la interfaz del cliente
-     * @param resilience4jConfig la fábrica de instancias de Resilience4j
-     * @throws ClientException si la URL o algún método del cliente están mal declarados
+     * @param httpClient the HTTP client (RestClient or RestTemplate)
+     * @param clientConfig the client configuration
+     * @param errorHandler the error handler
+     * @param clientInterface the client interface
+     * @param resilience4jConfig the factory of Resilience4j instances
+     * @throws ClientException if the URL or any client method is badly declared
      */
     public RestHttpClientInvocationHandler(Object httpClient,
                                            RestHttpClient clientConfig,
@@ -120,17 +120,17 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Crea el handler: valida la URL base, analiza los métodos de la interfaz y crea las instancias de
-     * Resilience4j del cliente. Las instancias se nombran con {@code name()} de la anotación o, si está
-     * vacío, con el nombre simple de la interfaz.
+     * Creates the handler: validates the base URL, analyzes the interface methods and creates the client's
+     * Resilience4j instances. The instances are named with the annotation's {@code name()} or, if
+     * empty, with the simple name of the interface.
      *
-     * @param httpClient el cliente HTTP (RestClient o RestTemplate)
-     * @param clientConfig la configuración del cliente (con sus placeholders ya resueltos)
-     * @param errorHandler el manejador de errores
-     * @param clientInterface la interfaz del cliente
-     * @param resilience4jConfig la fábrica de instancias de Resilience4j
-     * @param valueResolver resuelve placeholders en los atributos de mapping y de parámetros
-     * @throws ClientException si la URL o algún método del cliente están mal declarados
+     * @param httpClient the HTTP client (RestClient or RestTemplate)
+     * @param clientConfig the client configuration (with its placeholders already resolved)
+     * @param errorHandler the error handler
+     * @param clientInterface the client interface
+     * @param resilience4jConfig the factory of Resilience4j instances
+     * @param valueResolver resolves placeholders in the mapping and parameter attributes
+     * @throws ClientException if the URL or any client method is badly declared
      */
     public RestHttpClientInvocationHandler(Object httpClient,
                                            RestHttpClient clientConfig,
@@ -142,19 +142,19 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Crea el handler con un fallback. Ver {@link #RestHttpClientInvocationHandler(Object, RestHttpClient,
+     * Creates the handler with a fallback. See {@link #RestHttpClientInvocationHandler(Object, RestHttpClient,
      * ErrorHandler, Class, CircuitBreakerUtil, UnaryOperator)}.
      *
-     * @param httpClient el cliente HTTP (RestClient o RestTemplate)
-     * @param clientConfig la configuración del cliente (con sus placeholders ya resueltos)
-     * @param errorHandler el manejador de errores
-     * @param clientInterface la interfaz del cliente
-     * @param resilience4jConfig la fábrica de instancias de Resilience4j
-     * @param valueResolver resuelve placeholders en los atributos de mapping y de parámetros
-     * @param fallback la implementación de la interfaz que responde cuando el servicio no está disponible, o
-     *                 null si no hay
-     * @throws ClientException si la URL o algún método del cliente están mal declarados, o si el fallback no
-     *                         implementa la interfaz
+     * @param httpClient the HTTP client (RestClient or RestTemplate)
+     * @param clientConfig the client configuration (with its placeholders already resolved)
+     * @param errorHandler the error handler
+     * @param clientInterface the client interface
+     * @param resilience4jConfig the factory of Resilience4j instances
+     * @param valueResolver resolves placeholders in the mapping and parameter attributes
+     * @param fallback the implementation of the interface that answers when the service is unavailable, or
+     *                 null if there is none
+     * @throws ClientException if the URL or any client method is badly declared, or if the fallback does not
+     *                         implement the interface
      */
     public RestHttpClientInvocationHandler(Object httpClient,
                                            RestHttpClient clientConfig,
@@ -208,26 +208,26 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Los reintentos y el time limiter propios de un método con {@code @MethodConfig}; un valor null significa
-     * que ese aspecto se hereda del cliente (o, en el time limiter, que el método no tiene límite).
+     * The retries and time limiter specific to a method with {@code @MethodConfig}; a null value means
+     * that this aspect is inherited from the client (or, for the time limiter, that the method has no limit).
      *
-     * @param retry el retry de las peticiones idempotentes, o null si hereda el del cliente
-     * @param nonIdempotentRetry el retry de las no idempotentes, o null si hereda el del cliente
-     * @param timeLimiter el time limiter, o null si el método no tiene límite de tiempo
+     * @param retry the retry for idempotent requests, or null if it inherits the client's one
+     * @param nonIdempotentRetry the retry for non-idempotent requests, or null if it inherits the client's one
+     * @param timeLimiter the time limiter, or null if the method has no time limit
      */
     private record MethodResilience(Retry retry, Retry nonIdempotentRetry, TimeLimiter timeLimiter) {
     }
 
     /**
-     * Crea las instancias de Resilience4j propias de un método. Llevan el nombre del cliente más la firma del
-     * método, para no compartir estado con las del cliente ni con otros métodos.
+     * Creates the Resilience4j instances specific to a method. They carry the client name plus the method
+     * signature, so as not to share state with the client's ones or with other methods.
      *
-     * @param name el nombre base de las instancias
-     * @param settings los ajustes del método
-     * @param clientConfig la configuración del cliente
-     * @param errorHandler el manejador de errores
-     * @param resilience4jConfig la fábrica de instancias de Resilience4j
-     * @return las instancias propias del método
+     * @param name the base name of the instances
+     * @param settings the method settings
+     * @param clientConfig the client configuration
+     * @param errorHandler the error handler
+     * @param resilience4jConfig the factory of Resilience4j instances
+     * @return the method's own instances
      */
     private static MethodResilience createMethodResilience(String name, MethodMetadata.MethodSettings settings,
                                                            RestHttpClient clientConfig, ErrorHandler errorHandler,
@@ -247,11 +247,11 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Describe un método con sus tipos de parámetros, por ejemplo {@code find(String,int)}, para nombrar sus
-     * instancias de Resilience4j sin que choquen las sobrecargas.
+     * Describes a method with its parameter types, for example {@code find(String,int)}, to name its
+     * Resilience4j instances without overloads clashing.
      *
-     * @param method el método
-     * @return la firma
+     * @param method the method
+     * @return the signature
      */
     private static String signature(Method method) {
         return method.getName() + Arrays.stream(method.getParameterTypes()).map(Class::getSimpleName)
@@ -259,11 +259,11 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Valida que la URL base sea absoluta con esquema http o https y con host.
+     * Validates that the base URL is absolute with an http or https scheme and has a host.
      *
-     * @param url la URL base
-     * @param clientInterface la interfaz del cliente, para el mensaje de error
-     * @throws ClientException si la URL no es válida
+     * @param url the base URL
+     * @param clientInterface the client interface, for the error message
+     * @throws ClientException if the URL is not valid
      */
     private static void validateBaseUrl(String url, Class<?> clientInterface) {
         URI uri;
@@ -279,12 +279,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Crea la excepción de URL base inválida.
+     * Creates the invalid base URL exception.
      *
-     * @param url la URL
-     * @param clientInterface la interfaz del cliente
-     * @param cause la causa, o null
-     * @return la excepción
+     * @param url the URL
+     * @param clientInterface the client interface
+     * @param cause the cause, or null
+     * @return the exception
      */
     private static ClientException invalidUrl(String url, Class<?> clientInterface, Exception cause) {
         return new ClientException("Client " + clientInterface.getSimpleName()
@@ -292,13 +292,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Analiza todos los métodos HTTP de la interfaz (los heredados incluidos; se excluyen los
-     * {@code default} y los {@code static}).
+     * Analyzes all the HTTP methods of the interface (inherited ones included; {@code default} and
+     * {@code static} ones are excluded).
      *
-     * @param clientInterface la interfaz del cliente
-     * @param valueResolver resuelve placeholders
-     * @return los metadatos por método
-     * @throws ClientException si algún método está mal declarado
+     * @param clientInterface the client interface
+     * @param valueResolver resolves placeholders
+     * @return the metadata per method
+     * @throws ClientException if any method is badly declared
      */
     private static Map<Method, MethodMetadata> analyzeMethods(Class<?> clientInterface,
                                                               UnaryOperator<String> valueResolver) {
@@ -314,12 +314,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Un retorno {@code InputStream} necesita dejar la respuesta abierta, y {@code RestTemplate} la cierra antes
-     * de devolver: solo {@code RestClient} puede hacer streaming.
+     * An {@code InputStream} return type needs to leave the response open, and {@code RestTemplate} closes it
+     * before returning: only {@code RestClient} can stream.
      *
-     * @param httpClient el cliente HTTP
-     * @param methods los metadatos de los métodos
-     * @throws ClientException si el cliente es un RestTemplate y algún método devuelve un InputStream
+     * @param httpClient the HTTP client
+     * @param methods the methods' metadata
+     * @throws ClientException if the client is a RestTemplate and any method returns an InputStream
      */
     private static void rejectStreamingWithRestTemplate(Object httpClient, Map<Method, MethodMetadata> methods) {
         if (!(httpClient instanceof RestTemplate)) {
@@ -335,15 +335,15 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Atiende una llamada al proxy. {@code equals}, {@code hashCode} y {@code toString} se resuelven
-     * sobre el proxy; los métodos {@code default} de la interfaz se ejecutan tal cual; el resto se
-     * convierte en una petición HTTP.
+     * Serves a call to the proxy. {@code equals}, {@code hashCode} and {@code toString} are resolved
+     * on the proxy; the interface's {@code default} methods are executed as is; the rest is
+     * converted into an HTTP request.
      *
-     * @param proxy el proxy
-     * @param method el método invocado
-     * @param args los argumentos
-     * @return el resultado según el tipo de retorno del método
-     * @throws Throwable la excepción de la petición
+     * @param proxy the proxy
+     * @param method the invoked method
+     * @param args the arguments
+     * @return the result according to the method's return type
+     * @throws Throwable the request's exception
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -378,12 +378,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Indica si el error significa que el servicio no está disponible, que es cuando se usa el fallback: una
-     * respuesta 5xx, un error de red, un timeout, el circuito abierto o el límite de peticiones. Los 4xx y
-     * los demás errores (conversión del cuerpo, cliente mal usado) no.
+     * Indicates whether the error means the service is unavailable, which is when the fallback is used: a
+     * 5xx response, a network error, a timeout, an open circuit or the request limit. 4xx responses and
+     * other errors (body conversion, misused client) do not.
      *
-     * @param error el error de la llamada
-     * @return true si corresponde usar el fallback
+     * @param error the call's error
+     * @return true if the fallback should be used
      */
     static boolean isUnavailability(Throwable error) {
         return switch (error) {
@@ -396,14 +396,14 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Ejecuta el método equivalente del fallback. Se llama al método de la clase del fallback y no al de la
-     * interfaz, porque la interfaz puede no ser pública y entonces la reflexión no podría invocarlo.
+     * Executes the equivalent method of the fallback. The method of the fallback class is called and not that of
+     * the interface, because the interface may not be public and then reflection could not invoke it.
      *
-     * @param method el método de la interfaz
-     * @param args los argumentos de la llamada
-     * @return lo que devuelve el fallback
-     * @throws InvocationTargetException si el fallback lanza una excepción (viene en su causa)
-     * @throws ClientException si la clase del fallback no es accesible
+     * @param method the interface method
+     * @param args the call's arguments
+     * @return what the fallback returns
+     * @throws InvocationTargetException if the fallback throws an exception (it comes in its cause)
+     * @throws ClientException if the fallback class is not accessible
      */
     private Object invokeFallback(Method method, Object[] args) throws InvocationTargetException {
         try {
@@ -416,13 +416,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Implementa los métodos de {@link Object} con identidad de proxy: un proxy solo es igual a sí mismo.
+     * Implements the {@link Object} methods with proxy identity: a proxy is only equal to itself.
      *
-     * @param proxy el proxy
-     * @param method el método de Object
-     * @param args los argumentos
-     * @return el resultado
-     * @throws InvocationTargetException si falla la invocación
+     * @param proxy the proxy
+     * @param method the Object method
+     * @param args the arguments
+     * @return the result
+     * @throws InvocationTargetException if the invocation fails
      */
     private Object invokeObjectMethod(Object proxy, Method method, Object[] args)
             throws InvocationTargetException, IllegalAccessException {
@@ -437,13 +437,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Ejecuta la petición envuelta con los decoradores de Resilience4j habilitados.
+     * Executes the request wrapped with the enabled Resilience4j decorators.
      *
-     * @param metadata los metadatos del método
-     * @param request los datos de la llamada
-     * @param uri la URI de la petición
-     * @return el resultado según el tipo de retorno del método
-     * @throws Exception la excepción de la petición
+     * @param metadata the method metadata
+     * @param request the call data
+     * @param uri the request URI
+     * @return the result according to the method's return type
+     * @throws Exception the request's exception
      */
     private Object executeWithResilience(MethodMetadata metadata, MethodMetadata.Request request, URI uri)
             throws Exception {
@@ -469,12 +469,12 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Elige el retry de la llamada: el propio del método si su {@code @MethodConfig} cambia los reintentos y, si
-     * no, el del cliente. En ambos casos distingue las peticiones idempotentes de las que no lo son.
+     * Chooses the call's retry: the method's own if its {@code @MethodConfig} changes the retries and, if
+     * not, the client's one. In both cases it distinguishes idempotent requests from those that are not.
      *
-     * @param own los ajustes propios del método, o null si no tiene
-     * @param idempotent si el método HTTP es idempotente
-     * @return el retry a aplicar
+     * @param own the method's own settings, or null if it has none
+     * @param idempotent whether the HTTP method is idempotent
+     * @return the retry to apply
      */
     private Retry retryFor(MethodResilience own, boolean idempotent) {
         if (own != null && own.retry() != null) {
@@ -484,10 +484,11 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Indica si el método HTTP es idempotente según RFC 9110 (repetirlo no cambia el resultado).
+     * Indicates whether the HTTP method is idempotent according to RFC 9110 (repeating it does not change the
+     * result).
      *
-     * @param httpMethod el método HTTP
-     * @return true para GET, HEAD, OPTIONS, TRACE, PUT y DELETE
+     * @param httpMethod the HTTP method
+     * @return true for GET, HEAD, OPTIONS, TRACE, PUT and DELETE
      */
     static boolean isIdempotent(HttpMethod httpMethod) {
         return HttpMethod.GET.equals(httpMethod)
@@ -499,13 +500,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Aplica el time limiter a un intento. La petición corre en un hilo virtual que se interrumpe al vencer
-     * el tiempo; el {@link TimeoutException} (checked) se envuelve en {@link ClientException} para que el
-     * proxy no lo convierta en {@code UndeclaredThrowableException}.
+     * Applies the time limiter to an attempt. The request runs in a virtual thread that is interrupted when
+     * the time expires; the (checked) {@link TimeoutException} is wrapped in {@link ClientException} so the
+     * proxy does not turn it into an {@code UndeclaredThrowableException}.
      *
-     * @param attempt el intento a limitar
-     * @param limiter el time limiter que se aplica (el del cliente o el del método)
-     * @return el intento con límite de tiempo
+     * @param attempt the attempt to limit
+     * @param limiter the time limiter that is applied (the client's or the method's)
+     * @return the attempt with a time limit
      */
     private Callable<Object> withTimeLimit(Callable<Object> attempt, TimeLimiter limiter) {
         Callable<Object> limited = TimeLimiter.decorateFutureSupplier(limiter,
@@ -524,13 +525,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Ejecuta la petición con el cliente HTTP configurado. Ante un error HTTP siempre consulta al
-     * {@link ErrorHandler}; si no lanza su propia excepción, se propaga la original.
+     * Executes the request with the configured HTTP client. On an HTTP error it always consults the
+     * {@link ErrorHandler}; if it does not throw its own exception, the original one is propagated.
      *
-     * @param metadata los metadatos del método
-     * @param request los datos de la llamada
-     * @param uri la URI de la petición
-     * @return el resultado según el tipo de retorno del método
+     * @param metadata the method metadata
+     * @param request the call data
+     * @param uri the request URI
+     * @return the result according to the method's return type
      */
     private Object executeRequest(MethodMetadata metadata, MethodMetadata.Request request, URI uri) {
         long readTimeout = metadata.settings().readTimeout();
@@ -562,13 +563,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Ejecuta la petición con RestClient.
+     * Executes the request with RestClient.
      *
-     * @param client el RestClient
-     * @param metadata los metadatos del método
-     * @param request los datos de la llamada
-     * @param uri la URI de la petición
-     * @return la respuesta
+     * @param client the RestClient
+     * @param metadata the method metadata
+     * @param request the call data
+     * @param uri the request URI
+     * @return the response
      */
     private static ResponseEntity<?> executeWithRestClient(RestClient client, MethodMetadata metadata,
                                                            MethodMetadata.Request request, URI uri) {
@@ -590,15 +591,14 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Ejecuta la petición y devuelve la respuesta abierta, con el cuerpo como {@link InputStream} que se lee
-     * progresivamente. La respuesta (y su conexión del pool) se libera al cerrar el flujo.
-     * Reintentos, circuit breaker, rate limiter y límite de tiempo actúan hasta que llegan los headers de la
-     * respuesta; la lectura del cuerpo queda en manos de quien recibe el flujo (cada lectura tiene el
-     * {@code readTimeout} del cliente). Un 4xx/5xx se lanza como excepción, igual que sin streaming, y la
-     * respuesta se cierra antes de lanzarla.
+     * Executes the request and returns the open response, with the body as an {@link InputStream} that is read
+     * progressively. The response (and its pool connection) is released when the stream is closed.
+     * Retries, circuit breaker, rate limiter and time limit act until the response headers arrive; reading the
+     * body is left to whoever receives the stream (each read has the client's {@code readTimeout}). A 4xx/5xx
+     * is thrown as an exception, just as without streaming, and the response is closed before throwing it.
      *
-     * @param bodySpec la petición, ya con headers y cuerpo
-     * @return la respuesta con el cuerpo abierto
+     * @param bodySpec the request, already with headers and body
+     * @return the response with the body open
      */
     private static ResponseEntity<InputStream> streamResponse(RestClient.RequestBodySpec bodySpec) {
         return bodySpec.exchange((clientRequest, response) -> {
@@ -616,13 +616,13 @@ public class RestHttpClientInvocationHandler implements InvocationHandler {
     }
 
     /**
-     * Ejecuta la petición con RestTemplate.
+     * Executes the request with RestTemplate.
      *
-     * @param template el RestTemplate
-     * @param metadata los metadatos del método
-     * @param request los datos de la llamada
-     * @param uri la URI de la petición
-     * @return la respuesta
+     * @param template the RestTemplate
+     * @param metadata the method metadata
+     * @param request the call data
+     * @param uri the request URI
+     * @return the response
      */
     private static ResponseEntity<?> executeWithRestTemplate(RestTemplate template, MethodMetadata metadata,
                                                              MethodMetadata.Request request, URI uri) {

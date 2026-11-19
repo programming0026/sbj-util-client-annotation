@@ -27,32 +27,32 @@ import org.apache.hc.core5.http.ConnectionRequestTimeoutException;
 import org.springframework.web.client.HttpStatusCodeException;
 
 /**
- * Crea las instancias de Resilience4j (circuit breaker, retry, rate limiter y time limiter) de cada
- * cliente a partir de su anotación {@link RestHttpClient}.
- * Las instancias se guardan en registros por nombre: pedir dos veces el mismo nombre devuelve la misma
- * instancia.
+ * Creates the Resilience4j instances (circuit breaker, retry, rate limiter and time limiter) of each
+ * client from its {@link RestHttpClient} annotation.
+ * The instances are kept in registries by name: asking twice for the same name returns the same
+ * instance.
  *
  * @author Java Universe
  */
 public class CircuitBreakerUtil {
 
-    /** Sufijo del nombre del retry para peticiones no idempotentes. */
+    /** Suffix of the retry name for non-idempotent requests. */
     private static final String NON_IDEMPOTENT_SUFFIX = ":non-idempotent";
 
-    /** Registro de circuit breakers. */
+    /** Circuit breaker registry. */
     private final CircuitBreakerRegistry circuitBreakerRegistry;
 
-    /** Registro de retries. */
+    /** Retry registry. */
     private final RetryRegistry retryRegistry;
 
-    /** Registro de rate limiters. */
+    /** Rate limiter registry. */
     private final RateLimiterRegistry rateLimiterRegistry;
 
-    /** Registro de time limiters. */
+    /** Time limiter registry. */
     private final TimeLimiterRegistry timeLimiterRegistry;
 
     /**
-     * Crea la utilidad con registros con la configuración por defecto.
+     * Creates the utility with registries holding the default configuration.
      */
     public CircuitBreakerUtil() {
         this.circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
@@ -62,51 +62,51 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Obtiene el registro de circuit breakers (por ejemplo, para publicar sus métricas).
+     * Gets the circuit breaker registry (for example, to publish its metrics).
      *
-     * @return el registro de circuit breakers
+     * @return the circuit breaker registry
      */
     public CircuitBreakerRegistry getCircuitBreakerRegistry() {
         return circuitBreakerRegistry;
     }
 
     /**
-     * Obtiene el registro de retries.
+     * Gets the retry registry.
      *
-     * @return el registro de retries
+     * @return the retry registry
      */
     public RetryRegistry getRetryRegistry() {
         return retryRegistry;
     }
 
     /**
-     * Obtiene el registro de rate limiters.
+     * Gets the rate limiter registry.
      *
-     * @return el registro de rate limiters
+     * @return the rate limiter registry
      */
     public RateLimiterRegistry getRateLimiterRegistry() {
         return rateLimiterRegistry;
     }
 
     /**
-     * Obtiene el registro de time limiters.
+     * Gets the time limiter registry.
      *
-     * @return el registro de time limiters
+     * @return the time limiter registry
      */
     public TimeLimiterRegistry getTimeLimiterRegistry() {
         return timeLimiterRegistry;
     }
 
     /**
-     * Crea (u obtiene) el circuit breaker del cliente, con ventana deslizante por número de llamadas.
-     * Qué cuenta como falla: los errores HTTP según {@link ErrorHandler#shouldRecordAsFailure}; los
-     * timeouts del timelimiter y los errores de E/S siempre; los demás {@link ClientException} (errores
-     * de configuración o de uso) nunca, porque no indican que el servicio esté fallando.
+     * Creates (or gets) the client's circuit breaker, with a count-based sliding window.
+     * What counts as a failure: HTTP errors according to {@link ErrorHandler#shouldRecordAsFailure}; time
+     * limiter timeouts and I/O errors always; other {@link ClientException}s (configuration or usage
+     * errors) never, because they do not indicate that the service is failing.
      *
-     * @param name el nombre del cliente
-     * @param config la configuración del cliente
-     * @param errorHandler el manejador de errores que decide qué estados HTTP cuentan como falla
-     * @return el circuit breaker
+     * @param name the client name
+     * @param config the client configuration
+     * @param errorHandler the error handler that decides which HTTP statuses count as a failure
+     * @return the circuit breaker
      */
     public CircuitBreaker createCircuitBreaker(String name, RestHttpClient config, ErrorHandler errorHandler) {
         var cbConfig = config.circuitBreaker();
@@ -134,23 +134,23 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Indica si la excepción es el timeout del timelimiter ({@link ClientException} con un
-     * {@link TimeoutException} como causa).
+     * Indicates whether the exception is the time limiter's timeout ({@link ClientException} with a
+     * {@link TimeoutException} as the cause).
      *
-     * @param throwable la excepción
-     * @return true si es un timeout
+     * @param throwable the exception
+     * @return true if it is a timeout
      */
     public static boolean isTimeout(Throwable throwable) {
         return throwable instanceof ClientException && throwable.getCause() instanceof TimeoutException;
     }
 
     /**
-     * Crea (u obtiene) el retry del cliente para peticiones idempotentes.
+     * Creates (or gets) the client's retry for idempotent requests.
      *
-     * @param name el nombre del cliente
-     * @param config la configuración del cliente
-     * @param errorHandler el manejador de errores que decide qué estados se reintentan
-     * @return el retry
+     * @param name the client name
+     * @param config the client configuration
+     * @param errorHandler the error handler that decides which statuses are retried
+     * @return the retry
      * @see #createRetry(String, RestHttpClient, ErrorHandler, boolean)
      */
     public Retry createRetry(String name, RestHttpClient config, ErrorHandler errorHandler) {
@@ -158,38 +158,38 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Crea (u obtiene) el retry del cliente con backoff exponencial.
-     * Peticiones idempotentes (GET, HEAD, OPTIONS, TRACE, PUT, DELETE): los errores HTTP se reintentan solo
-     * si {@link ErrorHandler#shouldRetry} lo permite; los timeouts y los errores de E/S siempre. Nunca se
-     * reintenta cuando el circuito está abierto ({@link CallNotPermittedException}), cuando el rate limiter
-     * rechaza la llamada ({@link RequestNotPermitted}) ni ante otros {@link ClientException} (errores de
-     * configuración o de uso).
-     * Peticiones no idempotentes (POST, PATCH): además de lo anterior, solo se reintentan las fallas de
-     * conexión (ver {@link #isConnectionFailure(Throwable)}), porque en ellas la petición nunca llegó al
-     * servidor; reintentar tras un error HTTP, un timeout de lectura o un corte de conexión podría
-     * duplicar la operación. {@code RetryConfig.retryNonIdempotent = true} quita esta restricción.
+     * Creates (or gets) the client's retry with exponential backoff.
+     * Idempotent requests (GET, HEAD, OPTIONS, TRACE, PUT, DELETE): HTTP errors are retried only
+     * if {@link ErrorHandler#shouldRetry} allows it; timeouts and I/O errors always. It is never
+     * retried when the circuit is open ({@link CallNotPermittedException}), when the rate limiter
+     * rejects the call ({@link RequestNotPermitted}) nor on other {@link ClientException}s (configuration or
+     * usage errors).
+     * Non-idempotent requests (POST, PATCH): in addition to the above, only connection failures are retried
+     * (see {@link #isConnectionFailure(Throwable)}), because in those the request never reached the
+     * server; retrying after an HTTP error, a read timeout or a dropped connection could
+     * duplicate the operation. {@code RetryConfig.retryNonIdempotent = true} removes this restriction.
      *
-     * @param name el nombre del cliente
-     * @param config la configuración del cliente
-     * @param errorHandler el manejador de errores que decide qué estados se reintentan
-     * @param idempotent si el retry es para peticiones idempotentes
-     * @return el retry
+     * @param name the client name
+     * @param config the client configuration
+     * @param errorHandler the error handler that decides which statuses are retried
+     * @param idempotent whether the retry is for idempotent requests
+     * @return the retry
      */
     public Retry createRetry(String name, RestHttpClient config, ErrorHandler errorHandler, boolean idempotent) {
         return createRetry(name, config, errorHandler, idempotent, config.retry().maxRetries());
     }
 
     /**
-     * Igual que {@link #createRetry(String, RestHttpClient, ErrorHandler, boolean)} pero con un total de
-     * intentos propio, para los métodos con {@code @MethodConfig(maxRetries = ...)}; el resto de la configuración
-     * de reintentos se toma del cliente. Él {@code name} debe ser distinto al del retry del cliente.
+     * Same as {@link #createRetry(String, RestHttpClient, ErrorHandler, boolean)} but with its own total of
+     * attempts, for methods with {@code @MethodConfig(maxRetries = ...)}; the rest of the retry configuration
+     * is taken from the client. The {@code name} must differ from that of the client's retry.
      *
-     * @param name el nombre de la instancia
-     * @param config la configuración del cliente
-     * @param errorHandler el manejador de errores que decide qué estados se reintentan
-     * @param idempotent si el retry es para peticiones idempotentes
-     * @param maxAttempts el total de intentos, el primero incluido
-     * @return el retry
+     * @param name the instance name
+     * @param config the client configuration
+     * @param errorHandler the error handler that decides which statuses are retried
+     * @param idempotent whether the retry is for idempotent requests
+     * @param maxAttempts the total number of attempts, the first one included
+     * @return the retry
      */
     public Retry createRetry(String name, RestHttpClient config, ErrorHandler errorHandler, boolean idempotent,
                              int maxAttempts) {
@@ -225,13 +225,13 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Indica si la excepción es una falla al establecer la conexión, en la que la petición nunca se envió:
-     * conexión rechazada ({@link ConnectException}), timeout de conexión ({@link ConnectTimeoutException})
-     * o timeout esperando una conexión libre del pool ({@link ConnectionRequestTimeoutException}). Se
-     * revisa toda la cadena de causas, porque Spring las envuelve en {@code ResourceAccessException}.
+     * Indicates whether the exception is a failure to establish the connection, in which the request was never
+     * sent: connection refused ({@link ConnectException}), connect timeout ({@link ConnectTimeoutException})
+     * or timeout waiting for a free connection from the pool ({@link ConnectionRequestTimeoutException}). The
+     * whole cause chain is checked, because Spring wraps them in {@code ResourceAccessException}.
      *
-     * @param throwable la excepción
-     * @return true si la petición no llegó a enviarse
+     * @param throwable the exception
+     * @return true if the request was never sent
      */
     public static boolean isConnectionFailure(Throwable throwable) {
         for (Throwable current = throwable; current != null; current = current.getCause()) {
@@ -245,11 +245,11 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Crea (u obtiene) el rate limiter del cliente.
+     * Creates (or gets) the client's rate limiter.
      *
-     * @param name el nombre del cliente
-     * @param config la configuración del cliente
-     * @return el rate limiter
+     * @param name the client name
+     * @param config the client configuration
+     * @return the rate limiter
      */
     public RateLimiter createRateLimiter(String name, RestHttpClient config) {
         var rlConfig = config.rateLimiter();
@@ -264,24 +264,24 @@ public class CircuitBreakerUtil {
     }
 
     /**
-     * Crea (u obtiene) él time limiter del cliente; al vencer el tiempo cancela la tarea en curso.
+     * Creates (or gets) the client's time limiter; when the time expires it cancels the running task.
      *
-     * @param name el nombre del cliente
-     * @param config la configuración del cliente
-     * @return él time limiter
+     * @param name the client name
+     * @param config the client configuration
+     * @return the time limiter
      */
     public TimeLimiter createTimeLimiter(String name, RestHttpClient config) {
         return createTimeLimiter(name, config.timeLimiter().timeout());
     }
 
     /**
-     * Crea (u obtiene) un time limiter con un tiempo propio, para los métodos con
-     * {@code @MethodConfig(timeLimiterTimeout = ...)}. Él {@code name} debe ser distinto al del timelimiter del
-     * cliente.
+     * Creates (or gets) a time limiter with its own time, for methods with
+     * {@code @MethodConfig(timeLimiterTimeout = ...)}. The {@code name} must differ from that of the client's
+     * time limiter.
      *
-     * @param name el nombre de la instancia
-     * @param timeoutMillis el tiempo máximo de cada intento, en milisegundos
-     * @return él time limiter
+     * @param name the instance name
+     * @param timeoutMillis the maximum time of each attempt, in milliseconds
+     * @return the time limiter
      */
     public TimeLimiter createTimeLimiter(String name, long timeoutMillis) {
         TimeLimiterConfig timeLimiterConfig = TimeLimiterConfig.custom()

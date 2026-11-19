@@ -42,9 +42,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 /**
- * Descargas con retorno {@code InputStream}: el cuerpo se lee progresivamente, la conexión se libera al cerrar el
- * flujo y los errores siguen siendo excepciones. El pool es de una sola conexión a propósito: cualquier fuga de
- * conexión haría fallar la siguiente llamada.
+ * Downloads with an {@code InputStream} return type: the body is read progressively, the connection is released
+ * when the stream is closed and errors are still exceptions. The pool has a single connection on purpose: any
+ * connection leak would make the next call fail.
  *
  * @author Java Universe
  */
@@ -115,7 +115,7 @@ class RestHttpClientStreamingTest {
             OutputStream out = exchange.getResponseBody();
             out.write(first);
             out.flush();
-            // Retiene el resto hasta que el cliente confirme que ya recibió el primer bloque.
+            // Holds back the rest until the client confirms it has already received the first block.
             awaitRelease(5);
             out.write(rest);
             exchange.close();
@@ -162,7 +162,7 @@ class RestHttpClientStreamingTest {
         serverThreads.shutdownNow();
     }
 
-    /** Espera la señal del test sin propagar la interrupción (los handlers de HttpServer solo lanzan IOException). */
+    /** Waits for the test signal without propagating the interruption (HttpServer handlers only throw IOException). */
     private void awaitRelease(int seconds) {
         try {
             release.await(seconds, TimeUnit.SECONDS);
@@ -200,8 +200,8 @@ class RestHttpClientStreamingTest {
     void theBodyIsStreamedNotBufferedInMemory() throws Exception {
         DownloadClient client = client(DownloadClient.class);
 
-        // Si la librería acumulara el cuerpo, esta llamada se bloquearía hasta que el servidor suelte el resto
-        // (5 s); con streaming vuelve en cuanto llegan los headers y el primer bloque.
+        // If the library accumulated the body, this call would block until the server releases the rest
+        // (5 s); with streaming it returns as soon as the headers and the first block arrive.
         InputStream in = assertTimeoutPreemptively(Duration.ofSeconds(3), client::download);
 
         try (in) {
@@ -250,7 +250,7 @@ class RestHttpClientStreamingTest {
         DownloadClient client = client(DownloadClient.class);
         InputStream openStream = client.small().getBody();
 
-        // El pool tiene una sola conexión y sigue ocupada: la segunda llamada espera 400 ms y falla.
+        // The pool has a single connection and it is still busy: the second call waits 400 ms and fails.
         assertThatThrownBy(client::small).isInstanceOf(ResourceAccessException.class);
 
         openStream.close();
@@ -314,7 +314,7 @@ class RestHttpClientStreamingTest {
                 assertThatThrownBy(in::read).isInstanceOf(SocketTimeoutException.class));
         in.close();
 
-        // La conexión rota se descartó del pool: el cliente sigue funcionando.
+        // The broken connection was discarded from the pool: the client keeps working.
         try (InputStream next = client.small().getBody()) {
             assertThat(next.readAllBytes()).isEqualTo(SMALL_BODY);
         }

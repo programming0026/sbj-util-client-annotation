@@ -3,24 +3,24 @@ package com.juniverse.client.example.domain.model;
 import com.juniverse.client.example.domain.exception.InvalidRequestException;
 
 /**
- * Pide una página de resultados.
+ * Requests a page of results.
  *
- * @param limit cuántos elementos como máximo (de 1 a {@value #MAX_LIMIT})
- * @param skip cuántos elementos se omiten antes de la página (0 o más)
+ * @param limit maximum number of elements (1 to {@value #MAX_LIMIT})
+ * @param skip how many elements are skipped before the page (0 or more)
  * @author Java Universe
  */
 public record PageRequest(int limit, int skip) {
 
-    /** Tamaño de página por defecto. */
+    /** Default page size. */
     public static final int DEFAULT_LIMIT = 30;
 
-    /** Tamaño máximo de página: evita pedir catálogos enteros por accidente. */
+    /** Maximum page size: avoids requesting whole catalogs by accident. */
     public static final int MAX_LIMIT = 100;
 
     /**
-     * Valida el rango de los valores.
+     * Validates the range of the values.
      *
-     * @throws InvalidRequestException si algún valor está fuera de rango
+     * @throws InvalidRequestException if any value is out of range
      */
     public PageRequest {
         if (limit < 1 || limit > MAX_LIMIT) {
@@ -32,9 +32,9 @@ public record PageRequest(int limit, int skip) {
     }
 
     /**
-     * Primera página con el tamaño por defecto.
+     * First page with the default size.
      *
-     * @return la primera página
+     * @return the first page
      */
     public static PageRequest first() {
         return new PageRequest(DEFAULT_LIMIT, 0);

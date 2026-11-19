@@ -1,15 +1,15 @@
 package com.juniverse.client.example.domain.model;
 
 /**
- * Datos públicos de un usuario.
+ * Public data of a user.
  *
- * @param id identificador
- * @param username usuario
- * @param email correo
- * @param firstName nombre
- * @param lastName apellido
- * @param gender género, o null
- * @param image URL de la imagen de perfil, o null
+ * @param id identifier
+ * @param username user name
+ * @param email email
+ * @param firstName first name
+ * @param lastName last name
+ * @param gender gender, or null
+ * @param image profile image URL, or null
  * @author Java Universe
  */
 public record UserProfile(long id, String username, String email, String firstName, String lastName, String gender,

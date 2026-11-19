@@ -20,11 +20,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 /**
- * Cliente declarativo de https://dummyjson.com/docs/products.
+ * Declarative client of https://dummyjson.com/docs/products.
  *
- * Basta declarar la interfaz: la librería genera el cliente, resuelve {@code ${dummyjson.base-url}} desde
- * {@code application.properties} y aplica reintentos, circuit breaker y límite de tiempo. Los GET se
- * reintentan ante fallas transitorias; el POST de crear solo ante fallas de conexión (no es idempotente).
+ * It is enough to declare the interface: the library generates the client, resolves {@code ${dummyjson.base-url}}
+ * from {@code application.properties} and applies retries, circuit breaker and time limit. GET requests are
+ * retried on transient failures; the create POST only on connection failures (it is not idempotent).
  *
  * @author Java Universe
  */
@@ -41,13 +41,13 @@ import java.util.List;
 public interface ProductsApi {
 
     /**
-     * Lista productos.
+     * Lists products.
      *
-     * @param limit tamaño de página
-     * @param skip elementos a omitir
-     * @param sortBy campo de orden, o null
-     * @param order {@code asc} o {@code desc}, o null
-     * @return la página de productos
+     * @param limit page size
+     * @param skip elements to skip
+     * @param sortBy sort field, or null
+     * @param order {@code asc} or {@code desc}, or null
+     * @return the page of products
      */
     @GetMapping
     ProductListDto list(@RequestParam("limit") int limit, @RequestParam("skip") int skip,
@@ -55,14 +55,14 @@ public interface ProductsApi {
                         @RequestParam(name = "order", required = false) String order);
 
     /**
-     * Busca productos por texto.
+     * Searches products by text.
      *
-     * @param query el texto a buscar
-     * @param limit tamaño de página
-     * @param skip elementos a omitir
-     * @param sortBy campo de orden, o null
-     * @param order {@code asc} o {@code desc}, o null
-     * @return la página de productos
+     * @param query the text to search
+     * @param limit page size
+     * @param skip elements to skip
+     * @param sortBy sort field, or null
+     * @param order {@code asc} or {@code desc}, or null
+     * @return the page of products
      */
     @GetMapping("/search")
     ProductListDto search(@RequestParam("q") String query, @RequestParam("limit") int limit,
@@ -71,14 +71,14 @@ public interface ProductsApi {
                           @RequestParam(name = "order", required = false) String order);
 
     /**
-     * Lista los productos de una categoría.
+     * Lists the products of a category.
      *
-     * @param slug la categoría
-     * @param limit tamaño de página
-     * @param skip elementos a omitir
-     * @param sortBy campo de orden, o null
-     * @param order {@code asc} o {@code desc}, o null
-     * @return la página de productos
+     * @param slug the category
+     * @param limit page size
+     * @param skip elements to skip
+     * @param sortBy sort field, or null
+     * @param order {@code asc} or {@code desc}, or null
+     * @return the page of products
      */
     @GetMapping("/category/{slug}")
     ProductListDto byCategory(@PathVariable("slug") String slug, @RequestParam("limit") int limit,
@@ -87,46 +87,46 @@ public interface ProductsApi {
                               @RequestParam(name = "order", required = false) String order);
 
     /**
-     * Lista las categorías.
+     * Lists the categories.
      *
-     * @return las categorías
+     * @return the categories
      */
     @GetMapping("/categories")
     List<CategoryDto> categories();
 
     /**
-     * Obtiene un producto.
+     * Gets a product.
      *
-     * @param id el identificador
-     * @return el producto
+     * @param id the identifier
+     * @return the product
      */
     @GetMapping("/{id}")
     ProductDto get(@PathVariable("id") long id);
 
     /**
-     * Crea un producto (simulado: el servicio no lo guarda).
+     * Creates a product (simulated: the service does not store it).
      *
-     * @param payload los datos del producto
-     * @return el producto creado
+     * @param payload the product data
+     * @return the created product
      */
     @PostMapping("/add")
     ProductDto add(@RequestBody ProductPayloadDto payload);
 
     /**
-     * Modifica un producto (simulado).
+     * Modifies a product (simulated).
      *
-     * @param id el identificador
-     * @param payload los campos a cambiar
-     * @return el producto modificado
+     * @param id the identifier
+     * @param payload the fields to change
+     * @return the modified product
      */
     @PatchMapping("/{id}")
     ProductDto update(@PathVariable("id") long id, @RequestBody ProductPayloadDto payload);
 
     /**
-     * Elimina un producto (simulado).
+     * Deletes a product (simulated).
      *
-     * @param id el identificador
-     * @return el producto eliminado
+     * @param id the identifier
+     * @return the deleted product
      */
     @DeleteMapping("/{id}")
     ProductDto delete(@PathVariable("id") long id);

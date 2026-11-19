@@ -28,25 +28,25 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Los hints que se declaran para la imagen nativa cubren todo lo que la librería usa por reflexión.
+ * The hints declared for the native image cover everything the library uses through reflection.
  *
  * @author Java Universe
  */
 class RestHttpClientAotTest {
 
-    /** Cuerpo de respuesta propio de la aplicación. */
+    /** Response body specific to the application. */
     public record Item(String id, Detail detail) {
     }
 
-    /** Tipo anidado dentro de {@link Item}. */
+    /** Type nested inside {@link Item}. */
     public record Detail(String name) {
     }
 
-    /** Cuerpo de petición propio de la aplicación. */
+    /** Request body specific to the application. */
     public record NewItem(String name) {
     }
 
-    /** Interceptor que la librería instancia por reflexión. */
+    /** Interceptor that the library instantiates through reflection. */
     public static class NoopInterceptor implements ClientHttpRequestInterceptor {
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
@@ -55,11 +55,11 @@ class RestHttpClientAotTest {
         }
     }
 
-    /** Manejador de errores propio. */
+    /** Custom error handler. */
     public static class CustomErrorHandler extends DefaultErrorHandler {
     }
 
-    /** Fallback propio. */
+    /** Custom fallback. */
     public static class ItemsFallback implements ItemsClient {
         @Override
         public Item find(String id) {
@@ -77,7 +77,7 @@ class RestHttpClientAotTest {
         }
     }
 
-    /** Cliente de prueba que usa todas las funciones que requieren reflexión. */
+    /** Test client that uses all the features that require reflection. */
     @RestHttpClient(url = "http://localhost", errorHandler = CustomErrorHandler.class,
             interceptors = NoopInterceptor.class, fallback = ItemsFallback.class, ssl = @SSLConfig)
     public interface ItemsClient {
@@ -159,15 +159,15 @@ class RestHttpClientAotTest {
         assertThat(RuntimeHintsPredicates.reflection().onType(ItemsFallback.class)).rejects(hints);
     }
 
-    /** Configurador JSON propio. */
+    /** Custom JSON configurer. */
     public static class JsonConfig implements JsonMapperConfigurer {
         @Override
         public void configure(tools.jackson.databind.json.JsonMapper.Builder builder) {
-            // sin cambios
+            // no changes
         }
     }
 
-    /** Cliente con configurador JSON. */
+    /** Client with a JSON configurer. */
     @RestHttpClient(url = "http://localhost", jsonConfig = JsonConfig.class)
     public interface JsonClient {
         @GetMapping("/ping")
@@ -182,7 +182,7 @@ class RestHttpClientAotTest {
                 .rejects(hintsFor(PlainClient.class));
     }
 
-    /** Cliente mínimo: sin interceptores ni fallback. */
+    /** Minimal client: no interceptors or fallback. */
     @RestHttpClient(url = "http://localhost")
     public interface PlainClient {
         @GetMapping("/ping")

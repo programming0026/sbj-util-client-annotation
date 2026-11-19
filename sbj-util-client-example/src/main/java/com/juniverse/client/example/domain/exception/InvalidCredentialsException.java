@@ -1,13 +1,13 @@
 package com.juniverse.client.example.domain.exception;
 
 /**
- * El usuario o la contraseña no son correctos.
+ * The user name or the password is not correct.
  *
  * @author Java Universe
  */
 public class InvalidCredentialsException extends DomainException {
 
-    /** Crea la excepción. */
+    /** Creates the exception. */
     public InvalidCredentialsException() {
         super("Invalid username or password");
     }

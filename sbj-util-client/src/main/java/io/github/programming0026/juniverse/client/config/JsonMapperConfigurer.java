@@ -3,13 +3,13 @@ package io.github.programming0026.juniverse.client.config;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Personaliza el JSON (Jackson 3) de <b>un</b> cliente, con {@code @RestHttpClient(jsonConfig = ...)}.
+ * Customizes the JSON (Jackson 3) of <b>one</b> client, with {@code @RestHttpClient(jsonConfig = ...)}.
  *
- * El cliente parte del {@link JsonMapper} de la aplicación (con sus propiedades {@code spring.jackson.*}) si hay
- * uno, o de uno nuevo con los valores por defecto de Jackson si no, y solo cambia lo que este configurador
- * declare; el resto de clientes y la aplicación no se ven afectados. Igual que el manejador de errores o los
- * interceptores, si existe un bean de este tipo se usa; si no, Spring crea la instancia con inyección de
- * dependencias.
+ * The client starts from the application's {@link JsonMapper} (with its {@code spring.jackson.*} properties) if
+ * there is one, or from a new one with Jackson's default values if not, and only changes what this configurer
+ * declares; the other clients and the application are not affected. Like the error handler or the
+ * interceptors, if a bean of this type exists it is used; otherwise Spring creates the instance with
+ * dependency injection.
  *
  * <pre>{@code
  * public class SnakeCaseJson implements JsonMapperConfigurer {
@@ -26,9 +26,9 @@ import tools.jackson.databind.json.JsonMapper;
 public interface JsonMapperConfigurer {
 
     /**
-     * Modifica el builder del {@link JsonMapper} del cliente.
+     * Modifies the builder of the client's {@link JsonMapper}.
      *
-     * @param builder el builder, ya con la configuración de la aplicación
+     * @param builder the builder, already carrying the application's configuration
      */
     void configure(JsonMapper.Builder builder);
 }

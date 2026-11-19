@@ -38,20 +38,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Subida de archivos y formularios {@code multipart/form-data} con {@code @RequestPart}.
+ * File uploads and {@code multipart/form-data} forms with {@code @RequestPart}.
  *
  * @author Java Universe
  */
 class RestHttpClientMultipartTest {
 
-    /** Objeto que viaja como una parte JSON. */
+    /** Object that travels as a JSON part. */
     record Meta(String title, int pages) {
     }
 
     @RestHttpClient(url = "${multipart.url}", retry = @RetryConfig(maxRetries = 1))
     interface UploadClient {
 
-        // Sin consumes: la librería fija multipart/form-data porque hay @RequestPart.
+        // Without consumes: the library sets multipart/form-data because there is a @RequestPart.
         @PostMapping("/upload")
         String upload(@RequestPart("file") MultipartFile file, @RequestPart("description") String description);
 
@@ -97,7 +97,7 @@ class RestHttpClientMultipartTest {
         String upload(@RequestPart("f") String part);
     }
 
-    /** Lo que recibió el servidor. */
+    /** What the server received. */
     private record Received(String path, String query, String contentType, String trace, String body) {
     }
 

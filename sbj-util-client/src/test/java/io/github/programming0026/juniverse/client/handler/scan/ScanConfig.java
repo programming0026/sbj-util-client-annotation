@@ -4,7 +4,7 @@ import io.github.programming0026.juniverse.client.autoconfigure.EnableRestHttpCl
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Escanea su propio paquete (sin basePackages).
+ * Scans its own package (no basePackages).
  *
  * @author Java Universe
  */

@@ -10,38 +10,38 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Puerto de salida: lectura del catálogo de productos.
+ * Output port: reading of the product catalog.
  *
- * Está separado de {@link ProductWriter} (segregación de interfaces): quien solo consulta no depende de
- * operaciones de escritura.
+ * It is separate from {@link ProductWriter} (interface segregation): whoever only queries does not depend on
+ * write operations.
  *
  * @author Java Universe
  */
 public interface ProductReader {
 
     /**
-     * Busca productos.
+     * Searches for products.
      *
-     * @param criteria qué productos y cómo
-     * @return la página de productos
-     * @throws ExternalServiceException si el catálogo no está disponible
+     * @param criteria which products and how
+     * @return the page of products
+     * @throws ExternalServiceException if the catalog is unavailable
      */
     ProductPage findAll(ProductCriteria criteria);
 
     /**
-     * Busca un producto por identificador.
+     * Finds a product by identifier.
      *
-     * @param id el identificador
-     * @return el producto, o vacío si no existe
-     * @throws ExternalServiceException si el catálogo no está disponible
+     * @param id the identifier
+     * @return the product, or empty if it does not exist
+     * @throws ExternalServiceException if the catalog is unavailable
      */
     Optional<Product> findById(long id);
 
     /**
-     * Lista las categorías.
+     * Lists the categories.
      *
-     * @return las categorías
-     * @throws ExternalServiceException si el catálogo no está disponible
+     * @return the categories
+     * @throws ExternalServiceException if the catalog is unavailable
      */
     List<ProductCategory> findCategories();
 }

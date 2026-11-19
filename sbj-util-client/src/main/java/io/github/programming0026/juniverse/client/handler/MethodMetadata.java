@@ -59,66 +59,66 @@ import java.util.function.UnaryOperator;
 import java.util.stream.BaseStream;
 
 /**
- * Lo que se sabe de un método de un cliente sin conocer sus argumentos: método HTTP, ruta, headers y params
- * fijos, cómo se enlaza cada parámetro y cómo se lee la respuesta.
- * Se calcula una sola vez por método al crear el proxy (las anotaciones no se vuelven a leer en cada
- * llamada) y en ese momento se valida: un método mal declarado hace fallar la creación del cliente, es decir,
- * el arranque de la aplicación, en vez de la primera llamada.
+ * What is known about a client method without knowing its arguments: HTTP method, path, fixed headers and
+ * params, how each parameter is bound and how the response is read.
+ * It is computed only once per method when the proxy is created (the annotations are not read again on each
+ * call) and it is validated at that moment: a badly declared method makes the creation of the client fail, that
+ * is, the application startup, instead of the first call.
  *
  * @author Java Universe
  */
 final class MethodMetadata {
 
-    /** El logger. */
+    /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(MethodMetadata.class);
 
-    /** Prefijo de las variables de plantilla URI que se generan para los valores de query params. */
+    /** Prefix of the URI template variables generated for the query param values. */
     private static final String QUERY_PARAM_VARIABLE_PREFIX = "__queryParam";
 
-    /** Mensaje para un método sin anotación de mapping o sin método HTTP. */
+    /** Message for a method without a mapping annotation or without an HTTP method. */
     private static final String MAPPING_REQUIRED = " must be annotated with @GetMapping, @PostMapping, "
             + "@PutMapping, @PatchMapping, @DeleteMapping or @RequestMapping(method = ...)";
 
-    /** El método, como {@code Interfaz.metodo}, para los mensajes de error. */
+    /** The method, as {@code Interface.method}, for the error messages. */
     private final String description;
 
-    /** El método HTTP. */
+    /** The HTTP method. */
     private final HttpMethod httpMethod;
 
-    /** La ruta relativa a la URL base (prefijo de la interfaz + ruta del método), con placeholders resueltos. */
+    /** The path relative to the base URL (interface prefix + method path), with placeholders resolved. */
     private final String path;
 
-    /** Los headers fijos del mapping ({@code produces}, {@code consumes}, {@code headers}). */
+    /** The mapping's fixed headers ({@code produces}, {@code consumes}, {@code headers}). */
     private final HttpHeaders staticHeaders;
 
-    /** Los query params fijos del mapping ({@code params}). */
+    /** The mapping's fixed query params ({@code params}). */
     private final Map<String, List<String>> staticParams;
 
-    /** Cómo se enlaza cada parámetro, en el orden del método. */
+    /** How each parameter is bound, in the method's order. */
     private final List<ParameterBinding> bindings;
 
-    /** El tipo del cuerpo de la respuesta (con genéricos). */
+    /** The response body type (with generics). */
     private final Type bodyType;
 
-    /** El tipo del cuerpo como referencia para RestClient/RestTemplate, o null si no se lee cuerpo. */
+    /** The body type as a reference for RestClient/RestTemplate, or null if no body is read. */
     private final ParameterizedTypeReference<Object> bodyTypeReference;
 
-    /** El tipo de retorno del método. */
+    /** The method's return type. */
     private final Class<?> returnType;
 
-    /** Los ajustes propios del método ({@code @MethodConfig}). */
+    /** The method's own settings ({@code @MethodConfig}). */
     private final MethodSettings settings;
 
     /**
-     * Crea los metadatos ya validados.
+     * Creates the already validated metadata.
      *
-     * @param method el método
-     * @param httpMethod el método HTTP
-     * @param path la ruta
-     * @param staticHeaders los headers fijos
-     * @param staticParams los query params fijos
-     * @param bindings los enlaces de parámetros
-     * @param settings los ajustes propios del método
+     * @param method the method
+     * @param httpMethod the HTTP method
+     * @param path the path
+     * @param staticHeaders the fixed headers
+     * @param staticParams the fixed query params
+     * @param bindings the parameter bindings
+     * @param settings the method's own settings
      */
     private MethodMetadata(Method method, HttpMethod httpMethod, String path, HttpHeaders staticHeaders,
                            Map<String, List<String>> staticParams, List<ParameterBinding> bindings,
@@ -136,18 +136,18 @@ final class MethodMetadata {
     }
 
     /**
-     * Analiza y valida un método del cliente.
-     * El {@code @RequestMapping} de la interfaz aporta un prefijo de ruta y valores por defecto de
-     * {@code headers}, {@code params}, {@code produces}, {@code consumes} y {@code method}; los del método
-     * los complementan o reemplazan. {@code produces} se envía como {@code Accept}, el primer
-     * {@code consumes} como {@code Content-Type} y {@code params} con formato {@code nombre=valor} como
-     * query params. Los placeholders {@code ${...}} se resuelven aquí, una sola vez.
+     * Analyzes and validates a client method.
+     * The interface's {@code @RequestMapping} provides a path prefix and default values for
+     * {@code headers}, {@code params}, {@code produces}, {@code consumes} and {@code method}; the method's own
+     * complement or replace them. {@code produces} is sent as {@code Accept}, the first
+     * {@code consumes} as {@code Content-Type} and {@code params} in {@code name=value} format as
+     * query params. The {@code ${...}} placeholders are resolved here, only once.
      *
-     * @param method el método
-     * @param typeMapping el {@code @RequestMapping} de la interfaz, o null
-     * @param resolver resuelve placeholders
-     * @return los metadatos del método
-     * @throws ClientException si el método está mal declarado
+     * @param method the method
+     * @param typeMapping the interface's {@code @RequestMapping}, or null
+     * @param resolver resolves placeholders
+     * @return the method's metadata
+     * @throws ClientException if the method is badly declared
      */
     static MethodMetadata of(Method method, RequestMapping typeMapping, UnaryOperator<String> resolver) {
         RequestMapping mapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
@@ -189,24 +189,23 @@ final class MethodMetadata {
     }
 
     /**
-     * Los ajustes propios de un método ({@code @MethodConfig}). Cada valor {@code -1} significa "heredar el del
-     * cliente".
+     * The own settings of a method ({@code @MethodConfig}). Each {@code -1} value means "inherit the client's".
      *
-     * @param readTimeout el read timeout en milisegundos
-     * @param maxRetries el total de intentos
-     * @param timeLimiterTimeout el tiempo máximo por intento en milisegundos ({@code 0} = sin límite)
+     * @param readTimeout the read timeout in milliseconds
+     * @param maxRetries the total number of attempts
+     * @param timeLimiterTimeout the maximum time per attempt in milliseconds ({@code 0} = no limit)
      */
     record MethodSettings(long readTimeout, int maxRetries, long timeLimiterTimeout) {
 
-        /** Se hereda del cliente. */
+        /** Inherited from the client. */
         static final MethodSettings NONE = new MethodSettings(-1, -1, -1);
 
         /**
-         * Lee y valida el {@code @MethodConfig} de un método.
+         * Reads and validates the {@code @MethodConfig} of a method.
          *
-         * @param method el método
-         * @return los ajustes, o {@link #NONE} si no tiene la anotación
-         * @throws ClientException si algún valor no es válido
+         * @param method the method
+         * @return the settings, or {@link #NONE} if it does not have the annotation
+         * @throws ClientException if any value is not valid
          */
         static MethodSettings of(Method method) {
             MethodConfig config = AnnotatedElementUtils.findMergedAnnotation(method, MethodConfig.class);
@@ -232,18 +231,18 @@ final class MethodMetadata {
         }
 
         /**
-         * Indica si el método reemplaza el total de intentos del cliente.
+         * Indicates whether the method replaces the client's total number of attempts.
          *
-         * @return true si {@code maxRetries} está definido
+         * @return true if {@code maxRetries} is defined
          */
         boolean overridesRetries() {
             return maxRetries != -1;
         }
 
         /**
-         * Indica si el método reemplaza el time limiter del cliente (con otro tiempo o sin límite).
+         * Indicates whether the method replaces the client's time limiter (with another time or no limit).
          *
-         * @return true si {@code timeLimiterTimeout} está definido
+         * @return true if {@code timeLimiterTimeout} is defined
          */
         boolean overridesTimeLimiter() {
             return timeLimiterTimeout != -1;
@@ -251,23 +250,23 @@ final class MethodMetadata {
     }
 
     /**
-     * Devuelve los ajustes propios del método.
+     * Returns the method's own settings.
      *
-     * @return los ajustes ({@link MethodSettings#NONE} si no tiene {@code @MethodConfig})
+     * @return the settings ({@link MethodSettings#NONE} if it has no {@code @MethodConfig})
      */
     MethodSettings settings() {
         return settings;
     }
 
     /**
-     * Válida los parámetros contra la ruta: un solo {@code @RequestBody}, cada {@code @PathVariable} con
-     * nombre debe existir en la ruta y cada variable de la ruta debe tener su {@code @PathVariable} (salvo
-     * que haya un {@code @PathVariable Map}, que las aporta en tiempo de ejecución).
+     * Validates the parameters against the path: a single {@code @RequestBody}, each named {@code @PathVariable}
+     * must exist in the path and each path variable must have its {@code @PathVariable} (unless
+     * there is a {@code @PathVariable Map}, which provides them at runtime).
      *
-     * @param bindings los enlaces de parámetros
-     * @param path la ruta del método
-     * @param method el método
-     * @throws ClientException si los parámetros no son coherentes con la ruta
+     * @param bindings the parameter bindings
+     * @param path the method's path
+     * @param method the method
+     * @throws ClientException if the parameters are not consistent with the path
      */
     private static void validateBindings(List<ParameterBinding> bindings, String path, Method method) {
         long bodies = bindings.stream().filter(b -> b.kind() == ParameterBinding.Kind.REQUEST_BODY).count();
@@ -304,11 +303,11 @@ final class MethodMetadata {
     }
 
     /**
-     * Arma la petición de una llamada a partir de sus argumentos.
+     * Builds the request of a call from its arguments.
      *
-     * @param args los argumentos (null si el método no tiene parámetros)
-     * @return la petición
-     * @throws ClientException sí falta un valor requerido
+     * @param args the arguments (null if the method has no parameters)
+     * @return the request
+     * @throws ClientException if a required value is missing
      */
     Request bind(Object[] args) {
         Request request = new Request(staticHeaders, staticParams);
@@ -322,12 +321,12 @@ final class MethodMetadata {
     }
 
     /**
-     * Fija {@code Content-Type: multipart/form-data} para un método con {@code @RequestPart}. Si el mapping ya
-     * declara un {@code consumes} que no es multipart, el método está mal declarado.
+     * Sets {@code Content-Type: multipart/form-data} for a method with {@code @RequestPart}. If the mapping
+     * already declares a {@code consumes} that is not multipart, the method is badly declared.
      *
-     * @param headers los headers fijos del método
-     * @param method el método
-     * @throws ClientException si el {@code consumes} declarado no es {@code multipart/form-data}
+     * @param headers the method's fixed headers
+     * @param method the method
+     * @throws ClientException if the declared {@code consumes} is not {@code multipart/form-data}
      */
     private static void applyMultipartContentType(HttpHeaders headers, Method method) {
         String declared = headers.getFirst(HttpHeaders.CONTENT_TYPE);
@@ -348,16 +347,16 @@ final class MethodMetadata {
     }
 
     /**
-     * Construye la URI de la petición ya codificada.
-     * Las path variables y los valores de los query params se expanden como variables de plantilla URI,
-     * así cada valor se codifica exactamente una vez (incluidos caracteres reservados como '/', '&amp;'
-     * o '='). El resultado es un {@link URI}, que RestClient y RestTemplate envían tal cual sin volver
-     * a codificarlo.
+     * Builds the already encoded request URI.
+     * The path variables and the query param values are expanded as URI template variables,
+     * so each value is encoded exactly once (including reserved characters such as '/', '&amp;'
+     * or '='). The result is a {@link URI}, which RestClient and RestTemplate send as is without encoding it
+     * again.
      *
-     * @param baseUrl la URL base del cliente
-     * @param request la petición
-     * @return la URI codificada
-     * @throws ClientException si falta una variable de la ruta
+     * @param baseUrl the client's base URL
+     * @param request the request
+     * @return the encoded URI
+     * @throws ClientException if a path variable is missing
      */
     URI uri(String baseUrl, Request request) {
         try {
@@ -380,12 +379,12 @@ final class MethodMetadata {
     }
 
     /**
-     * Convierte la respuesta al valor que devuelve el método: la propia {@link ResponseEntity}, el cuerpo,
-     * o null para {@code void}.
+     * Converts the response into the value the method returns: the {@link ResponseEntity} itself, the body,
+     * or null for {@code void}.
      *
-     * @param response la respuesta
-     * @return el valor de retorno
-     * @throws ClientException si el método devuelve un primitivo y la respuesta no tiene cuerpo
+     * @param response the response
+     * @return the return value
+     * @throws ClientException if the method returns a primitive and the response has no body
      */
     Object toReturnValue(ResponseEntity<?> response) {
         if (ResponseEntity.class.isAssignableFrom(returnType)) {
@@ -403,30 +402,31 @@ final class MethodMetadata {
     }
 
     /**
-     * Obtiene el método HTTP.
+     * Gets the HTTP method.
      *
-     * @return el método HTTP
+     * @return the HTTP method
      */
     HttpMethod httpMethod() {
         return httpMethod;
     }
 
     /**
-     * Indica si el método devuelve el cuerpo como {@link InputStream} (o {@code ResponseEntity<InputStream>}):
-     * la respuesta se deja abierta y se lee progresivamente en vez de cargarla en memoria.
+     * Indicates whether the method returns the body as an {@link InputStream} (or
+     * {@code ResponseEntity<InputStream>}): the response is left open and read progressively instead of
+     * loading it into memory.
      *
-     * @return true si el cuerpo se lee en streaming
+     * @return true if the body is read as a stream
      */
     boolean isStreaming() {
         return bodyType == InputStream.class;
     }
 
     /**
-     * Rechaza los tipos de retorno que la librería no sabe leer, para que el error salga al crear el cliente y
-     * no, con un mensaje confuso, en la primera llamada.
+     * Rejects the return types that the library cannot read, so that the error appears when the client is
+     * created and not, with a confusing message, on the first call.
      *
-     * @param method el método
-     * @throws ClientException si el tipo de retorno (o el cuerpo de un {@code ResponseEntity}) no es soportado
+     * @param method the method
+     * @throws ClientException if the return type (or the body of a {@code ResponseEntity}) is not supported
      */
     private static void validateReturnType(Method method) {
         Class<?> bodyClass = ResolvableType.forType(responseBodyType(method)).resolve(Object.class);
@@ -440,10 +440,10 @@ final class MethodMetadata {
     }
 
     /**
-     * Explica por qué un tipo de retorno no se soporta.
+     * Explains why a return type is not supported.
      *
-     * @param type el tipo
-     * @return el motivo, o null si el tipo se soporta
+     * @param type the type
+     * @return the reason, or null if the type is supported
      */
     private static String unsupportedReason(Class<?> type) {
         if (Future.class.isAssignableFrom(type) || CompletionStage.class.isAssignableFrom(type)) {
@@ -465,11 +465,11 @@ final class MethodMetadata {
     }
 
     /**
-     * Indica si el tipo es reactivo (Reactor, Reactive Streams, RxJava o Kotlin Flow). Se detecta por el
-     * nombre de la clase y de sus supertipos, para no depender de esas librerías.
+     * Indicates whether the type is reactive (Reactor, Reactive Streams, RxJava or Kotlin Flow). It is detected by
+     * the name of the class and its supertypes, so as not to depend on those libraries.
      *
-     * @param type el tipo
-     * @return true si es un tipo reactivo
+     * @param type the type
+     * @return true if it is a reactive type
      */
     private static boolean isReactive(Class<?> type) {
         for (Class<?> current = type; current != null; current = current.getSuperclass()) {
@@ -491,29 +491,29 @@ final class MethodMetadata {
     }
 
     /**
-     * Indica si la respuesta no tiene cuerpo que leer ({@code void} o {@code Void}).
+     * Indicates whether the response has no body to read ({@code void} or {@code Void}).
      *
-     * @return true si no se lee cuerpo
+     * @return true if no body is read
      */
     boolean isBodiless() {
         return bodyType == void.class || bodyType == Void.class;
     }
 
     /**
-     * Obtiene el tipo del cuerpo de la respuesta.
+     * Gets the response body type.
      *
-     * @return la referencia de tipo, o null si no se lee cuerpo
+     * @return the type reference, or null if no body is read
      */
     ParameterizedTypeReference<Object> bodyTypeReference() {
         return bodyTypeReference;
     }
 
     /**
-     * Une dos tramos de ruta con exactamente una barra entre ellos.
+     * Joins two path segments with exactly one slash between them.
      *
-     * @param base el tramo base (por ejemplo la URL del cliente)
-     * @param path el tramo a agregar
-     * @return la ruta unida
+     * @param base the base segment (for example the client's URL)
+     * @param path the segment to append
+     * @return the joined path
      */
     static String joinPath(String base, String path) {
         if (path.isEmpty()) {
@@ -534,23 +534,23 @@ final class MethodMetadata {
     }
 
     /**
-     * Describe un método como {@code Interfaz.metodo} para los mensajes de error.
+     * Describes a method as {@code Interface.method} for the error messages.
      *
-     * @param method el método
-     * @return la descripción
+     * @param method the method
+     * @return the description
      */
     static String describe(Method method) {
         return method.getDeclaringClass().getSimpleName() + "." + method.getName();
     }
 
     /**
-     * Obtiene el único método HTTP: el del método o, si no declara ninguno, el de la interfaz.
+     * Gets the single HTTP method: the method's own or, if it declares none, the interface's.
      *
-     * @param mapping el mapping del método
-     * @param typeMapping el mapping de la interfaz, o null
-     * @param method el método
-     * @return el método HTTP
-     * @throws ClientException si no hay método HTTP o hay más de uno
+     * @param mapping the method's mapping
+     * @param typeMapping the interface's mapping, or null
+     * @param method the method
+     * @return the HTTP method
+     * @throws ClientException if there is no HTTP method or there is more than one
      */
     private static HttpMethod resolveHttpMethod(RequestMapping mapping, RequestMapping typeMapping, Method method) {
         RequestMethod[] methods = mapping.method();
@@ -567,13 +567,13 @@ final class MethodMetadata {
     }
 
     /**
-     * Obtiene la única ruta de un mapping, con sus placeholders resueltos.
+     * Gets the single path of a mapping, with its placeholders resolved.
      *
-     * @param mapping el mapping (puede ser null)
-     * @param method el método, para el mensaje de error
-     * @param resolver resuelve placeholders
-     * @return la ruta, o vacío si no declara ninguna
-     * @throws ClientException si declara más de una ruta
+     * @param mapping the mapping (may be null)
+     * @param method the method, for the error message
+     * @param resolver resolves placeholders
+     * @return the path, or empty if it declares none
+     * @throws ClientException if it declares more than one path
      */
     private static String singlePath(RequestMapping mapping, Method method, UnaryOperator<String> resolver) {
         if (mapping == null || mapping.path().length == 0) {
@@ -586,11 +586,11 @@ final class MethodMetadata {
     }
 
     /**
-     * Obtiene el tipo del cuerpo de la respuesta a partir del tipo de retorno genérico del método, para no
-     * perder los genéricos (por ejemplo {@code List<User>}). Para {@code ResponseEntity<T>} es {@code T}.
+     * Gets the response body type from the method's generic return type, so as not to lose the generics (for
+     * example {@code List<User>}). For {@code ResponseEntity<T>} it is {@code T}.
      *
-     * @param method el método
-     * @return el tipo del cuerpo
+     * @param method the method
+     * @return the body type
      */
     private static Type responseBodyType(Method method) {
         ResolvableType type = ResolvableType.forMethodReturnType(method);
@@ -605,11 +605,11 @@ final class MethodMetadata {
     }
 
     /**
-     * Resuelve los placeholders de cada valor.
+     * Resolves the placeholders of each value.
      *
-     * @param values los valores originales
-     * @param resolver resuelve placeholders
-     * @return los valores resueltos
+     * @param values the original values
+     * @param resolver resolves placeholders
+     * @return the resolved values
      */
     private static String[] resolveAll(String[] values, UnaryOperator<String> resolver) {
         String[] resolved = new String[values.length];
@@ -620,13 +620,13 @@ final class MethodMetadata {
     }
 
     /**
-     * Extrae pares {@code nombre=valor} de los atributos {@code headers} o {@code params} de un mapping.
-     * Las expresiones sin valor (por ejemplo {@code "Nombre"}, {@code "!Nombre"} o {@code "Nombre!=valor"})
-     * son condiciones del lado del servidor y se ignoran con un warning.
+     * Extracts {@code name=value} pairs from the {@code headers} or {@code params} attributes of a mapping.
+     * Expressions without a value (for example {@code "Name"}, {@code "!Name"} or {@code "Name!=value"})
+     * are server-side conditions and are ignored with a warning.
      *
-     * @param expressions las expresiones
-     * @param attribute el nombre del atributo, para el log
-     * @return los pares por nombre, en orden de declaración
+     * @param expressions the expressions
+     * @param attribute the attribute name, for the log
+     * @return the pairs by name, in declaration order
      */
     private static Map<String, String> extractNameValuePairs(String[] expressions, String attribute) {
         Map<String, String> pairs = new LinkedHashMap<>();
@@ -642,26 +642,26 @@ final class MethodMetadata {
     }
 
     /**
-     * Cómo se enlaza un parámetro del método a la petición.
+     * How a method parameter is bound to the request.
      *
-     * @param kind la anotación del parámetro
-     * @param name el nombre efectivo (anotación o nombre del parámetro)
-     * @param required si el valor es requerido
-     * @param defaultValue el valor por defecto con placeholders resueltos, o null si no tiene
-     * @param map si el parámetro está declarado como {@link Map}
-     * @param formats las anotaciones {@code @DateTimeFormat} / {@code @NumberFormat} del parámetro, que dan formato
-     *                a sus valores de texto; vacío si no tiene
+     * @param kind the parameter's annotation
+     * @param name the effective name (annotation or parameter name)
+     * @param required whether the value is required
+     * @param defaultValue the default value with placeholders resolved, or null if it has none
+     * @param map whether the parameter is declared as a {@link Map}
+     * @param formats the parameter's {@code @DateTimeFormat} / {@code @NumberFormat} annotations, which format
+     *                its text values; empty if it has none
      */
     record ParameterBinding(Kind kind, String name, boolean required, String defaultValue, boolean map,
                             List<Annotation> formats) {
 
-        /** Da formato a los valores que llevan {@code @DateTimeFormat} o {@code @NumberFormat}. */
+        /** Formats the values that carry {@code @DateTimeFormat} or {@code @NumberFormat}. */
         private static final ConversionService FORMATTING = new DefaultFormattingConversionService();
 
-        /** El tipo de destino de toda conversión. */
+        /** The target type of every conversion. */
         private static final TypeDescriptor TEXT = TypeDescriptor.valueOf(String.class);
 
-        /** La anotación de Spring Web del parámetro. */
+        /** The parameter's Spring Web annotation. */
         enum Kind {
             /** {@code @PathVariable}. */
             PATH_VARIABLE,
@@ -669,23 +669,23 @@ final class MethodMetadata {
             REQUEST_PARAM,
             /** {@code @RequestHeader}. */
             REQUEST_HEADER,
-            /** {@code @CookieValue}: un par {@code nombre=valor} del header {@code Cookie}. */
+            /** {@code @CookieValue}: a {@code name=value} pair of the {@code Cookie} header. */
             COOKIE,
             /** {@code @RequestBody}. */
             REQUEST_BODY,
-            /** {@code @RequestPart}: una parte de una petición {@code multipart/form-data}. */
+            /** {@code @RequestPart}: a part of a {@code multipart/form-data} request. */
             REQUEST_PART
         }
 
         /**
-         * Analiza un parámetro. Se usan anotaciones combinadas (merged) para resolver el alias
-         * {@code value}/{@code name}; si no hay nombre se usa el del parámetro (requiere {@code -parameters}).
+         * Analyzes a parameter. Merged annotations are used to resolve the {@code value}/{@code name} alias;
+         * if there is no name, the parameter's name is used (requires {@code -parameters}).
          *
-         * @param parameter el parámetro
-         * @param method el método, para el mensaje de error
-         * @param resolver resuelve placeholders del {@code defaultValue}
-         * @return el enlace
-         * @throws ClientException si el parámetro no tiene ninguna de las anotaciones admitidas
+         * @param parameter the parameter
+         * @param method the method, for the error message
+         * @param resolver resolves placeholders of the {@code defaultValue}
+         * @return the binding
+         * @throws ClientException if the parameter has none of the supported annotations
          */
         static ParameterBinding of(Parameter parameter, Method method, UnaryOperator<String> resolver) {
             boolean map = Map.class.isAssignableFrom(parameter.getType());
@@ -726,16 +726,16 @@ final class MethodMetadata {
         }
 
         /**
-         * Enlaza el argumento a la petición.
-         * Con listas, arreglos y {@code Map}: un query param repetido por valor, un header con varios valores
-         * y las path variables unidas con coma. Un argumento {@code null} o vacío usa el valor por defecto,
-         * se omite si es opcional o, si es requerido, lanza error ({@code @PathVariable} siempre lo es). Para
-         * un {@code Map} solo cuenta como faltante él {@code null}.
+         * Binds the argument to the request.
+         * With lists, arrays and {@code Map}: a query param repeated per value, a header with several values
+         * and path variables joined with a comma. A {@code null} or empty argument uses the default value,
+         * is omitted if optional or, if required, throws an error ({@code @PathVariable} always is). For
+         * a {@code Map} only {@code null} counts as missing.
          *
-         * @param request la petición
-         * @param arg el argumento
-         * @param description el método, para el mensaje de error
-         * @throws ClientException sí falta un valor requerido
+         * @param request the request
+         * @param arg the argument
+         * @param description the method, for the error message
+         * @throws ClientException if a required value is missing
          */
         void bind(Request request, Object arg, String description) {
             switch (kind) {
@@ -764,14 +764,14 @@ final class MethodMetadata {
         }
 
         /**
-         * Enlaza una parte de una petición multipart. Una lista o arreglo (salvo {@code byte[]}) aporta una
-         * parte por elemento con el mismo nombre; un valor {@code null} o una lista vacía se omite si la parte
-         * es opcional y es un error si es requerida.
+         * Binds a part of a multipart request. A list or array (except {@code byte[]}) provides one
+         * part per element with the same name; a {@code null} value or an empty list is omitted if the part
+         * is optional and is an error if it is required.
          *
-         * @param request la petición
-         * @param arg el argumento
-         * @param description el método, para el mensaje de error
-         * @throws ClientException sí falta una parte requerida
+         * @param request the request
+         * @param arg the argument
+         * @param description the method, for the error message
+         * @throws ClientException if a required part is missing
          */
         private void bindPart(Request request, Object arg, String description) {
             List<Object> values = partValues(arg);
@@ -785,11 +785,11 @@ final class MethodMetadata {
         }
 
         /**
-         * Convierte un argumento en las partes que aporta: una por elemento si es un {@link Iterable} o un
-         * arreglo (un {@link Path} y un {@code byte[]} cuentan como un único valor), omite los {@code null}.
+         * Converts an argument into the parts it provides: one per element if it is an {@link Iterable} or an
+         * array (a {@link Path} and a {@code byte[]} count as a single value), skipping {@code null}s.
          *
-         * @param arg el argumento
-         * @return las partes, ya convertidas con {@link #toPart(Object)}
+         * @param arg the argument
+         * @return the parts, already converted with {@link #toPart(Object)}
          */
         private static List<Object> partValues(Object arg) {
             List<Object> parts = new ArrayList<>();
@@ -815,17 +815,17 @@ final class MethodMetadata {
         }
 
         /**
-         * Prepara el valor de una parte para el conversor multipart de Spring:
+         * Prepares the value of a part for Spring's multipart converter:
          * <ul>
-         *   <li>{@link MultipartFile}: se envía como archivo, con su nombre y su tipo de contenido.</li>
-         *   <li>{@link File} y {@link Path}: se envían como archivo con el nombre del archivo.</li>
-         *   <li>{@link Resource} y {@code byte[]}: tal cual (un {@code Resource} aporta su nombre de archivo).</li>
-         *   <li>Textos, números, booleanos y enums: como texto.</li>
-         *   <li>Cualquier otro objeto: como una parte {@code application/json}.</li>
+         *   <li>{@link MultipartFile}: sent as a file, with its name and its content type.</li>
+         *   <li>{@link File} and {@link Path}: sent as a file with the file name.</li>
+         *   <li>{@link Resource} and {@code byte[]}: as is (a {@code Resource} provides its file name).</li>
+         *   <li>Texts, numbers, booleans and enums: as text.</li>
+         *   <li>Any other object: as an {@code application/json} part.</li>
          * </ul>
          *
-         * @param value el valor
-         * @return el valor listo para enviar
+         * @param value the value
+         * @return the value ready to send
          */
         private static Object toPart(Object value) {
             if (value instanceof MultipartFile file) {
@@ -852,13 +852,13 @@ final class MethodMetadata {
         }
 
         /**
-         * Enlaza un query param o header: sus valores, el valor por defecto, nada si es opcional o error si es
-         * requerido.
+         * Binds a query param or header: its values, the default value, nothing if optional or an error if
+         * required.
          *
-         * @param arg el argumento
-         * @param label el tipo de valor, para el mensaje de error
-         * @param description el método, para el mensaje de error
-         * @param sink recibe el nombre con sus valores
+         * @param arg the argument
+         * @param label the kind of value, for the error message
+         * @param description the method, for the error message
+         * @param sink receives the name with its values
          */
         private void bindValues(Object arg, String label, String description, BiConsumer<String, List<String>> sink) {
             if (map) {
@@ -879,12 +879,12 @@ final class MethodMetadata {
         }
 
         /**
-         * Enlaza cada entrada de un argumento Map; se saltan las entradas con clave {@code null} o sin valores.
+         * Binds each entry of a Map argument; entries with a {@code null} key or without values are skipped.
          *
-         * @param arg el argumento Map (puede ser null)
-         * @param label el tipo de valor, para el mensaje de error
-         * @param description el método, para el mensaje de error
-         * @param sink recibe el nombre de cada entrada con sus valores
+         * @param arg the Map argument (may be null)
+         * @param label the kind of value, for the error message
+         * @param description the method, for the error message
+         * @param sink receives the name of each entry with its values
          */
         private void bindMapEntries(Object arg, String label, String description,
                                     BiConsumer<String, List<String>> sink) {
@@ -903,32 +903,32 @@ final class MethodMetadata {
         }
 
         /**
-         * Crea la excepción para un valor requerido que viene {@code null} o vacío.
+         * Creates the exception for a required value that is {@code null} or empty.
          *
-         * @param label el tipo de valor
-         * @param description el método
-         * @return la excepción
+         * @param label the kind of value
+         * @param description the method
+         * @return the exception
          */
         private ClientException missingValue(String label, String description) {
             return new ClientException("Required " + label + " '" + name + "' is null or empty in " + description);
         }
 
         /**
-         * Devuelve el nombre de la anotación o, si está vacío, el nombre del parámetro.
+         * Returns the annotation's name or, if empty, the parameter's name.
          *
-         * @param annotatedName el nombre declarado en la anotación
-         * @param parameter el parámetro
-         * @return el nombre efectivo
+         * @param annotatedName the name declared in the annotation
+         * @param parameter the parameter
+         * @return the effective name
          */
         private static String nameOf(String annotatedName, Parameter parameter) {
             return annotatedName.isEmpty() ? parameter.getName() : annotatedName;
         }
 
         /**
-         * Reúne las anotaciones de formato del parámetro.
+         * Collects the parameter's format annotations.
          *
-         * @param parameter el parámetro
-         * @return {@code @DateTimeFormat} y {@code @NumberFormat} si las tiene
+         * @param parameter the parameter
+         * @return {@code @DateTimeFormat} and {@code @NumberFormat} if it has them
          */
         private static List<Annotation> formatsOf(Parameter parameter) {
             List<Annotation> formats = new ArrayList<>();
@@ -941,12 +941,12 @@ final class MethodMetadata {
         }
 
         /**
-         * Convierte un valor en texto. Con {@code @DateTimeFormat} o {@code @NumberFormat} en el parámetro usa el
-         * {@code ConversionService} de Spring (patrón, ISO, estilo...); sin ellas, {@code String.valueOf}, que
-         * para fechas y números ya da el formato estándar (ISO-8601, sin separadores de miles).
+         * Converts a value into text. With {@code @DateTimeFormat} or {@code @NumberFormat} on the parameter it
+         * uses Spring's {@code ConversionService} (pattern, ISO, style...); without them, {@code String.valueOf},
+         * which for dates and numbers already gives the standard format (ISO-8601, no thousands separators).
          *
-         * @param value el valor, no nulo
-         * @return el texto que se envía
+         * @param value the value, not null
+         * @return the text that is sent
          */
         private String text(Object value) {
             if (!formats.isEmpty()) {
@@ -963,23 +963,23 @@ final class MethodMetadata {
         }
 
         /**
-         * Resuelve el valor por defecto de la anotación.
+         * Resolves the annotation's default value.
          *
-         * @param defaultValue el valor declarado ({@link ValueConstants#DEFAULT_NONE} si no hay)
-         * @param resolver resuelve placeholders
-         * @return el valor resuelto, o null si no hay
+         * @param defaultValue the declared value ({@link ValueConstants#DEFAULT_NONE} if there is none)
+         * @param resolver resolves placeholders
+         * @return the resolved value, or null if there is none
          */
         private static String defaultOf(String defaultValue, UnaryOperator<String> resolver) {
             return ValueConstants.DEFAULT_NONE.equals(defaultValue) ? null : resolver.apply(defaultValue);
         }
 
         /**
-         * Convierte un argumento en sus valores de texto: uno por elemento para un {@link Iterable} o un
-         * arreglo (incluidos los primitivos; se saltan los elementos {@code null}), un único valor en otro
-         * caso y ninguno para {@code null}.
+         * Converts an argument into its text values: one per element for an {@link Iterable} or an
+         * array (primitives included; {@code null} elements are skipped), a single value otherwise
+         * and none for {@code null}.
          *
-         * @param arg el argumento
-         * @return los valores
+         * @param arg the argument
+         * @return the values
          */
         private List<String> toValues(Object arg) {
             if (arg == null) {
@@ -999,10 +999,10 @@ final class MethodMetadata {
         }
 
         /**
-         * Agrega el texto de un valor si no es {@code null}.
+         * Adds the text of a value if it is not {@code null}.
          *
-         * @param values la lista destino
-         * @param value el valor
+         * @param values the target list
+         * @param value the value
          */
         private void addIfNotNull(List<String> values, Object value) {
             if (value != null) {
@@ -1012,30 +1012,30 @@ final class MethodMetadata {
     }
 
     /**
-     * Datos variables de una llamada: headers, query params, path variables y cuerpo.
+     * Variable data of a call: headers, query params, path variables and body.
      */
     static final class Request {
 
-        /** Los headers (sin distinguir mayúsculas, con varios valores por nombre). */
+        /** The headers (case-insensitive, with several values per name). */
         private final HttpHeaders headers = new HttpHeaders();
 
-        /** Los query params, en el orden en que se declaran; una entrada por valor. */
+        /** The query params, in declaration order; one entry per value. */
         private final Map<String, List<String>> queryParams = new LinkedHashMap<>();
 
-        /** Las path variables (si hay varios valores, ya vienen unidos con comas). */
+        /** The path variables (if there are several values, they are already joined with commas). */
         private final Map<String, Object> pathVariables = new HashMap<>();
 
-        /** Las partes de una petición multipart, en el orden en que se declaran. */
+        /** The parts of a multipart request, in declaration order. */
         private final MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
 
-        /** El cuerpo de la petición (con partes, el mapa de partes). */
+        /** The request body (with parts, the map of parts). */
         private Object body;
 
         /**
-         * Crea la petición partiendo de los headers y params fijos del método (se copian).
+         * Creates the request starting from the method's fixed headers and params (they are copied).
          *
-         * @param staticHeaders los headers fijos
-         * @param staticParams los query params fijos
+         * @param staticHeaders the fixed headers
+         * @param staticParams the fixed query params
          */
         private Request(HttpHeaders staticHeaders, Map<String, List<String>> staticParams) {
             headers.addAll(staticHeaders);
@@ -1043,59 +1043,59 @@ final class MethodMetadata {
         }
 
         /**
-         * Obtiene los headers.
+         * Gets the headers.
          *
-         * @return los headers
+         * @return the headers
          */
         HttpHeaders headers() {
             return headers;
         }
 
         /**
-         * Obtiene el cuerpo.
+         * Gets the body.
          *
-         * @return el cuerpo, o null
+         * @return the body, or null
          */
         Object body() {
             return body;
         }
 
         /**
-         * Agrega una parte multipart.
+         * Adds a multipart part.
          *
-         * @param name el nombre de la parte
-         * @param value el valor ya convertido
+         * @param name the part name
+         * @param value the already converted value
          */
         private void addPart(String name, Object value) {
             parts.add(name, value);
         }
 
         /**
-         * Agrega una path variable; igual que en Spring, varios valores se unen con comas (que luego se
-         * codifican).
+         * Adds a path variable; as in Spring, several values are joined with commas (which are then
+         * encoded).
          *
-         * @param name el nombre de la variable
-         * @param values los valores
+         * @param name the variable name
+         * @param values the values
          */
         private void addPathVariable(String name, List<String> values) {
             pathVariables.put(name, String.join(",", values));
         }
 
         /**
-         * Agrega valores a un query param.
+         * Adds values to a query param.
          *
-         * @param name el nombre del parámetro
-         * @param values los valores
+         * @param name the parameter name
+         * @param values the values
          */
         private void addQueryParam(String name, List<String> values) {
             queryParams.computeIfAbsent(name, key -> new ArrayList<>()).addAll(values);
         }
 
         /**
-         * Define un header, reemplazando el valor declarado en el atributo {@code headers} del mapping.
+         * Sets a header, replacing the value declared in the mapping's {@code headers} attribute.
          *
-         * @param name el nombre del header
-         * @param values los valores
+         * @param name the header name
+         * @param values the values
          */
         private void setHeader(String name, List<String> values) {
             headers.remove(name);
@@ -1103,13 +1103,13 @@ final class MethodMetadata {
         }
 
         /**
-         * Agrega cookies al header {@code Cookie}: un par {@code nombre=valor} por valor, separados por
-         * {@code "; "} y a continuación de las cookies que ya tuviera el header (por ejemplo, las del atributo
-         * {@code headers} del mapping). El valor se envía tal cual, sin codificar.
+         * Adds cookies to the {@code Cookie} header: one {@code name=value} pair per value, separated by
+         * {@code "; "} and after the cookies the header already had (for example, those of the mapping's
+         * {@code headers} attribute). The value is sent as is, without encoding.
          *
-         * @param name el nombre de la cookie
-         * @param values los valores
-         * @throws ClientException si un valor contiene {@code ;} o saltos de línea, que romperían el header
+         * @param name the cookie name
+         * @param values the values
+         * @throws ClientException if a value contains {@code ;} or line breaks, which would break the header
          */
         private void addCookie(String name, List<String> values) {
             StringBuilder cookie = new StringBuilder();

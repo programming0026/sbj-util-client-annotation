@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
- * Traduce las excepciones del dominio a respuestas HTTP (RFC 9457, {@code ProblemDetail}).
+ * Translates the domain exceptions into HTTP responses (RFC 9457, {@code ProblemDetail}).
  *
- * Es el único lugar que conoce la correspondencia entre errores de negocio y códigos de estado.
+ * It is the only place that knows the mapping between business errors and status codes.
  *
  * @author Java Universe
  */
@@ -27,10 +27,10 @@ public class WebExceptionHandler {
     private static final Logger LOG = LoggerFactory.getLogger(WebExceptionHandler.class);
 
     /**
-     * Traduce una excepción del dominio.
+     * Translates a domain exception.
      *
-     * @param exception la excepción
-     * @return el detalle del problema con el código de estado que corresponde
+     * @param exception the exception
+     * @return the problem detail with the corresponding status code
      */
     @ExceptionHandler(DomainException.class)
     public ProblemDetail handleDomainException(DomainException exception) {
@@ -49,10 +49,10 @@ public class WebExceptionHandler {
     }
 
     /**
-     * Traduce un parámetro con tipo incorrecto (por ejemplo un identificador no numérico).
+     * Translates a parameter with an incorrect type (for example a non-numeric identifier).
      *
-     * @param exception la excepción
-     * @return el detalle del problema (400)
+     * @param exception the exception
+     * @return the problem detail (400)
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException exception) {

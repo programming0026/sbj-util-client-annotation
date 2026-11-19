@@ -5,19 +5,19 @@ import com.juniverse.client.example.domain.model.Product;
 import com.juniverse.client.example.domain.model.ProductChanges;
 
 /**
- * Caso de uso: modificar parcialmente un producto.
+ * Use case: partially modify a product.
  *
  * @author Java Universe
  */
 public interface UpdateProductUseCase {
 
     /**
-     * Modifica un producto.
+     * Modifies a product.
      *
-     * @param id el identificador
-     * @param changes los campos a cambiar
-     * @return el producto actualizado
-     * @throws ProductNotFoundException si no existe
+     * @param id the identifier
+     * @param changes the fields to change
+     * @return the updated product
+     * @throws ProductNotFoundException if it does not exist
      */
     Product update(long id, ProductChanges changes);
 }

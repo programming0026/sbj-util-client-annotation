@@ -32,7 +32,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Validación de los clientes al crearlos y análisis de los métodos una sola vez.
+ * Validation of the clients when they are created and analysis of the methods only once.
  *
  * @author Java Universe
  */

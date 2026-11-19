@@ -4,21 +4,21 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Producto del catálogo.
+ * Catalog product.
  *
- * @param id identificador
- * @param title nombre
- * @param description descripción
- * @param category categoría (slug)
- * @param price precio
- * @param discountPercentage porcentaje de descuento
- * @param rating valoración media
- * @param stock unidades disponibles
- * @param tags etiquetas
- * @param brand marca, o null
- * @param sku código de inventario, o null
- * @param thumbnail URL de la miniatura, o null
- * @param images URLs de las imágenes
+ * @param id identifier
+ * @param title name
+ * @param description description
+ * @param category category (slug)
+ * @param price price
+ * @param discountPercentage discount percentage
+ * @param rating average rating
+ * @param stock available units
+ * @param tags tags
+ * @param brand brand, or null
+ * @param sku stock keeping unit code, or null
+ * @param thumbnail thumbnail URL, or null
+ * @param images image URLs
  * @author Java Universe
  */
 public record Product(
@@ -36,7 +36,7 @@ public record Product(
         String thumbnail,
         List<String> images) {
 
-    /** Copia las listas para que el producto sea inmutable. */
+    /** Copies the lists so that the product is immutable. */
     public Product {
         tags = tags == null ? List.of() : List.copyOf(tags);
         images = images == null ? List.of() : List.copyOf(images);

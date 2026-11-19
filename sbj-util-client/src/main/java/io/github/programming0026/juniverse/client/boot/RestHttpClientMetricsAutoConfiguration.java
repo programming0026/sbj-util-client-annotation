@@ -14,12 +14,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Autoconfiguración de Spring Boot: publica en Micrometer las métricas de Resilience4j de todos los
- * clientes (circuit breaker, retry, rate limiter y time limiter), con el nombre del cliente como tag.
+ * Spring Boot auto-configuration: publishes to Micrometer the Resilience4j metrics of all the
+ * clients (circuit breaker, retry, rate limiter and time limiter), with the client name as a tag.
  *
- * Se activa solo si {@code micrometer-core} y {@code resilience4j-micrometer} están en el classpath y existen
- * clientes. Expone un {@link MeterBinder}, que Spring Boot aplica a sus {@code MeterRegistry}; los clientes
- * creados después del enlace también se publican.
+ * It is only activated if {@code micrometer-core} and {@code resilience4j-micrometer} are on the classpath and
+ * clients exist. It exposes a {@link MeterBinder}, which Spring Boot applies to its {@code MeterRegistry}
+ * instances; clients created after the binding are also published.
  *
  * @author Java Universe
  */
@@ -30,10 +30,10 @@ import org.springframework.context.annotation.Bean;
 public class RestHttpClientMetricsAutoConfiguration {
 
     /**
-     * Enlaza los registros de Resilience4j de los clientes con Micrometer.
+     * Binds the clients' Resilience4j registries to Micrometer.
      *
-     * @param circuitBreakerUtil la fábrica de instancias de Resilience4j de los clientes
-     * @return el binder de métricas
+     * @param circuitBreakerUtil the factory of the clients' Resilience4j instances
+     * @return the metrics binder
      */
     @Bean
     public MeterBinder restHttpClientResilienceMetrics(

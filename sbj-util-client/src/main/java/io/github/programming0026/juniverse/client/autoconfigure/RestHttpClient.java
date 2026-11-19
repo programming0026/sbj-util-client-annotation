@@ -13,10 +13,10 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * Declara un cliente REST HTTP con patrones de resiliencia integrados.
+ * Declares an HTTP REST client with built-in resilience patterns.
  *
- * Se coloca en una interfaz cuyos métodos usan las anotaciones de Spring Web ({@code @GetMapping},
- * {@code @PathVariable}, etc.). Incluye circuit breaker, retry, rate limiting y time limiting.
+ * It is placed on an interface whose methods use the Spring Web annotations ({@code @GetMapping},
+ * {@code @PathVariable}, etc.). It includes circuit breaker, retry, rate limiting and time limiting.
  *
  * @author Java Universe
  */
@@ -26,174 +26,176 @@ import java.lang.annotation.ElementType;
 public @interface RestHttpClient {
 
     /**
-     * Identificador único del cliente. Se usa como nombre del bean y de las instancias de Resilience4j.
-     * Si está vacío, se usa el nombre de la interfaz.
+     * Unique identifier of the client. It is used as the bean name and as the name of the Resilience4j
+     * instances. If empty, the name of the interface is used.
      *
-     * @return el nombre del cliente
+     * @return the client name
      */
     String name() default "";
 
     /**
-     * URL base del servicio REST.
+     * Base URL of the REST service.
      *
-     * @return la URL base
+     * @return the base URL
      */
     String url() default "";
 
     /**
-     * Implementación HTTP a usar (REST_CLIENT o REST_TEMPLATE).
+     * HTTP implementation to use (REST_CLIENT or REST_TEMPLATE).
      *
-     * @return el tipo de cliente
+     * @return the client type
      */
     ClientType type() default ClientType.REST_CLIENT;
 
     /**
-     * Tiempo de espera de conexión, en milisegundos. Limita tanto el establecimiento de la conexión TCP
-     * como la espera para obtener una conexión libre del pool.
+     * Connection timeout, in milliseconds. It limits both the establishment of the TCP connection
+     * and the wait to obtain a free connection from the pool.
      *
-     * @return el tiempo de espera de conexión
+     * @return the connection timeout
      */
     long connectTimeout() default 5000;
 
     /**
-     * Tiempo de espera de lectura, en milisegundos: cuánto se espera la respuesta (y cada lectura del
-     * socket) una vez conectado.
+     * Read timeout, in milliseconds: how long to wait for the response (and for each socket read) once
+     * connected.
      *
-     * @return el tiempo de espera de lectura
+     * @return the read timeout
      */
     long readTimeout() default 30000;
 
     /**
-     * Número máximo de conexiones en el pool.
+     * Maximum number of connections in the pool.
      *
-     * @return el máximo de conexiones
+     * @return the maximum number of connections
      */
     int maxConnections() default 100;
 
     /**
-     * Número máximo de conexiones por ruta en el pool.
+     * Maximum number of connections per route in the pool.
      *
-     * @return el máximo de conexiones por ruta
+     * @return the maximum number of connections per route
      */
     int maxConnectionsPerRoute() default 20;
 
     /**
-     * Tiempo de vida de las conexiones, en milisegundos. Por defecto -1 (sin límite).
+     * Time to live of the connections, in milliseconds. Default -1 (no limit).
      *
-     * @return el tiempo de vida de las conexiones
+     * @return the time to live of the connections
      */
     long connectionTimeToLive() default -1;
 
     /**
-     * Configuración de SSL/TLS (keystore y truststore).
+     * SSL/TLS configuration (keystore and truststore).
      *
-     * @return la configuración SSL
+     * @return the SSL configuration
      */
     SSLConfig ssl() default @SSLConfig;
 
     /**
-     * Si el cliente sigue las redirecciones del servidor (301, 302, 303, 307 y 308). Con {@code false} la
-     * respuesta 3xx se entrega tal cual: se puede leer con un retorno {@code ResponseEntity<T>} y su header
-     * {@code Location}.
+     * Whether the client follows the server's redirects (301, 302, 303, 307 and 308). With {@code false} the
+     * 3xx response is delivered as is: it can be read with a {@code ResponseEntity<T>} return type and its
+     * {@code Location} header.
      *
-     * @return true para seguir las redirecciones
+     * @return true to follow redirects
      */
     boolean followRedirects() default true;
 
     /**
-     * Máximo de redirecciones seguidas en una misma petición; al superarlo la petición falla. Solo aplica si
-     * {@link #followRedirects()} es {@code true}.
+     * Maximum number of redirects followed in a single request; when exceeded the request fails. It only
+     * applies if {@link #followRedirects()} is {@code true}.
      *
-     * @return el máximo de redirecciones, al menos 1
+     * @return the maximum number of redirects, at least 1
      */
     int maxRedirects() default 50;
 
     /**
-     * Proxy HTTP/HTTPS por el que salen las peticiones. Desactivado mientras su {@code host} esté vacío.
+     * HTTP/HTTPS proxy through which the requests go out. Disabled while its {@code host} is empty.
      *
-     * @return la configuración del proxy
+     * @return the proxy configuration
      */
     ProxyConfig proxy() default @ProxyConfig;
 
     /**
-     * Configuración del circuit breaker.
+     * Circuit breaker configuration.
      *
-     * @return la configuración del circuit breaker
+     * @return the circuit breaker configuration
      */
     CircuitBreakerConfig circuitBreaker() default @CircuitBreakerConfig;
 
     /**
-     * Configuración de reintentos con backoff exponencial.
+     * Retry configuration with exponential backoff.
      *
-     * @return la configuración de reintentos
+     * @return the retry configuration
      */
     RetryConfig retry() default @RetryConfig;
 
     /**
-     * Configuración del rate limiter, para controlar el volumen de peticiones.
+     * Rate limiter configuration, to control the volume of requests.
      *
-     * @return la configuración del rate limiter
+     * @return the rate limiter configuration
      */
     RateLimiterConfig rateLimiter() default @RateLimiterConfig;
 
     /**
-     * Configuración del tiempo máximo de ejecución de las peticiones.
+     * Configuration of the maximum execution time of the requests.
      *
-     * @return la configuración del time limiter
+     * @return the time limiter configuration
      */
     TimeLimiterConfig timeLimiter() default @TimeLimiterConfig;
 
     /**
-     * Manejador de errores para respuestas HTTP con error. Si existe un bean de ese tipo se usa; si no,
-     * Spring crea la instancia con inyección de dependencias (puede recibir beans por constructor).
+     * Error handler for HTTP error responses. If a bean of that type exists it is used; otherwise,
+     * Spring creates the instance with dependency injection (it can receive beans through the constructor).
      *
-     * @return la clase del manejador de errores
+     * @return the error handler class
      */
     Class<? extends ErrorHandler> errorHandler() default DefaultErrorHandler.class;
 
     /**
-     * Interceptores de este cliente (por ejemplo, autenticación o logging), en el orden en que se aplican.
-     * Igual que el manejador de errores: si existe un bean de ese tipo se usa; si no, Spring crea la
-     * instancia con inyección de dependencias. Se agregan después de los interceptores globales de la
-     * aplicación ({@code RestClientCustomizer}/{@code RestTemplateBuilder}).
+     * Interceptors of this client (for example, authentication or logging), in the order in which they are
+     * applied. Like the error handler: if a bean of that type exists it is used; otherwise Spring creates the
+     * instance with dependency injection. They are added after the application's global interceptors
+     * ({@code RestClientCustomizer}/{@code RestTemplateBuilder}).
      *
-     * @return las clases de los interceptores
+     * @return the interceptor classes
      */
     Class<? extends ClientHttpRequestInterceptor>[] interceptors() default {};
 
     /**
-     * Registra cada petición HTTP (método, URL, estado y duración) en el logger
-     * {@code <paquete de la librería>.http.<nombre del cliente>} (ver {@code Constants.BASE}), a nivel INFO,
-     * o WARN si falla. Nunca registra headers ni cuerpos, y de la query solo los nombres de los parámetros. Se
-     * aplica antes que los {@link #interceptors()}, así que la duración incluye lo que ellos hagan.
+     * Logs every HTTP request (method, URL, status and duration) in the logger
+     * {@code <library package>.http.<client name>} (see {@code Constants.BASE}), at INFO level,
+     * or WARN if it fails. It never logs headers or bodies, and of the query only the parameter names. It is
+     * applied before the {@link #interceptors()}, so the duration includes whatever they do.
      *
-     * @return true para activar el registro de peticiones
+     * @return true to enable request logging
      */
     boolean logging() default false;
 
     /**
-     * Configurador del JSON (Jackson 3) de este cliente, que parte del {@code JsonMapper} de la aplicación y
-     * cambia solo lo que declare (naming strategy, fechas, propiedades desconocidas...). La interfaz
-     * {@link JsonMapperConfigurer} indica que no hay configuración propia. Igual que el manejador de errores:
-     * si existe un bean de ese tipo se usa; si no, Spring crea la instancia con inyección de dependencias.
+     * JSON configurer (Jackson 3) of this client, which starts from the application's {@code JsonMapper} and
+     * changes only what it declares (naming strategy, dates, unknown properties...). The
+     * {@link JsonMapperConfigurer} interface means there is no custom configuration. Like the error handler:
+     * if a bean of that type exists it is used; otherwise Spring creates the instance with dependency
+     * injection.
      *
-     * @return la clase del configurador
+     * @return the configurer class
      */
     Class<? extends JsonMapperConfigurer> jsonConfig() default JsonMapperConfigurer.class;
 
     /**
-     * Clase que responde cuando el servicio no está disponible. Debe implementar la interfaz del cliente y
-     * ser concreta; cada método de la clase atiende al método de la interfaz con la misma firma. Se usa cuando,
-     * agotados los reintentos, la llamada falla por indisponibilidad: respuesta {@code 5xx}, error de red,
-     * timeout, circuito abierto o límite de peticiones. Los errores {@code 4xx} y los errores de uso (por
-     * ejemplo, un parámetro requerido ausente) <b>no</b> activan el fallback: se propagan al llamador.
+     * Class that answers when the service is unavailable. It must implement the client interface and
+     * be concrete; each method of the class serves the interface method with the same signature. It is used
+     * when, once the retries are exhausted, the call fails because of unavailability: {@code 5xx} response,
+     * network error, timeout, open circuit or request limit. {@code 4xx} errors and usage errors (for
+     * example, a missing required parameter) do <b>not</b> trigger the fallback: they are propagated to the
+     * caller.
      *
-     * La clase se obtiene como el manejador de errores (bean único de ese tipo o instancia creada con
-     * inyección de dependencias). No la declares como bean que implemente la interfaz del cliente, o la
-     * inyección de esa interfaz dejaría de ser unívoca. {@code void.class} (el valor por defecto) significa
-     * que no hay fallback.
+     * The class is obtained like the error handler (single bean of that type or instance created with
+     * dependency injection). Do not declare it as a bean that implements the client interface, or injection of
+     * that interface would become ambiguous. {@code void.class} (the default value) means
+     * there is no fallback.
      *
-     * @return la clase del fallback, o {@code void.class} si no hay
+     * @return the fallback class, or {@code void.class} if there is none
      */
     Class<?> fallback() default void.class;
 }

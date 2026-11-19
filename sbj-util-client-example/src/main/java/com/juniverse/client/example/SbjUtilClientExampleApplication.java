@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Aplicación de ejemplo de {@code sbj-util-client}.
+ * Example application of {@code sbj-util-client}.
  *
- * No hay ningún {@code @EnableRestHttpClients}: la autoconfiguración de la librería registra las interfaces
- * {@code @RestHttpClient} de este paquete y sus subpaquetes.
+ * There is no {@code @EnableRestHttpClients}: the library's auto-configuration registers the
+ * {@code @RestHttpClient} interfaces of this package and its subpackages.
  *
  * @author Java Universe
  */
@@ -15,9 +15,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class SbjUtilClientExampleApplication {
 
     /**
-     * Arranca la aplicación.
+     * Starts the application.
      *
-     * @param args los argumentos de la línea de comandos
+     * @param args the command-line arguments
      */
     public static void main(String[] args) {
         SpringApplication.run(SbjUtilClientExampleApplication.class, args);

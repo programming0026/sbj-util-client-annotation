@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Resolución de placeholders {@code ${...}} con el Environment de Spring, de punta a punta.
+ * Resolution of {@code ${...}} placeholders with Spring's Environment, end to end.
  *
  * @author Java Universe
  */

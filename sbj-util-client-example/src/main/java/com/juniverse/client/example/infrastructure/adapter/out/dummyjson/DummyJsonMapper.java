@@ -20,10 +20,10 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Convierte entre los DTOs de DummyJSON y el modelo del dominio.
+ * Converts between the DummyJSON DTOs and the domain model.
  *
- * Es la única clase que conoce ambos lados: así el dominio no depende de la forma de la API externa y un
- * cambio en esa API solo afecta a este paquete.
+ * It is the only class that knows both sides: this way the domain does not depend on the shape of the external
+ * API and a change in that API only affects this package.
  *
  * @author Java Universe
  */
@@ -31,10 +31,10 @@ import java.util.List;
 public class DummyJsonMapper {
 
     /**
-     * Convierte un producto.
+     * Converts a product.
      *
-     * @param dto el DTO
-     * @return el producto del dominio
+     * @param dto the DTO
+     * @return the domain product
      */
     public Product toDomain(ProductDto dto) {
         return new Product(orZero(dto.id()), dto.title(), dto.description(), dto.category(), dto.price(),
@@ -43,10 +43,10 @@ public class DummyJsonMapper {
     }
 
     /**
-     * Convierte una página de productos.
+     * Converts a page of products.
      *
-     * @param dto el DTO
-     * @return la página del dominio
+     * @param dto the DTO
+     * @return the domain page
      */
     public ProductPage toDomain(ProductListDto dto) {
         List<ProductDto> products = dto.products() == null ? List.of() : dto.products();
@@ -55,20 +55,20 @@ public class DummyJsonMapper {
     }
 
     /**
-     * Convierte una categoría.
+     * Converts a category.
      *
-     * @param dto el DTO
-     * @return la categoría del dominio
+     * @param dto the DTO
+     * @return the domain category
      */
     public ProductCategory toDomain(CategoryDto dto) {
         return new ProductCategory(dto.slug(), dto.name());
     }
 
     /**
-     * Convierte un usuario.
+     * Converts a user.
      *
-     * @param dto el DTO
-     * @return el usuario del dominio
+     * @param dto the DTO
+     * @return the domain user
      */
     public UserProfile toDomain(UserDto dto) {
         return new UserProfile(orZero(dto.id()), dto.username(), dto.email(), dto.firstName(), dto.lastName(),
@@ -76,10 +76,10 @@ public class DummyJsonMapper {
     }
 
     /**
-     * Convierte la respuesta de iniciar sesión.
+     * Converts the login response.
      *
-     * @param dto el DTO
-     * @return la sesión del dominio
+     * @param dto the DTO
+     * @return the domain session
      */
     public AuthSession toDomain(LoginResponseDto dto) {
         UserProfile user = new UserProfile(orZero(dto.id()), dto.username(), dto.email(), dto.firstName(),
@@ -88,20 +88,20 @@ public class DummyJsonMapper {
     }
 
     /**
-     * Convierte la respuesta de renovar tokens.
+     * Converts the token renewal response.
      *
-     * @param dto el DTO
-     * @return los tokens del dominio
+     * @param dto the DTO
+     * @return the domain tokens
      */
     public AuthTokens toDomain(RefreshResponseDto dto) {
         return new AuthTokens(dto.accessToken(), dto.refreshToken());
     }
 
     /**
-     * Convierte un producto nuevo al cuerpo que espera DummyJSON.
+     * Converts a new product into the body DummyJSON expects.
      *
-     * @param newProduct el producto del dominio
-     * @return el cuerpo de la petición
+     * @param newProduct the domain product
+     * @return the request body
      */
     public ProductPayloadDto toPayload(NewProduct newProduct) {
         return new ProductPayloadDto(newProduct.title(), newProduct.description(), newProduct.category(),
@@ -109,10 +109,10 @@ public class DummyJsonMapper {
     }
 
     /**
-     * Convierte unos cambios al cuerpo que espera DummyJSON (los campos nulos no se envían).
+     * Converts changes into the body DummyJSON expects (null fields are not sent).
      *
-     * @param changes los cambios del dominio
-     * @return el cuerpo de la petición
+     * @param changes the domain changes
+     * @return the request body
      */
     public ProductPayloadDto toPayload(ProductChanges changes) {
         return new ProductPayloadDto(changes.title(), changes.description(), changes.category(), changes.price(),

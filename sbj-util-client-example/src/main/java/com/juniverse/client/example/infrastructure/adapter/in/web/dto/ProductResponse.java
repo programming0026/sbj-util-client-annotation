@@ -6,21 +6,21 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Producto en la API REST del ejemplo.
+ * Product in the example's REST API.
  *
- * @param id identificador
- * @param title nombre
- * @param description descripción
- * @param category categoría
- * @param price precio
- * @param discountPercentage porcentaje de descuento
- * @param rating valoración
- * @param stock unidades disponibles
- * @param tags etiquetas
- * @param brand marca
- * @param sku código de inventario
- * @param thumbnail miniatura
- * @param images imágenes
+ * @param id identifier
+ * @param title name
+ * @param description description
+ * @param category category
+ * @param price price
+ * @param discountPercentage discount percentage
+ * @param rating rating
+ * @param stock available units
+ * @param tags tags
+ * @param brand brand
+ * @param sku stock keeping unit code
+ * @param thumbnail thumbnail
+ * @param images images
  * @author Java Universe
  */
 public record ProductResponse(long id, String title, String description, String category, BigDecimal price,
@@ -28,10 +28,10 @@ public record ProductResponse(long id, String title, String description, String 
                               String brand, String sku, String thumbnail, List<String> images) {
 
     /**
-     * Convierte un producto del dominio.
+     * Converts a domain product.
      *
-     * @param product el producto
-     * @return la respuesta
+     * @param product the product
+     * @return the response
      */
     public static ProductResponse from(Product product) {
         return new ProductResponse(product.id(), product.title(), product.description(), product.category(),

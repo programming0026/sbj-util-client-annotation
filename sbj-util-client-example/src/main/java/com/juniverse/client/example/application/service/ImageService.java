@@ -8,7 +8,7 @@ import com.juniverse.client.example.domain.model.ImageSpec;
 import java.util.Objects;
 
 /**
- * Caso de uso de generación de imágenes: delega en el puerto {@link ImageGenerator}.
+ * Image generation use case: delegates to the {@link ImageGenerator} port.
  *
  * @author Java Universe
  */
@@ -17,9 +17,9 @@ public class ImageService implements GenerateImageUseCase {
     private final ImageGenerator imageGenerator;
 
     /**
-     * Crea el servicio.
+     * Creates the service.
      *
-     * @param imageGenerator el puerto del generador de imágenes
+     * @param imageGenerator the image generator port
      */
     public ImageService(ImageGenerator imageGenerator) {
         this.imageGenerator = Objects.requireNonNull(imageGenerator, "imageGenerator");

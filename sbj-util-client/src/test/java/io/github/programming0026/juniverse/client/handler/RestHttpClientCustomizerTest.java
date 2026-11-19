@@ -30,7 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * {@link RestHttpClientCustomizer}: configuración de un cliente concreto, identificado por su nombre.
+ * {@link RestHttpClientCustomizer}: configuration of a specific client, identified by its name.
  *
  * @author Java Universe
  */
@@ -100,7 +100,7 @@ class RestHttpClientCustomizerTest {
         return factory.getObject();
     }
 
-    /** Agrega un header con el nombre del cliente, para saber a quién se aplicó. */
+    /** Adds a header with the client name, to know which one it was applied to. */
     private static final class NameHeaderCustomizer implements RestHttpClientCustomizer {
 
         @Override

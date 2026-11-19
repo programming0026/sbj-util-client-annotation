@@ -3,40 +3,41 @@ package io.github.programming0026.juniverse.client.util;
 import java.util.OptionalLong;
 
 /**
- * Lleva el {@code readTimeout} de un método ({@code @MethodConfig}) hasta la request factory de Apache
- * HttpClient, que lo lee al crear la petición. Funciona con {@code RestClient} y {@code RestTemplate} porque
- * la petición se crea en el mismo hilo que la inició.
+ * Carries the {@code readTimeout} of a method ({@code @MethodConfig}) to the Apache HttpClient request
+ * factory, which reads it when creating the request. It works with {@code RestClient} and {@code RestTemplate}
+ * because the request is created in the same thread that initiated it.
  *
- * Es de uso interno de la librería: el handler lo fija justo antes de hacer la petición y lo limpia al terminar.
+ * It is for internal use by the library: the handler sets it right before making the request and clears it when
+ * done.
  *
  * @author Java Universe
  */
 public final class MethodReadTimeout {
 
-    /** El timeout en milisegundos de la petición en curso del hilo, o null si se usa el del cliente. */
+    /** The timeout in milliseconds of the thread's current request, or null if the client's one is used. */
     private static final ThreadLocal<Long> CURRENT = new ThreadLocal<>();
 
     private MethodReadTimeout() {
     }
 
     /**
-     * Fija el read timeout de la petición que este hilo está por hacer.
+     * Sets the read timeout of the request this thread is about to make.
      *
-     * @param millis el timeout en milisegundos
+     * @param millis the timeout in milliseconds
      */
     public static void set(long millis) {
         CURRENT.set(millis);
     }
 
-    /** Quita el read timeout del hilo, para que las siguientes peticiones usen el del cliente. */
+    /** Removes the thread's read timeout, so the following requests use the client's one. */
     public static void clear() {
         CURRENT.remove();
     }
 
     /**
-     * Obtiene el read timeout fijado para este hilo.
+     * Gets the read timeout set for this thread.
      *
-     * @return el timeout en milisegundos, o vacío si no hay ninguno
+     * @return the timeout in milliseconds, or empty if there is none
      */
     public static OptionalLong current() {
         Long value = CURRENT.get();

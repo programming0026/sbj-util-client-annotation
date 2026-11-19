@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Adaptador de entrada: consultas del catálogo. Solo conoce los puertos de entrada (casos de uso), nunca
- * los clientes de DummyJSON.
+ * Input adapter: catalog queries. It only knows the input ports (use cases), never
+ * the DummyJSON clients.
  *
  * @author Java Universe
  */
@@ -37,11 +37,11 @@ public class ProductQueryController {
     private final ListCategoriesUseCase listCategories;
 
     /**
-     * Crea el controlador.
+     * Creates the controller.
      *
-     * @param listProducts caso de uso de listado
-     * @param getProduct caso de uso de consulta por identificador
-     * @param listCategories caso de uso de categorías
+     * @param listProducts listing use case
+     * @param getProduct query by identifier use case
+     * @param listCategories categories use case
      */
     public ProductQueryController(ListProductsUseCase listProducts, GetProductUseCase getProduct,
                                   ListCategoriesUseCase listCategories) {
@@ -51,15 +51,15 @@ public class ProductQueryController {
     }
 
     /**
-     * Lista productos, con búsqueda por texto o filtro por categoría (no ambos), paginación y orden.
+     * Lists products, with text search or category filter (not both), pagination and sorting.
      *
-     * @param limit tamaño de página
-     * @param skip elementos a omitir
-     * @param q texto a buscar
-     * @param category categoría (slug)
-     * @param sortBy campo de orden
-     * @param order {@code asc} o {@code desc}
-     * @return la página de productos
+     * @param limit page size
+     * @param skip elements to skip
+     * @param q text to search
+     * @param category category (slug)
+     * @param sortBy sort field
+     * @param order {@code asc} or {@code desc}
+     * @return the page of products
      */
     @GetMapping
     @Operation(summary = "Listar, buscar o filtrar productos",
@@ -88,9 +88,9 @@ public class ProductQueryController {
     }
 
     /**
-     * Lista las categorías.
+     * Lists the categories.
      *
-     * @return las categorías
+     * @return the categories
      */
     @GetMapping("/categories")
     @Operation(summary = "Listar las categorías de productos")
@@ -101,10 +101,10 @@ public class ProductQueryController {
     }
 
     /**
-     * Consulta un producto.
+     * Gets a product.
      *
-     * @param id el identificador
-     * @return el producto
+     * @param id the identifier
+     * @return the product
      */
     @GetMapping("/{id}")
     @Operation(summary = "Consultar un producto por su id")

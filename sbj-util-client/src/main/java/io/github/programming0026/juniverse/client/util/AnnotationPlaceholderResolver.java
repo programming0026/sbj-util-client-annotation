@@ -9,28 +9,28 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 /**
- * Resuelve placeholders en los atributos de texto de una anotación.
- * Las anotaciones son inmutables, así que se crea una copia sintetizada en la que cada atributo
- * {@code String} o {@code String[]} (también dentro de anotaciones anidadas) pasa por el resolvedor.
- * Los demás atributos se conservan tal cual.
+ * Resolves placeholders in the text attributes of an annotation.
+ * Annotations are immutable, so a synthesized copy is created in which every {@code String} or
+ * {@code String[]} attribute (also inside nested annotations) goes through the resolver.
+ * The other attributes are kept as they are.
  *
  * @author Java Universe
  */
 public final class AnnotationPlaceholderResolver {
 
     /**
-     * Instancia.
+     * Instance.
      */
     private AnnotationPlaceholderResolver() {
     }
 
     /**
-     * Devuelve una copia de la anotación con los atributos de texto resueltos.
+     * Returns a copy of the annotation with the text attributes resolved.
      *
-     * @param annotation la anotación original
-     * @param resolver la función que resuelve cada valor de texto
-     * @param <A> el tipo de la anotación
-     * @return la anotación con los valores resueltos
+     * @param annotation the original annotation
+     * @param resolver the function that resolves each text value
+     * @param <A> the annotation type
+     * @return the annotation with the values resolved
      */
     public static <A extends Annotation> A resolve(A annotation, UnaryOperator<String> resolver) {
         Map<String, Object> attributes = new LinkedHashMap<>();
@@ -42,11 +42,11 @@ public final class AnnotationPlaceholderResolver {
     }
 
     /**
-     * Resuelve un valor de atributo según su tipo.
+     * Resolves an attribute value according to its type.
      *
-     * @param value el valor del atributo
-     * @param resolver la función que resuelve cada valor de texto
-     * @return el valor resuelto
+     * @param value the attribute value
+     * @param resolver the function that resolves each text value
+     * @return the resolved value
      */
     private static Object resolveValue(Object value, UnaryOperator<String> resolver) {
         if (value instanceof String text) {

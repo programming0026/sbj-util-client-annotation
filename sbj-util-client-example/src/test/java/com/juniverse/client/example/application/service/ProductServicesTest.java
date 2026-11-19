@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Los servicios se prueban solo con dobles de los puertos de salida: no hace falta Spring ni red.
+ * The services are tested only with doubles of the output ports: neither Spring nor the network is needed.
  *
  * @author Java Universe
  */

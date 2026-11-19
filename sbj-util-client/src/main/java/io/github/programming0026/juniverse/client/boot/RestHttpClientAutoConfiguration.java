@@ -8,11 +8,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
 
 /**
- * Autoconfiguración de Spring Boot: registra los clientes {@code @RestHttpClient} de los paquetes de la
- * aplicación sin necesidad de {@code @EnableRestHttpClients}.
+ * Spring Boot auto-configuration: registers the {@code @RestHttpClient} clients found in the application's
+ * packages without needing {@code @EnableRestHttpClients}.
  *
- * No se activa si la aplicación declara {@code @EnableRestHttpClients} (entonces mandan sus
- * {@code basePackages}) ni con {@code rest-http-client.auto-scan.enabled=false}.
+ * It is not activated if the application declares {@code @EnableRestHttpClients} (then its
+ * {@code basePackages} take precedence) nor with {@code rest-http-client.auto-scan.enabled=false}.
  *
  * @author Java Universe
  */

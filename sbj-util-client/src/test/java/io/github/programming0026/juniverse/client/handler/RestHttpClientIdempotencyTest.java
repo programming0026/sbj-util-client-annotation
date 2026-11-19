@@ -39,7 +39,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Reintentos según la idempotencia del método HTTP.
+ * Retries according to the idempotency of the HTTP method.
  *
  * @author Java Universe
  */

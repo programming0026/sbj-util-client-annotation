@@ -4,17 +4,17 @@ import com.juniverse.client.example.domain.model.NewProduct;
 import com.juniverse.client.example.domain.model.Product;
 
 /**
- * Caso de uso: crear un producto.
+ * Use case: create a product.
  *
  * @author Java Universe
  */
 public interface CreateProductUseCase {
 
     /**
-     * Crea un producto.
+     * Creates a product.
      *
-     * @param newProduct los datos del producto
-     * @return el producto creado, con su identificador
+     * @param newProduct the product data
+     * @return the created product, with its identifier
      */
     Product create(NewProduct newProduct);
 }

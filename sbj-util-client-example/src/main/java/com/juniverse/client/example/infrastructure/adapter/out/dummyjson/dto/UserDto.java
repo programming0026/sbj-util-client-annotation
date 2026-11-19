@@ -3,18 +3,18 @@ package com.juniverse.client.example.infrastructure.adapter.out.dummyjson.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Usuario de DummyJSON (solo los campos que usa el ejemplo).
+ * DummyJSON user (only the fields the example uses).
  *
- * Los números son tipos envoltorio a propósito: DummyJSON omite campos en algunas respuestas (por ejemplo
- * al crear o modificar) y Jackson 3 rechaza un campo primitivo ausente.
+ * The numbers are wrapper types on purpose: DummyJSON omits fields in some responses (for example
+ * when creating or modifying) and Jackson 3 rejects a missing primitive field.
  *
- * @param id identificador
- * @param username usuario
- * @param email correo
- * @param firstName nombre
- * @param lastName apellido
- * @param gender género
- * @param image imagen de perfil
+ * @param id identifier
+ * @param username user name
+ * @param email email
+ * @param firstName first name
+ * @param lastName last name
+ * @param gender gender
+ * @param image profile image
  * @author Java Universe
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

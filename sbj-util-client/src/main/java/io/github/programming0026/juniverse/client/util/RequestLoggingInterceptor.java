@@ -14,39 +14,39 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Registra método, URL, estado y duración de cada petición HTTP de un cliente ({@code logging = true}).
- * Nunca registra headers ni cuerpos, y de la query solo muestra los nombres de los parámetros (sus valores
- * pueden llevar tokens o datos personales). Usa un logger por cliente, {@value #LOGGER_PREFIX}{@code <cliente>},
- * para poder subir o bajar su nivel desde la configuración de logging. Se registra una línea por intento, así que
- * los reintentos se ven uno a uno.
+ * Logs the method, URL, status and duration of each HTTP request of a client ({@code logging = true}).
+ * It never logs headers or bodies, and of the query it only shows the parameter names (their values
+ * may carry tokens or personal data). It uses one logger per client, {@value #LOGGER_PREFIX}{@code <client>},
+ * so its level can be raised or lowered from the logging configuration. One line is logged per attempt, so
+ * retries are seen one by one.
  *
  * @author Java Universe
  */
 public final class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
 
-    /** Prefijo del nombre del logger de cada cliente. */
+    /** Prefix of the logger name of each client. */
     public static final String LOGGER_PREFIX = Constants.BASE + ".http.";
 
-    /** El logger del cliente. */
+    /** The client's logger. */
     private final Logger log;
 
     /**
-     * Crea el interceptor de un cliente.
+     * Creates the interceptor of a client.
      *
-     * @param clientName el nombre del cliente
+     * @param clientName the client name
      */
     public RequestLoggingInterceptor(String clientName) {
         this.log = LoggerFactory.getLogger(LOGGER_PREFIX + clientName);
     }
 
     /**
-     * Ejecuta la petición y registra su resultado.
+     * Executes the request and logs its result.
      *
-     * @param request la petición
-     * @param body el cuerpo de la petición (no se registra)
-     * @param execution el resto de la cadena
-     * @return la respuesta
-     * @throws IOException si falla la petición
+     * @param request the request
+     * @param body the request body (not logged)
+     * @param execution the rest of the chain
+     * @return the response
+     * @throws IOException if the request fails
      */
     @Override
     public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
@@ -69,10 +69,10 @@ public final class RequestLoggingInterceptor implements ClientHttpRequestInterce
     }
 
     /**
-     * Devuelve la URL sin credenciales ni valores de la query: {@code https://host/ruta?limit&skip}.
+     * Returns the URL without credentials or query values: {@code https://host/path?limit&skip}.
      *
-     * @param uri la URL de la petición
-     * @return el texto que se registra
+     * @param uri the request URL
+     * @return the text that is logged
      */
     public static String describe(URI uri) {
         String names = queryNames(uri.getRawQuery());
@@ -80,10 +80,10 @@ public final class RequestLoggingInterceptor implements ClientHttpRequestInterce
     }
 
     /**
-     * Devuelve el protocolo, el host y el puerto de la URL, sin usuario ni contraseña.
+     * Returns the scheme, host and port of the URL, without user or password.
      *
-     * @param uri la URL
-     * @return por ejemplo {@code https://host:8443}, o solo lo que la URL tenga
+     * @param uri the URL
+     * @return for example {@code https://host:8443}, or only what the URL has
      */
     private static String origin(URI uri) {
         String scheme = uri.getScheme() == null ? "" : uri.getScheme() + "://";
@@ -94,10 +94,10 @@ public final class RequestLoggingInterceptor implements ClientHttpRequestInterce
     }
 
     /**
-     * Devuelve los nombres de los parámetros de una query, sin sus valores, unidos con {@code &}.
+     * Returns the names of the parameters of a query, without their values, joined with {@code &}.
      *
-     * @param query la query sin él {@code ?}, o {@code null}
-     * @return los nombres, o un texto vacío si no hay
+     * @param query the query without the {@code ?}, or {@code null}
+     * @return the names, or an empty text if there are none
      */
     private static String queryNames(String query) {
         if (query == null) {

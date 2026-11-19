@@ -5,16 +5,16 @@ import com.juniverse.client.example.domain.model.ProductCategory;
 import java.util.List;
 
 /**
- * Caso de uso: listar las categorías de productos.
+ * Use case: list the product categories.
  *
  * @author Java Universe
  */
 public interface ListCategoriesUseCase {
 
     /**
-     * Lista las categorías.
+     * Lists the categories.
      *
-     * @return las categorías
+     * @return the categories
      */
     List<ProductCategory> listCategories();
 }

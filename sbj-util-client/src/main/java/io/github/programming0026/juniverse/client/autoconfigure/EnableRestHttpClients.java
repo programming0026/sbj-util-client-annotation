@@ -11,10 +11,10 @@ import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
 /**
- * Activa los clientes REST declarativos.
+ * Enables the declarative REST clients.
  *
- * Se coloca en una clase de configuración; busca las interfaces anotadas con {@link RestHttpClient}
- * y registra un bean (proxy) por cada una.
+ * It is placed on a configuration class; it looks for the interfaces annotated with {@link RestHttpClient}
+ * and registers one bean (proxy) for each of them.
  *
  * @author Java Universe
  */
@@ -25,9 +25,9 @@ import java.lang.annotation.ElementType;
 public @interface EnableRestHttpClients {
 
     /**
-     * Paquetes donde se buscan los clientes. Si está vacío, se usa el paquete de la clase anotada.
+     * Packages where the clients are searched for. If empty, the package of the annotated class is used.
      *
-     * @return los paquetes base
+     * @return the base packages
      */
     String[] basePackages() default {};
 }

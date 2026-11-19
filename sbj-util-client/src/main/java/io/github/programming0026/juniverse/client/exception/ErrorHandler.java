@@ -3,37 +3,37 @@ package io.github.programming0026.juniverse.client.exception;
 import org.springframework.http.HttpStatusCode;
 
 /**
- * Define cómo se tratan las respuestas HTTP con error. Si existe un bean de Spring del tipo declarado se
- * usa ese; si no, Spring crea la instancia con inyección de dependencias.
+ * Defines how HTTP error responses are handled. If a Spring bean of the declared type exists it is
+ * used; otherwise Spring creates the instance with dependency injection.
  *
  * @author Java Universe
  */
 public interface ErrorHandler {
 
     /**
-     * Procesa una respuesta con error. Puede lanzar su propia excepción; si no lanza nada, se propaga
-     * la excepción HTTP original.
+     * Processes an error response. It may throw its own exception; if it throws nothing, the original
+     * HTTP exception is propagated.
      *
-     * @param statusCode el código de estado
-     * @param responseBody el cuerpo de la respuesta
-     * @param exception la excepción original
+     * @param statusCode the status code
+     * @param responseBody the response body
+     * @param exception the original exception
      */
     void handleError(HttpStatusCode statusCode, String responseBody, Exception exception);
 
     /**
-     * Indica si una respuesta con este estado se debe reintentar.
+     * Indicates whether a response with this status should be retried.
      *
-     * @param statusCode el código de estado
-     * @return true si se debe reintentar
+     * @param statusCode the status code
+     * @return true if it should be retried
      */
     boolean shouldRetry(HttpStatusCode statusCode);
 
     /**
-     * Indica si este estado cuenta como falla para el circuit breaker. Se evalúa sobre la excepción que
-     * finalmente se propaga (la de {@link #handleError} o la original).
+     * Indicates whether this status counts as a failure for the circuit breaker. It is evaluated on the
+     * exception that is finally propagated (the one from {@link #handleError} or the original one).
      *
-     * @param statusCode el código de estado
-     * @return true si se registra como falla
+     * @param statusCode the status code
+     * @return true if it is recorded as a failure
      */
     boolean shouldRecordAsFailure(HttpStatusCode statusCode);
 }

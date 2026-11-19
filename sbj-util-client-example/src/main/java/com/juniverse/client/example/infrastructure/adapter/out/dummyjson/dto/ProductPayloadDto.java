@@ -5,15 +5,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 
 /**
- * Cuerpo para crear o modificar un producto. Los campos nulos no se envían, lo que permite cambios
- * parciales.
+ * Body to create or modify a product. Null fields are not sent, which allows partial
+ * changes.
  *
- * @param title nombre
- * @param description descripción
- * @param category categoría
- * @param price precio
- * @param stock unidades disponibles
- * @param brand marca
+ * @param title name
+ * @param description description
+ * @param category category
+ * @param price price
+ * @param stock available units
+ * @param brand brand
  * @author Java Universe
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)

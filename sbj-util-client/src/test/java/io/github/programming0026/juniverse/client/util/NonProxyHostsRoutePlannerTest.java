@@ -7,7 +7,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Los patrones de {@code nonProxyHosts}.
+ * The {@code nonProxyHosts} patterns.
  *
  * @author Java Universe
  */

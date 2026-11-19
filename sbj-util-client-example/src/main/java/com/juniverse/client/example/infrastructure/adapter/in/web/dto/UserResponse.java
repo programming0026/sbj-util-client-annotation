@@ -3,25 +3,25 @@ package com.juniverse.client.example.infrastructure.adapter.in.web.dto;
 import com.juniverse.client.example.domain.model.UserProfile;
 
 /**
- * Usuario en la API REST del ejemplo.
+ * User in the example's REST API.
  *
- * @param id identificador
- * @param username usuario
- * @param email correo
- * @param firstName nombre
- * @param lastName apellido
- * @param gender género
- * @param image imagen de perfil
+ * @param id identifier
+ * @param username user name
+ * @param email email
+ * @param firstName first name
+ * @param lastName last name
+ * @param gender gender
+ * @param image profile image
  * @author Java Universe
  */
 public record UserResponse(long id, String username, String email, String firstName, String lastName,
                            String gender, String image) {
 
     /**
-     * Convierte un usuario del dominio.
+     * Converts a domain user.
      *
-     * @param user el usuario
-     * @return la respuesta
+     * @param user the user
+     * @return the response
      */
     public static UserResponse from(UserProfile user) {
         return new UserResponse(user.id(), user.username(), user.email(), user.firstName(), user.lastName(),
