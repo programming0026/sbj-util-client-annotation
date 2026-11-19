@@ -53,8 +53,8 @@ Cómo está hecho (springdoc-openapi, dependencia `springdoc-openapi-starter-web
 - La documentación describe la API **propia** del ejemplo. Los clientes `@RestHttpClient` hacia DummyJSON son
   internos y no aparecen.
 - Las propiedades `springdoc.*` de `application.properties` ajustan el orden y el comportamiento de la interfaz.
-- Los textos de la documentación están en español; los mensajes de error que devuelve la API (`detail` de los
-  `ProblemDetail`) están en inglés, igual que los logs.
+- Los textos de la documentación (Swagger UI) están en inglés, igual que los mensajes de error que devuelve la API (`detail` de los
+  `ProblemDetail`) y los logs.
 - Si no quieres exponerla (por ejemplo en producción), añade `springdoc.api-docs.enabled=false` y
   `springdoc.swagger-ui.enabled=false`.
 

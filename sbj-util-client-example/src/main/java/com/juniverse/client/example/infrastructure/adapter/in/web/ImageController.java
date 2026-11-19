@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/images")
-@Tag(name = "Imágenes", description = "Generador de imágenes de marcador de posición")
+@Tag(name = "Images", description = "Placeholder image generator")
 public class ImageController {
 
     private final GenerateImageUseCase generateImage;
@@ -51,29 +51,29 @@ public class ImageController {
      * @return the image bytes
      */
     @GetMapping
-    @Operation(summary = "Generar una imagen de marcador de posición",
-            description = "Devuelve los bytes de la imagen con el tipo de contenido del formato elegido.")
-    @ApiResponse(responseCode = "200", description = "La imagen",
+    @Operation(summary = "Generate a placeholder image",
+            description = "Returns the image bytes with the content type of the chosen format.")
+    @ApiResponse(responseCode = "200", description = "The image",
             content = {
                 @Content(mediaType = "image/png", schema = @Schema(type = "string", format = "binary")),
                 @Content(mediaType = "image/jpeg", schema = @Schema(type = "string", format = "binary")),
                 @Content(mediaType = "image/webp", schema = @Schema(type = "string", format = "binary"))})
-    @ApiResponse(responseCode = "400", description = "Tamaño, color, tamaño de letra o formato inválidos", content = @Content)
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible", content = @Content)
+    @ApiResponse(responseCode = "400", description = "Invalid size, color, font size or format", content = @Content)
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable", content = @Content)
     public ResponseEntity<byte[]> generate(
-            @Parameter(description = "Ancho en píxeles (de 1 a 2000)", example = "400")
+            @Parameter(description = "Width in pixels (1 to 2000)", example = "400")
             @RequestParam(defaultValue = "300") int width,
-            @Parameter(description = "Alto en píxeles (de 1 a 2000)", example = "200")
+            @Parameter(description = "Height in pixels (1 to 2000)", example = "200")
             @RequestParam(defaultValue = "200") int height,
-            @Parameter(description = "Color de fondo: 6 dígitos hexadecimales sin '#'", example = "008080")
+            @Parameter(description = "Background color: 6 hexadecimal digits without '#'", example = "008080")
             @RequestParam(required = false) String background,
-            @Parameter(description = "Color del texto: 6 dígitos hexadecimales sin '#'", example = "ffffff")
+            @Parameter(description = "Text color: 6 hexadecimal digits without '#'", example = "ffffff")
             @RequestParam(required = false) String color,
-            @Parameter(description = "Texto a dibujar", example = "Hola mundo")
+            @Parameter(description = "Text to draw", example = "Hello world")
             @RequestParam(required = false) String text,
-            @Parameter(description = "Tamaño de la letra (de 1 a 200)", example = "24")
+            @Parameter(description = "Font size (1 to 200)", example = "24")
             @RequestParam(required = false) Integer fontSize,
-            @Parameter(description = "Formato de la imagen: png (por defecto), jpg o webp", example = "webp")
+            @Parameter(description = "Image format: png (default), jpg or webp", example = "webp")
             @RequestParam(required = false) String format) {
         ImageSpec spec = new ImageSpec(width, height, background, color, text, fontSize, ImageFormat.from(format));
         GeneratedImage image = generateImage.generate(spec);

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/products")
-@Tag(name = "Productos", description = "Consulta y modificación del catálogo de productos")
+@Tag(name = "Products", description = "Query and modification of the product catalog")
 public class ProductCommandController {
 
     private final CreateProductUseCase createProduct;
@@ -55,12 +55,12 @@ public class ProductCommandController {
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Crear un producto",
-            description = "`title` y `price` son obligatorios. DummyJSON simula la creación: responde con un "
-                    + "id nuevo pero no guarda nada.")
-    @ApiResponse(responseCode = "201", description = "El producto creado")
-    @ApiResponse(responseCode = "400", description = "Faltan campos o son inválidos")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
+    @Operation(summary = "Create a product",
+            description = "`title` and `price` are required. DummyJSON simulates the creation: it responds with a "
+                    + "new id but stores nothing.")
+    @ApiResponse(responseCode = "201", description = "The created product")
+    @ApiResponse(responseCode = "400", description = "Fields are missing or invalid")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
     public ProductResponse create(@RequestBody ProductRequest request) {
         return ProductResponse.from(createProduct.create(request.toNewProduct()));
     }
@@ -73,13 +73,13 @@ public class ProductCommandController {
      * @return the updated product
      */
     @PatchMapping("/{id}")
-    @Operation(summary = "Modificar algunos campos de un producto",
-            description = "Solo se cambian los campos que se envían, y se requiere al menos uno.")
-    @ApiResponse(responseCode = "200", description = "El producto modificado")
-    @ApiResponse(responseCode = "400", description = "No hay campos que cambiar o los valores son inválidos")
-    @ApiResponse(responseCode = "404", description = "El producto no existe")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
-    public ProductResponse update(@Parameter(description = "Id del producto", example = "1") @PathVariable long id,
+    @Operation(summary = "Modify some fields of a product",
+            description = "Only the fields that are sent are changed, and at least one is required.")
+    @ApiResponse(responseCode = "200", description = "The modified product")
+    @ApiResponse(responseCode = "400", description = "There are no fields to change or the values are invalid")
+    @ApiResponse(responseCode = "404", description = "The product does not exist")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
+    public ProductResponse update(@Parameter(description = "Product id", example = "1") @PathVariable long id,
                                   @RequestBody ProductRequest request) {
         return ProductResponse.from(updateProduct.update(id, request.toChanges()));
     }
@@ -91,11 +91,11 @@ public class ProductCommandController {
      * @return the deleted product
      */
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar un producto", description = "DummyJSON simula la eliminación.")
-    @ApiResponse(responseCode = "200", description = "El producto eliminado")
-    @ApiResponse(responseCode = "404", description = "El producto no existe")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
-    public ProductResponse delete(@Parameter(description = "Id del producto", example = "1") @PathVariable long id) {
+    @Operation(summary = "Delete a product", description = "DummyJSON simulates the deletion.")
+    @ApiResponse(responseCode = "200", description = "The deleted product")
+    @ApiResponse(responseCode = "404", description = "The product does not exist")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
+    public ProductResponse delete(@Parameter(description = "Product id", example = "1") @PathVariable long id) {
         return ProductResponse.from(deleteProduct.delete(id));
     }
 }

@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/auth")
-@Tag(name = "Autenticación", description = "Inicio de sesión, usuario actual y renovación de tokens")
+@Tag(name = "Authentication", description = "Log in, current user and token renewal")
 public class AuthController {
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -58,12 +58,12 @@ public class AuthController {
      * @return the user and their tokens
      */
     @PostMapping("/login")
-    @Operation(summary = "Iniciar sesión",
-            description = "Pruébalo con el usuario de prueba de DummyJSON: `emilys` / `emilyspass`.")
-    @ApiResponse(responseCode = "200", description = "El usuario y los tokens de la sesión")
-    @ApiResponse(responseCode = "400", description = "Falta el usuario o la contraseña")
-    @ApiResponse(responseCode = "401", description = "Usuario o contraseña incorrectos")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
+    @Operation(summary = "Log in",
+            description = "Try it with the DummyJSON test user: `emilys` / `emilyspass`.")
+    @ApiResponse(responseCode = "200", description = "The user and the session tokens")
+    @ApiResponse(responseCode = "400", description = "The user name or the password is missing")
+    @ApiResponse(responseCode = "401", description = "Wrong user name or password")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
     public SessionResponse login(@RequestBody LoginRequest request) {
         return SessionResponse.from(login.login(request.toCredentials()));
     }
@@ -75,12 +75,12 @@ public class AuthController {
      * @return the user
      */
     @GetMapping("/me")
-    @Operation(summary = "Consultar el usuario actual",
-            description = "Devuelve el usuario dueño del token de acceso enviado como `Authorization: Bearer <token>`.",
+    @Operation(summary = "Get the current user",
+            description = "Returns the user who owns the access token sent as `Authorization: Bearer <token>`.",
             security = @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH))
-    @ApiResponse(responseCode = "200", description = "El usuario")
-    @ApiResponse(responseCode = "401", description = "El token falta, es inválido o expiró")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
+    @ApiResponse(responseCode = "200", description = "The user")
+    @ApiResponse(responseCode = "401", description = "The token is missing, invalid or expired")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
     public UserResponse me(@Parameter(hidden = true)
                            @RequestHeader(value = "Authorization", required = false) String authorization) {
         return UserResponse.from(getCurrentUser.getCurrentUser(bearerToken(authorization)));
@@ -93,10 +93,10 @@ public class AuthController {
      * @return the new tokens
      */
     @PostMapping("/refresh")
-    @Operation(summary = "Renovar los tokens", description = "Cambia un token de renovación por un par de tokens nuevo.")
-    @ApiResponse(responseCode = "200", description = "Los tokens nuevos")
-    @ApiResponse(responseCode = "401", description = "El token de renovación falta, es inválido o expiró")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
+    @Operation(summary = "Renew the tokens", description = "Exchanges a refresh token for a new pair of tokens.")
+    @ApiResponse(responseCode = "200", description = "The new tokens")
+    @ApiResponse(responseCode = "401", description = "The refresh token is missing, invalid or expired")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
     public TokensResponse refresh(@RequestBody RefreshRequest request) {
         return TokensResponse.from(refreshSession.refresh(request.refreshToken()));
     }

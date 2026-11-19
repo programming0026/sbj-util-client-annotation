@@ -29,7 +29,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/products")
-@Tag(name = "Productos", description = "Consulta y modificación del catálogo de productos")
+@Tag(name = "Products", description = "Query and modification of the product catalog")
 public class ProductQueryController {
 
     private final ListProductsUseCase listProducts;
@@ -62,25 +62,25 @@ public class ProductQueryController {
      * @return the page of products
      */
     @GetMapping
-    @Operation(summary = "Listar, buscar o filtrar productos",
-            description = "Devuelve una página de productos. Usa `q` para buscar por texto o `category` para filtrar por "
-                    + "categoría (no se pueden combinar), y `sortBy`/`order` para ordenar.")
-    @ApiResponse(responseCode = "200", description = "Una página de productos")
-    @ApiResponse(responseCode = "400", description = "Paginación, orden o combinación de filtros inválidos")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
+    @Operation(summary = "List, search or filter products",
+            description = "Returns a page of products. Use `q` to search by text or `category` to filter by "
+                    + "category (they cannot be combined), and `sortBy`/`order` to sort.")
+    @ApiResponse(responseCode = "200", description = "A page of products")
+    @ApiResponse(responseCode = "400", description = "Invalid pagination, sorting or filter combination")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
     public ProductPageResponse list(
-            @Parameter(description = "Tamaño de página (de 1 a 100)", example = "30")
+            @Parameter(description = "Page size (1 to 100)", example = "30")
             @RequestParam(defaultValue = "30") int limit,
-            @Parameter(description = "Elementos a omitir antes de la página", example = "0")
+            @Parameter(description = "Elements to skip before the page", example = "0")
             @RequestParam(defaultValue = "0") int skip,
-            @Parameter(description = "Texto a buscar", example = "phone")
+            @Parameter(description = "Text to search", example = "phone")
             @RequestParam(required = false) String q,
-            @Parameter(description = "Slug de la categoría; ver GET /api/products/categories", example = "laptops")
+            @Parameter(description = "Category slug; see GET /api/products/categories", example = "laptops")
             @RequestParam(required = false) String category,
-            @Parameter(description = "Campo de orden: id, title, price, rating, stock, brand, category o "
+            @Parameter(description = "Sort field: id, title, price, rating, stock, brand, category or "
                     + "discountPercentage", example = "price")
             @RequestParam(required = false) String sortBy,
-            @Parameter(description = "Sentido del orden: asc (por defecto) o desc", example = "desc")
+            @Parameter(description = "Sort direction: asc (default) or desc", example = "desc")
             @RequestParam(required = false) String order) {
         ProductCriteria criteria = new ProductCriteria(new PageRequest(limit, skip), q, category, sortBy,
                 SortOrder.from(order));
@@ -93,9 +93,9 @@ public class ProductQueryController {
      * @return the categories
      */
     @GetMapping("/categories")
-    @Operation(summary = "Listar las categorías de productos")
-    @ApiResponse(responseCode = "200", description = "Todas las categorías")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
+    @Operation(summary = "List the product categories")
+    @ApiResponse(responseCode = "200", description = "All the categories")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
     public List<CategoryResponse> categories() {
         return listCategories.listCategories().stream().map(CategoryResponse::from).toList();
     }
@@ -107,12 +107,12 @@ public class ProductQueryController {
      * @return the product
      */
     @GetMapping("/{id}")
-    @Operation(summary = "Consultar un producto por su id")
-    @ApiResponse(responseCode = "200", description = "El producto")
-    @ApiResponse(responseCode = "400", description = "El id no es un número")
-    @ApiResponse(responseCode = "404", description = "El producto no existe")
-    @ApiResponse(responseCode = "503", description = "DummyJSON no está disponible")
-    public ProductResponse get(@Parameter(description = "Id del producto", example = "1") @PathVariable long id) {
+    @Operation(summary = "Get a product by its id")
+    @ApiResponse(responseCode = "200", description = "The product")
+    @ApiResponse(responseCode = "400", description = "The id is not a number")
+    @ApiResponse(responseCode = "404", description = "The product does not exist")
+    @ApiResponse(responseCode = "503", description = "DummyJSON is unavailable")
+    public ProductResponse get(@Parameter(description = "Product id", example = "1") @PathVariable long id) {
         return ProductResponse.from(getProduct.getById(id));
     }
 }

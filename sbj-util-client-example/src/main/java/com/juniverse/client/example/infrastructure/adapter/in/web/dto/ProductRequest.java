@@ -19,12 +19,12 @@ import java.math.BigDecimal;
  * @author Java Universe
  */
 public record ProductRequest(
-        @Schema(description = "Nombre del producto (obligatorio al crear)", example = "Lámpara de escritorio") String title,
-        @Schema(description = "Descripción", example = "Lámpara LED ajustable") String description,
-        @Schema(description = "Slug de la categoría", example = "furniture") String category,
-        @Schema(description = "Precio, 0 o más (obligatorio al crear)", example = "12.5") BigDecimal price,
-        @Schema(description = "Unidades disponibles, 0 o más", example = "40") Integer stock,
-        @Schema(description = "Marca", example = "Lumina") String brand) {
+        @Schema(description = "Product name (required when creating)", example = "Desk lamp") String title,
+        @Schema(description = "Description", example = "Adjustable LED lamp") String description,
+        @Schema(description = "Category slug", example = "furniture") String category,
+        @Schema(description = "Price, 0 or more (required when creating)", example = "12.5") BigDecimal price,
+        @Schema(description = "Available units, 0 or more", example = "40") Integer stock,
+        @Schema(description = "Brand", example = "Lumina") String brand) {
 
     /**
      * Converts the body into a new product.

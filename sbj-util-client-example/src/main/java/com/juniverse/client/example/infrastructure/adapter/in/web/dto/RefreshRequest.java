@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @author Java Universe
  */
 public record RefreshRequest(
-        @Schema(description = "Token de renovación que devuelve el inicio de sesión", example = "eyJhbGciOiJIUzI1NiJ9...") String refreshToken) {
+        @Schema(description = "Refresh token returned by the login", example = "eyJhbGciOiJIUzI1NiJ9...") String refreshToken) {
 
     /** The token must never appear in logs. */
     @Override

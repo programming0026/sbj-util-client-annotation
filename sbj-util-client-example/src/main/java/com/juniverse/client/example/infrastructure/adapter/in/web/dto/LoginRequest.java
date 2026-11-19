@@ -11,8 +11,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @author Java Universe
  */
 public record LoginRequest(
-        @Schema(description = "Nombre de usuario", example = "emilys") String username,
-        @Schema(description = "Contraseña", example = "emilyspass", format = "password") String password) {
+        @Schema(description = "User name", example = "emilys") String username,
+        @Schema(description = "Password", example = "emilyspass", format = "password") String password) {
 
     /**
      * Converts the body into domain credentials.
