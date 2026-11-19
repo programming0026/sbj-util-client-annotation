@@ -1,5 +1,7 @@
 # sbj-util-client-example
 
+**Español** | [English](README.en.md)
+
 Aplicación de ejemplo de la librería [`sbj-util-client`](../sbj-util-client): una API REST propia que, por
 dentro, consume los servicios de [DummyJSON](https://dummyjson.com) (productos, autenticación e imágenes) con
 clientes declarativos, y está organizada con **arquitectura hexagonal** y principios **SOLID**.
