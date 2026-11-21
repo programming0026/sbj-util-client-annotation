@@ -146,16 +146,6 @@ An automated test (`HexagonalArchitectureTest`) checks the rule: the domain impo
 from other layers, the application depends only on the domain, and the inbound and outbound adapters do not
 know each other.
 
-## SOLID principles in the example
-
-| Principle | Where it shows |
-|---|---|
-| **S**: single responsibility | `ProductQueryService` (queries) and `ProductCommandService` (changes) are separate classes; `DummyJsonMapper` only converts; `DummyJsonErrorTranslator` only translates errors; `WebExceptionHandler` is the only one that knows HTTP status codes. |
-| **O**: open/closed | Switching providers only requires a new adapter implementing the port; services and controllers are not modified. |
-| **L**: Liskov substitution | Any implementation of `ProductReader` (DummyJSON, a database, a test double) is interchangeable: the service tests use doubles. |
-| **I**: interface segregation | One inbound port per use case, and reading (`ProductReader`) separated from writing (`ProductWriter`). |
-| **D**: dependency inversion | Services depend on the outbound ports (core interfaces), not on the adapters; `UseCaseConfig` is the only place that decides which adapter is used. |
-
 ## How it uses the library
 
 The three clients are just interfaces (`infrastructure/adapter/out/dummyjson/api`). There is no

@@ -146,16 +146,6 @@ Una prueba automática (`HexagonalArchitectureTest`) comprueba la regla: el domi
 Spring ni de otras capas, la aplicación solo depende del dominio y los adaptadores de entrada y de salida no
 se conocen entre sí.
 
-## Principios SOLID en el ejemplo
-
-| Principio | Dónde se ve |
-|---|---|
-| **S**: responsabilidad única | `ProductQueryService` (consultas) y `ProductCommandService` (cambios) son clases distintas; `DummyJsonMapper` solo convierte; `DummyJsonErrorTranslator` solo traduce errores; `WebExceptionHandler` es el único que conoce los códigos HTTP. |
-| **O**: abierto/cerrado | Para cambiar de proveedor basta un adaptador nuevo que implemente el puerto; los servicios y controladores no se modifican. |
-| **L**: sustitución de Liskov | Cualquier implementación de `ProductReader` (DummyJSON, base de datos, un doble de pruebas) es intercambiable: los tests de los servicios usan dobles. |
-| **I**: segregación de interfaces | Un puerto de entrada por caso de uso, y la lectura (`ProductReader`) separada de la escritura (`ProductWriter`). |
-| **D**: inversión de dependencias | Los servicios dependen de los puertos de salida (interfaces del núcleo), no de los adaptadores; `UseCaseConfig` es el único lugar que decide qué adaptador se usa. |
-
 ## Cómo usa la librería
 
 Los tres clientes son solo interfaces (`infrastructure/adapter/out/dummyjson/api`). No hay
